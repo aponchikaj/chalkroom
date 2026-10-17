@@ -5,7 +5,7 @@
 // spare; anything else throws, and FallbackModel answers from the mock tutor.
 import { Logger } from '@nestjs/common';
 import { ModelPort, type AgentName, type ModelEvent, type ModelRequest } from './model.port';
-import { GroqStream, RateWindow, RequestWindow, dailyLimit, geminiLimit, parseDuration, toGroqBody, tooLarge, type CompatProvider, type ReasoningEffort } from './groq';
+import { GroqStream, RateWindow, RequestWindow, dailyLimit, geminiLimit, parseDuration, toGroqBody, tooLarge, undoDoubleEscapes, type CompatProvider, type ReasoningEffort } from './groq';
 
 const URLS: Record<CompatProvider, string> = {
   groq: 'https://api.groq.com/openai/v1/chat/completions',
@@ -166,6 +166,7 @@ export class GroqModel extends ModelPort {
     // no tool call (a text reply or broken JSON): throw, so FallbackModel answers instead
     const why = s.missingTool();
     if (why) throw new Error(`${req.agent}: ${this.provider} ${model} returned no ${req.tool.name} call (${why})`);
-    for (const ev of tail) yield ev;
+    // Gemini double-escapes strings in tool arguments (see undoDoubleEscapes)
+    for (const ev of tail) yield ev.type === 'tool' && this.provider === 'gemini' ? { ...ev, input: undoDoubleEscapes(ev.input) } : ev;
   }
 }

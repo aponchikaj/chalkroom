@@ -196,6 +196,56 @@ Content-Type: application/json
 
 { "topic": "bump seeds" }
 
+### Message the thread tutor (threadId from the open-thread response)
+POST {{api}}/threads/{{threadId}}/messages
+Authorization: Bearer {{gio}}
+Content-Type: application/json
+
+{ "text": "Why does it start at 255?" }
+
+### Share the thread to the class as an answered cluster
+POST {{api}}/threads/{{threadId}}/share
+Authorization: Bearer {{gio}}
+Content-Type: application/json
+
+{}
+
+### Close the thread
+POST {{api}}/threads/{{threadId}}/close
+Authorization: Bearer {{gio}}
+Content-Type: application/json
+
+{}
+
+### Sources: add a link for the tutors
+POST {{api}}/rooms/{{roomId}}/sources/url
+Authorization: Bearer {{ana}}
+Content-Type: application/json
+
+{ "url": "https://solana.com/docs/core/pda" }
+
+### Sources: list (pending -> processing -> ready)
+GET {{api}}/rooms/{{roomId}}/sources
+Authorization: Bearer {{ana}}
+
+### Sources: upload URL for a file (then PUT the file to signedUrl, then commit)
+POST {{api}}/rooms/{{roomId}}/sources/upload-url
+Authorization: Bearer {{ana}}
+Content-Type: application/json
+
+{ "fileName": "handout.pdf", "contentType": "application/pdf", "size": 1024 }
+
+### Sources: commit the uploaded file
+POST {{api}}/rooms/{{roomId}}/sources
+Authorization: Bearer {{ana}}
+Content-Type: application/json
+
+{ "path": "<path from upload-url>", "title": "Handout" }
+
+### Sources: remove
+DELETE {{api}}/sources/{{sourceId}}
+Authorization: Bearer {{ana}}
+
 ### Leave the room
 POST {{api}}/rooms/{{roomId}}/leave
 Authorization: Bearer {{gio}}

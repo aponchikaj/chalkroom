@@ -251,3 +251,6 @@ $RECYCLE.BIN/
 
 # agent eval raw results (summaries go in docs/PLAN_QUALITY.md)
 packages/api/eval/results/
+
+# browser-automation snapshots
+.playwright-mcp/

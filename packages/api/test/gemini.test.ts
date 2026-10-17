@@ -124,3 +124,21 @@ describe('spares per agent', () => {
     }
   });
 });
+
+describe('undoDoubleEscapes (Gemini tool input)', () => {
+  it('fixes literal \\n in text fields and doubled backslashes before LaTeX commands', async () => {
+    const { undoDoubleEscapes } = await import('../src/agents/groq');
+    const input = { steps: [
+      { add: { id: 'a', kind: 'box', text: 'Standard Account\\n(Keypair)', label: 'x\\ny' } },
+      { write: { id: 'f', latex: '\\\\text{PDA} = H(\\\\text{seeds}) \\\\\\\\ x' } },
+      { add: { id: 'c', kind: 'code', code: 'print("a\\nb")' } },
+      { say: 'One.\\nTwo.' },
+    ] };
+    const out = undoDoubleEscapes(input) as typeof input;
+    expect((out.steps[0] as { add: { text: string; label: string } }).add).toMatchObject({ text: 'Standard Account\n(Keypair)', label: 'x\ny' });
+    expect((out.steps[1] as { write: { latex: string } }).write.latex).toBe('\\text{PDA} = H(\\text{seeds}) \\\\ x');
+    // code keeps its escapes: "\n" inside a string literal is meant literally
+    expect((out.steps[2] as { add: { code: string } }).add.code).toBe('print("a\\nb")');
+    expect((out.steps[3] as { say: string }).say).toBe('One.\nTwo.');
+  });
+});
