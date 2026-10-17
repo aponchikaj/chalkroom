@@ -1,30 +1,88 @@
-# Chalkroom Live: task split
+# Chalkroom Live: task board
 
-Two developers, two lanes, one contract. Read `docs/design.md` first (the product), then
-`README.md` (how to run it). This file says what is already built, who owns what, and the
-order to build the rest so the demo works by Sunday 12:00.
+Two developers, two lanes, one contract. **Dev A (frontend lane, web app and design system):
+Kote Bibilauri. Dev B (backend + agents lane): Lazare Mirziashvili.** Read `docs/design.md`
+first (the product), then `README.md` (how to run it). This file is the board: what is built,
+what is next, who does it, and how fast it runs. Backend detail lives in
+[`DEVB_TASKS.md`](DEVB_TASKS.md) (what and why) and [`PLANS_DEVB.md`](PLANS_DEVB.md) (how,
+step by step); the database in [`SCHEMA.md`](SCHEMA.md).
 
-## What is already built (the linear part)
+## Decisions (2026-10-17)
 
-Everything that both lanes depend on is in place, so you can start in parallel today.
+- **Accounts are required.** Email + password (Supabase Auth): register, log in, confirm email,
+  reset password. No anonymous join.
+- **Profiles and settings:** username, display name, color, bio, profile picture; per-user
+  settings (tutor voice on/off and speed, captions, reduced motion, theme, language, email
+  notifications).
+- **2FA:** authenticator app (TOTP) and email codes.
+- **Text only for people.** No microphone, no speech-to-text; only the AI tutor speaks.
+- **At most 5 users per room.**
+- **RAG:** the tutors cite uploaded files, web pages, the syllabus with past notes and FAQ, and
+  the live class transcript.
+- **Design:** Dev A owns the web app and the design system; backend work does not wait for it.
 
-| Area | Built | Where |
-|---|---|---|
-| Monorepo | npm workspaces, shared TS config, Vitest, typecheck, CI | root, `.github/workflows/ci.yml` |
-| **Contracts** | Stream events, row types, REST bodies, agent tool outputs, realtime topics, presence | `packages/schema/src/live.ts` |
-| Board engine | v1 Board Script schema + pure reducer (replay any stream from events) | `packages/board`, `packages/schema/src/core.ts` |
-| Database | All core tables, RLS (members read, only the API writes), gap-free `append_event()`, broadcast triggers to `room:{id}`, realtime channel policies, seed course | `supabase/migrations`, `supabase/seed.sql` |
-| ModelPort | One interface; mock model; Claude (Haiku 4.5, streaming, forced tool, cached prefix); fallback to the mock on errors | `packages/api/src/agents/*.model.ts` |
-| Agents | Lead tutor (plan, teach, answer cluster), triage, thread tutor and scribe are **callable** with validation and a repair pass. Only the lead tutor is wired in. | `packages/api/src/agents` |
-| Conductor | Per-room serial actor: lobby → teaching → check → qa → … → ended; ready gate (all ready / 60 s after first vote / host skip); hold, resume, slower, end; check close with spread; Q&A beat for `class` clusters; resume after restart | `packages/api/src/conductor` |
-| REST | create, preview, join, leave, start, ready, host, check answer, reactions, ask, +1. Thread routes exist and return 501 | `packages/api/src/{rooms,questions,threads}` |
-| Mock tutor | Scripted 3-segment PDA lesson, cluster answers, triage by word overlap, thread replies, summaries | `packages/mock-tutor` |
-| Web | Home, pre-join, classroom shell; anonymous auth; private channel + presence; StreamSync (snapshot + buffer + gap fill + resync); board synced on every device with local TTS and captions; people + plan panels; ready bar + host controls; check card with answer spread; lobby with invite link + QR; bare question list | `packages/web/src` |
-| Tests | Sync algorithm, contracts vs mock lesson, mock triage, tool JSON schemas; `npm run smoke` runs a two-user class end to end | `packages/*/test`, `scripts/smoke.mjs` |
+## Status at a glance
+
+Done = built and tested. Next = being built. Todo = planned.
+
+| Area | Done | Next / todo | Dev A | Dev B |
+|---|---|---|---|---|
+| **Platform** | Monorepo, CI, contracts, board engine, local Supabase (Postgres 17), env split local/prod, backend folder structure, sandbox console, e2e + pgTAP + smoke + bench | Deploy (todo) | | B0 done, B7 todo |
+| **Accounts and security** | Schema for profiles, settings, 2FA, moderation; signup trigger; `GET /me`; rooms use the profile; `PATCH /me`, settings, profile picture, public profiles, account deletion; email users in every test; `REQUIRE_ACCOUNT` switch | Switch off anonymous sign-in with the web login (next); 2FA API (next) | A8 login, A9 profile and settings, A10 2FA (todo) | B9 done except the switch, B10 done, B11 next |
+| **Live class** | Rooms (max 5), join by code, gate (all ready / 60 s / skip), hold, resume, slower, end, checks with spread, reactions, Q&A beat, resume after restart | Presence-aware gate, host handoff (todo) | A4 polish | B5 todo |
+| **Questions** | Ask, anonymous +1, rate limit 6/min | Triage: clusters and routes (todo) | A1 rail, A2 ask UX | B2 todo |
+| **Threads** | Routes in the contract (501) | Thread service (todo) | A3 drawer | B4 todo |
+| **Notes and recap** | `note_blocks` table and broadcast | Scribe summaries, notes, edit route (todo) | A5 | B3 todo |
+| **AI tutor** | ModelPort, mock tutor, Claude adapter with fallback, four agents callable | Real model, streaming steps, pipelining (todo, needs `ANTHROPIC_API_KEY`) | | B1 todo |
+| **Knowledge (RAG)** | Schema: sources, chunks, hybrid search, resources bucket; `EmbeddingPort` | Ingest, retrieval, citations (todo) | A11 sources panel, citations | B12 todo |
+| **Reliability** | Mute/ban columns in the schema | Token budget, simple-mode retry, moderation routes (todo) | buttons | B6 todo |
+
+## Numbers (measured 2026-10-17, local, mock tutor)
+
+**Tests**
+
+| Layer | Command | Count | Covers |
+|---|---|---|---|
+| Unit | `npm test` | 31 tests, 8 files | pure modules: tool schemas, board, sync, mock tutor, username, settings mapping, mail and embedding adapters |
+| API end to end | `npm run test:api` | 67 tests + 11 todo, 7 files | every route: happy path, 400/401/403/404/409/429, RLS, realtime, a full class, accounts, profiles, avatars, settings, mail |
+| Database | `npm run test:db` | 39 pgTAP checks, 4 files | signup trigger, usernames, RLS, 2FA rule, bans, settings, deletion cascade, hybrid search |
+| Smoke | `npm run smoke` | 1 two-user class | join, stream, check, gate, next segment, end |
+
+**Latency** (`npm run bench`; MacBook, local Docker; p50 / p95 / max in ms)
+
+| Measure | p50 | p95 | max | Note |
+|---|---|---|---|---|
+| Sign up (Supabase Auth) | 75 | 138 | 138 | email + password |
+| `GET /health` | 0 | 2 | 2 | |
+| `GET /me` | 4 | 44 | 44 | profile + settings + email |
+| `PATCH /me` | 3 | 4 | 4 | |
+| `PATCH /me/settings` | 4 | 7 | 7 | |
+| `POST /rooms` | 12 | 25 | 25 | room + main stream + host |
+| `GET /rooms/code/:code` | 4 | 7 | 7 | |
+| `POST /rooms/join` | 9 | 17 | 17 | |
+| `POST /rooms/:id/questions` | 7 | 8 | 8 | |
+| Start to first board event | 854 | | | mock waits 400 ms per call (plan + teach) |
+| Start to the first check | 882 | | | the whole first segment |
+| Last ready vote to `check_closed` | 58 | | | gate pass, over realtime |
+| Last ready vote to next segment | 75 | | | includes the Q&A beat |
+
+With the real model (B1) the class timings depend on Claude; the target is the first board
+shape within about 2 s. Re-run `npm run bench` after each milestone and update this table.
+
+**What it needs to run**
+
+| Need | Detail |
+|---|---|
+| Node | 20+ (CI and local use 22) |
+| Docker | local Supabase, about 3 GB of images on first start |
+| Ports | API 3001, web 5173, Supabase 55421 (API) / 55422 (Postgres) / 55423 (Studio) / 55424 (Mailpit) / 55425 (SMTP) |
+| Env | `.env` from `npm run env` (local); `.env.local` personal keys; `.env.production.local` hosted Supabase. See `.env.example` |
+| Keys (optional until their task) | `ANTHROPIC_API_KEY` (B1), `OTP_SECRET` (B11), `VOYAGE_API_KEY` (B12), hosted service-role key (B7) |
+| Production | hosted Supabase (email confirmations on, anonymous off, TOTP on, SMTP), one API instance (the conductor lives in memory), Vercel for the web |
 
 ## Lanes and ownership
 
-| | **Dev A: Frontend** | **Dev B: Backend + agents** |
+| | **Dev A (Kote): Frontend** | **Dev B (Lazare): Backend + agents** |
 |---|---|---|
 | Owns | `packages/web/**` | `packages/api/**`, `supabase/**`, `packages/mock-tutor/**` |
 | Shared | `packages/schema/**`: change in a small PR **first**, both review | same |
@@ -35,12 +93,14 @@ Rules that keep you out of each other's way:
    endpoint, add it there in its own PR, merge it, then build against it. Never send a
    shape that is not in the schema; the API validates every event with Zod before storing.
 2. **Only the API writes.** The web reads with RLS and listens on the channel; every learner
-   action is a REST call. Do not add client-side inserts.
+   action is a REST call. Do not add client-side inserts. (Supabase Auth calls for signup and
+   login, and uploads to a signed Storage URL, are the exceptions.)
 3. **New SQL goes in a new migration file** (`supabase migration new <name>`). Never edit a
    migration that is already on `main`.
 4. **Mock first.** Every agent has a `mock` answer, so the full class runs with no API key.
    Keep the mock working when you change an agent; it is our demo insurance.
-5. Branch per task (`a/question-rail`, `b/triage`), PR into `main`, CI must be green.
+5. Work on your own branch (Dev B: `Lazare`), PR into `main` per milestone, CI must be green.
+6. Try routes in the sandbox (http://localhost:3001/sandbox/) before building UI on them.
 
 ## Build order (milestones)
 
@@ -48,14 +108,13 @@ Each milestone ends with both halves merged and the demo step working on two lap
 
 | # | Milestone | Dev A | Dev B | Demo step |
 |---|---|---|---|---|
-| M1 | Foundation (done) | | | 1, 2 (join by QR, board draws in sync) |
-| M2 | Questions | A1, A2 | B2 | 3 (`grouped · 2 asked`) |
+| M1 | Foundation (done) | | B0 (done) | 1, 2 (join, board draws in sync) |
+| M2 | Accounts and questions | A8, A1, A2 | B9 (done, switch pending), B2 | log in, join; 3 (`grouped · 2 asked`) |
 | M3 | Threads | A3 | B4 | 4, 7 (thread + catch-up) |
-| M4 | Checks, Q&A, wrap-up | A4, A5 | B3, B5 | 5, 6, 7 (gate passes, credited answer, notes) |
-| M5 | Real model + polish | A6, A7 | B1, B6, B7 | rehearsal; mock as backup |
+| M4 | Checks, Q&A, wrap-up, profiles | A4, A5, A9 | B3, B5, B10 (done) | 5, 6, 7 (gate passes, credited answer, notes) |
+| M5 | Real model, 2FA, RAG, polish | A6, A7, A10, A11 | B1, B11, B12, B6, B7 | rehearsal; mock as backup |
 
-B1 (real model) can start any time in parallel; it does not block the frontend because the
-mock speaks the same contract.
+B1 (real model) can start any time; the mock speaks the same contract.
 
 ---
 
@@ -119,80 +178,59 @@ mock speaks the same contract.
 - Mobile layout (the phone in the demo), empty and error states, the design pass on Home and
   the lobby, a share card for Discord/Telegram.
 
+### A8 Login, registration, password reset (P0) · API ready (B9)
+- Supabase Auth in the browser: `signUp({ email, password, options: { data: { username, display_name, color } } })`,
+  `signInWithPassword`, `resetPasswordForEmail` + `updateUser({ password })`, `signOut`.
+- Join by link/QR goes through login and back to the room. Rooms take the name and color from
+  the profile (send `displayName` only for a per-room nickname).
+- When this ships, Dev B turns anonymous sign-in off (`supabase/config.toml`) and sets
+  `REQUIRE_ACCOUNT=1`.
+
+### A9 Profile and settings (P1) · API ready (B10)
+- `GET /me` (profile, avatar URL, email, settings, 2FA state), `PATCH /me`, `GET /users/:username`.
+- Profile picture: `POST /me/avatar/upload-url` -> `storage.from('avatars').uploadToSignedUrl(path, token, file)`
+  -> `POST /me/avatar`; `DELETE /me/avatar`. png/jpeg/webp, 2 MiB.
+- Settings page: `PATCH /me/settings` (tutor voice and speed, captions, reduced motion, theme,
+  language, email notifications); apply them in the player and the theme.
+- Delete account: `DELETE /me` (409 while hosting a live room).
+
+### A10 Two-factor authentication (P1) · needs B11
+- Authenticator app: `mfa.enroll` (show the QR), `mfa.challenge` + `mfa.verify`.
+- Email codes: settings toggle and the second login step (`/me/2fa/...` routes, B11).
+- A 401 `{ code: "mfa_required" }` from the API means: show the second-factor step.
+
+### A11 Sources and citations (P1) · needs B12
+- Sources panel: upload a file, add a link, see status (`pending`, `ready`, `failed`).
+- Citation chips on board shapes with `source: "res:<id>#p<page>"`.
+
 ---
 
 ## Dev B: Backend and agent tasks
 
-### B1 Real model (P0) · start any time
-- Put `ANTHROPIC_API_KEY` in `.env`; `/health` shows the model. Run a class and tune
-  `agents/prompts/*.md` until segments look good on the board.
-- Log `usage` (input/output/cache read) per agent; confirm `cache_read_input_tokens > 0` on
-  the second call in a room (the prefix must be byte-stable: see `roomPrefix`).
-- **Stream steps as they are written** (UX rule 6): in `LeadTutorAgent.teach`, parse
-  `tool_delta` partial JSON and emit each complete step (or each group ending in `say`) as a
-  `board` event, validating each step with `BoardStep` first.
-- Pipelining: start writing segment n+1 when the check closes so it draws as soon as the
-  gate passes (`RoomConductor.teach` TODO).
+Detail: [`DEVB_TASKS.md`](DEVB_TASKS.md). Steps, code and tests: [`PLANS_DEVB.md`](PLANS_DEVB.md).
 
-### B2 Triage wiring (P0)
-- `RoomConductor.questionAsked()`: debounce `LIVE.triageDebounceMs`, then run
-  `TriageAgent.run` with the new `pending` questions, open clusters (with asker ids) and each
-  asker's recent questions. Also run it in `passGate` before the Q&A beat.
-- Apply the result in one place: create clusters (`assign.cluster = "new"`, routes refer to
-  new clusters by title), set `questions.cluster_id` + `status`, cluster `route`, `reason`,
-  `target_segment`, inline `answer`, `asker_count`; `thread` route → offered thread (B4);
-  `flag` → `status: 'flagged'`.
-- Every question must leave `pending` within ~5 s (UX rule 2); if triage fails, fall back to
-  `inline` with "The tutor will answer this in the next Q&A".
-- Optional: FAQ lookup before triage (P1).
-
-### B3 Scribe and notes (P0)
-- After each `segment_end`: `ScribeAgent.summarize` with the segment's narration
-  (`narrationOf` logic) → `segment_summary` event on `main`, push into the conductor's
-  `summaries` (thread tutor and lead tutor context, catch-up cards).
-- At `end`: final notes into `note_blocks` (one block per segment + key takeaways);
-  `PUT /rooms/:id/notes/:blockId` with `Api.editNote` and a version check.
-- Clusters answered in class → `faq` rows for the course (P1).
-
-### B4 Threads (P0)
-- Implement `threads/threads.controller.ts` (routes and comments are in place) with a
-  `ThreadsService`: open (new or accept offered; one open thread per learner is enforced by a
-  unique index), message (`chat` learner event → `ThreadTutorAgent.reply` → `chat` tutor
-  event + `board` steps on the thread stream), close, share (answered cluster in the rail).
-- Context: the room prefix (shared cache), `describeBoard` of the main stream (replay main
-  events with `applySteps`), the thread's chat history.
-- Set `left_main_seq` on open; call `conductor.membersChanged()` on open/close (open threads
-  are already excused from the gate).
-
-### B5 Presence-aware gate and host handoff (P0)
-- The gate counts `room_members` with `left_at is null`. Make it count only learners present
-  in Supabase Presence: subscribe the API to each live room's channel (service role) or add a
-  client heartbeat; mark `left_at` after `LIVE.presenceLeaveMs`.
-- Host leaves → pass `host_id` to the longest-present member.
-
-### B6 Reliability (P1)
-- Per-room token budget; text-only fallback when Board Script stays invalid after the repair
-  pass (post a `notice` + a thread-style `chat`); host mute/kick; abuse flags from triage.
-
-### B7 Deploy (P1, before rehearsal)
-- Supabase Cloud project: `supabase link` + `supabase db push`; turn on anonymous sign-ins.
-- API on Railway/Fly/Render (one instance; `npm start -w @chalk/api`); web on Vercel/Netlify
-  (`npm run build -w @chalk/web`, set the three `VITE_*` vars). Set `WEB_URL` for invite links
-  and CORS.
-
-### B8 P1 extras
-- Shared PDF: Supabase Storage upload → port `packages/ingest` from v1 → Postgres full-text
-  search → `[[res:id#p12]]` citations.
-
----
+| Task | Status | What |
+|---|---|---|
+| B0 Foundation | done | sandbox, schema for every planned feature, folder structure, mail and embedding ports |
+| B9 Accounts | done (switch pending A8) | `GET /me`, rooms use the profile, email users in tests, `REQUIRE_ACCOUNT` |
+| B10 Profiles and settings | done | `PATCH /me`, settings, profile picture, public profiles, account deletion |
+| B11 Two-factor authentication | next | TOTP enforcement, email codes |
+| B2 Triage | todo | clusters and the four routes |
+| B4 Threads | todo | open, message, close, share |
+| B3 Scribe and notes | todo | summaries, notes, edit route |
+| B5 Presence and host handoff | todo | gate counts present learners |
+| B1 Real model | todo | Claude, streaming steps, pipelining (needs `ANTHROPIC_API_KEY`) |
+| B12 RAG | todo | ingest, retrieval, citations |
+| B6 Reliability | todo | budget, retry, moderation routes |
+| B7 Deploy | todo | hosted Supabase, API host, Vercel |
 
 ## Definition of done for the demo (P0)
 
-- [ ] Anonymous join by link/QR; 5 seats; presence avatars (M1 done)
-- [ ] Lead tutor streams Board Script to a shared board (M1 done with mock; B1 real)
-- [ ] Host + ready gates (M1 done, basic; A4, B5)
-- [ ] Questions → triage → clusters + 4 routes (A1, A2, B2)
+- [ ] Register and log in; join by link/QR after login; 5 seats; presence avatars (B9, A8)
+- [ ] Lead tutor streams Board Script to a shared board, with the tutor's voice only (B1)
+- [ ] Host + ready gates count present learners (A4, B5)
+- [ ] Questions -> triage -> clusters + 4 routes (A1, A2, B2)
 - [ ] One thread per learner with catch-up (A3, B4, B3)
-- [ ] Class checks with answer spread (M1 done, basic; A4)
+- [ ] Class checks with answer spread (A4)
 - [ ] End-of-class notes (A5, B3)
-- [ ] `npm run smoke` green, and a rehearsal with `MODEL=mock`
+- [ ] `npm run smoke` and `npm run test:api` green, and a rehearsal with `MODEL=mock`

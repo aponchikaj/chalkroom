@@ -54,6 +54,10 @@ the scripted tutor for that call. Force the mock with `MODEL=mock`.
 | Command | What it does |
 |---|---|
 | `npm test` | Unit tests (Vitest) |
+| `npm run test:api` | API end-to-end tests against the local stack (starts a mock API if none runs) |
+| `npm run test:db` | Database tests (pgTAP) |
+| `npm run bench` | Latency table in ms for every route and the key class moments (API must run) |
+| http://localhost:3001/sandbox/ | Backend sandbox: several users, every route, live room feed |
 | `npm run typecheck` | `tsc` for shared packages, web and API |
 | `npm run db:reset` | Re-apply all migrations and the seed (wipes local data) |
 | `npm run db:stop` | Stop local Supabase |
