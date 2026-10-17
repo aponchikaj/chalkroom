@@ -11,7 +11,6 @@ import { joined, loadProfile, saveProfile, type Profile } from '../lib/profile';
 import { mainPlayer } from '../room/store';
 import { ProfileFields } from '../components/ProfileFields';
 import { Classroom } from './Classroom';
-import { MicTest } from './MicTest';
 import { describe, joinMuted, unlockVoice, type Problem } from './entry';
 import '../ui/ui.css';
 import './entry.css';
@@ -134,7 +133,6 @@ export function RoomRoute({ code }: { code: string }) {
               <form className="entry-form" onSubmit={(e) => { e.preventDefault(); if (canJoin) onJoin(false); }} aria-label="Join the class">
                 <h2>Join as</h2>
                 <ProfileFields value={profile} onChange={setProfile} idPrefix="join" autoFocus={!profile.name} />
-                <MicTest />
                 {problem && <p className="errata" role="alert">{problem.text}</p>}
                 <div className="join-buttons">
                   <button className="btn primary btn-lg" disabled={!canJoin}>
