@@ -1,6 +1,6 @@
 // Scripted tutor for development and demo insurance. The API's MockModel answers every agent
 // call from here, so the whole classroom runs with no network and no API key.
-import type { BoardStep, LessonPlan, TeachSegment, TriageResult } from '@chalk/schema';
+import type { BoardStep, LessonPlan, ProposedCards, TeachSegment, TriageResult } from '@chalk/schema';
 
 export const PDA_PLAN: LessonPlan = {
   topic: 'Program Derived Addresses',
@@ -96,6 +96,23 @@ export function mockThreadReply(text: string): { markdown: string; steps: BoardS
 
 export function mockSummary(title: string): string {
   return `${title}:\n• The tutor drew the core idea step by step.\n• The class answered a quick check.`;
+}
+
+const PDA_CARDS: ProposedCards['cards'] = [
+  { front: 'Why does a PDA have no private key?', back: 'It is derived from seeds and the program id and lies off the ed25519 curve, so no keypair exists for it.' },
+  { front: 'What inputs derive a PDA?', back: 'The seeds, the program id and a bump.' },
+  { front: 'Which bump does find_program_address try first?', back: '255; it counts down until the hash lands off the curve.' },
+  { front: 'Who can sign for a PDA?', back: 'Only the program that derived it, through invoke_signed.' },
+  { front: 'How does the runtime check a PDA signature in invoke_signed?', back: 'It re-derives the address from the seeds; if it matches, the PDA counts as a signer.' },
+];
+
+/** The class deck: PDA cards for the scripted lesson, otherwise one card per planned segment. */
+export function mockCards(plan?: LessonPlan): ProposedCards {
+  if (!plan || plan.topic === PDA_PLAN.topic) return { cards: PDA_CARDS };
+  const cards = plan.segments.slice(0, 11).map((s) => ({ front: `${s.title}: what was the goal?`.slice(0, 300), back: s.objective.slice(0, 600) }));
+  cards.push({ front: 'What was this class about?', back: plan.topic.slice(0, 600) });
+  while (cards.length < 3) cards.push({ front: `Name one idea from "${plan.topic}".`.slice(0, 300), back: (plan.segments[0]?.title ?? plan.topic).slice(0, 600) });
+  return { cards };
 }
 
 // ---------------------------------------------------------------------------

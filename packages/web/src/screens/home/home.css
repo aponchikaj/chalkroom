@@ -1,0 +1,119 @@
+/* Home: the title page with real divider tabs on the fore edge that switch the leaf (start,
+   join, your classes, how it works). Shared entry parts (leaf, fields, display) live in entry.css. */
+
+.home-body { grid-template-columns: minmax(0, 1.05fr) minmax(360px, 1fr); align-items: start; }
+.home-panel {
+  min-height: 540px; border-left: 3px solid var(--hue); padding-left: 40px;
+  animation: step-in var(--step) steps(2) both;
+}
+.home-panel:focus-visible { outline: 2px solid var(--ink); outline-offset: 6px; }
+.home-section { display: flex; flex-direction: column; gap: 16px; }
+.home-section > h2 { font-size: 1.9rem; font-weight: 800; font-stretch: 76%; letter-spacing: -0.01em; }
+
+/* ---------- divider tabs out of the leaf's right side ---------- */
+.home-tabs {
+  position: absolute; top: 90px; right: -46px; width: 46px;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
+}
+.home-tab {
+  width: 36px; padding: 18px 0; display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--rule-2); border-left: 0; border-radius: 0 6px 6px 0;
+  background: var(--paper-2); color: var(--ink-2); cursor: pointer;
+  box-shadow: inset -4px 0 0 var(--hue), 0 10px 18px -12px rgba(60, 45, 15, 0.5);
+  transition: background var(--step) steps(2), width var(--step) steps(2), transform var(--step) steps(2);
+}
+.home-tab-label {
+  writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap;
+  font-size: var(--t-xs); font-weight: 750; font-stretch: 78%; letter-spacing: 0.12em; text-transform: uppercase;
+}
+.home-tab:hover:not(:disabled) { background: var(--paper-3); color: var(--ink); }
+.home-tab:active:not(:disabled) { transform: translateX(-2px); }
+.home-tab:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.home-tab:disabled { cursor: default; color: var(--ink-3); box-shadow: none;
+  background-image: repeating-linear-gradient(135deg, transparent 0 5px, color-mix(in srgb, var(--rule) 60%, transparent) 5px 6px); }
+/* the current tab extends past the others, carries its hue and owns the fore edge */
+.home-tab[aria-selected='true'] {
+  width: 46px; padding: 24px 0; border-color: transparent;
+  background: var(--hue); color: var(--on-hue);
+  box-shadow: inset -3px 0 0 var(--ink), 0 12px 20px -12px rgba(60, 45, 15, 0.55);
+}
+.home-tab[aria-selected='true']:hover { background: var(--hue); color: var(--on-hue); }
+
+/* ---------- how a class runs ---------- */
+.contents { list-style: none; margin: 0; padding: 0; border-top: 1.5px solid var(--ink); }
+.contents li {
+  display: grid; grid-template-columns: 34px 78px minmax(0, 1fr); align-items: start; gap: 12px;
+  padding: 12px 0; border-bottom: 1px solid var(--rule);
+}
+.contents-tab { display: grid; place-items: center; width: 30px; height: 22px; border-radius: 0 5px 5px 0; margin-top: 1px; font-size: var(--t-xs); }
+.contents-name { line-height: 24px; font-size: var(--t-md); font-weight: 750; font-stretch: 82%; text-transform: uppercase; letter-spacing: 0.06em; }
+.contents-text { font-family: var(--font-read); font-size: 0.98rem; color: var(--ink-2); }
+
+/* ---------- your classes: ruled entries on the leaf, not cards ---------- */
+.class-list { list-style: none; margin: 0; padding: 0; border-top: 1.5px solid var(--ink); }
+.class-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px 18px;
+  padding: 14px 0; border-bottom: 1px solid var(--rule);
+}
+.class-title { font-size: var(--t-lg); font-weight: 750; font-stretch: 82%; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+.class-ended .class-title { color: var(--ink-2); }
+.class-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin-top: 6px; font-size: var(--t-sm); color: var(--ink-2); }
+.class-role { font-size: var(--t-xs); font-weight: 700; font-stretch: 78%; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink); }
+.class-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.class-actions .btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+.class-skeleton .class-main { display: flex; flex-direction: column; gap: 10px; }
+.sk {
+  display: block; height: 12px; border-radius: 2px; background-color: var(--paper-2);
+  background-image: repeating-linear-gradient(135deg, transparent 0 5px, color-mix(in srgb, var(--rule) 60%, transparent) 5px 6px);
+}
+.sk-title { height: 18px; width: 58%; }
+.sk-meta { width: 82%; }
+.sk-btn { height: 28px; width: 118px; }
+
+.class-error { align-items: center; flex-wrap: wrap; }
+.class-error .lucide { flex: none; }
+.class-empty { padding: 18px 0; border-top: 1.5px solid var(--ink); font-family: var(--font-read); font-size: 1.05rem; color: var(--ink-2); }
+.text-link {
+  padding: 0; border: 0; border-radius: 2px; background: transparent; color: var(--ink); cursor: pointer;
+  font: inherit; text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 3px;
+  transition: background var(--step) steps(2);
+}
+.text-link:hover:not(:disabled) { background: var(--paper-2); }
+.text-link:active:not(:disabled) { background: var(--ink); color: var(--paper); }
+.text-link:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.text-link:disabled { color: var(--ink-3); cursor: default; text-decoration-style: dashed; }
+
+/* ---------- tablet ---------- */
+@media (max-width: 1080px) {
+  .home-body { grid-template-columns: minmax(0, 1fr); }
+  .home-panel { min-height: 0; border-left: 0; padding-left: 0; border-top: 3px solid var(--hue); padding-top: 26px; }
+}
+
+/* ---------- phone: the tabs run across the top of the leaf ---------- */
+@media (max-width: 760px) {
+  .home-tabs {
+    position: static; width: auto; flex-direction: row; align-items: flex-end; gap: 3px;
+    margin: -16px -16px 14px; padding: 10px 12px 0; background: var(--paper); border-bottom: 1px solid var(--leaf-edge);
+  }
+  .home-tab {
+    flex: 1 1 0; min-width: 0; width: auto; padding: 8px 4px 7px; margin-top: 6px;
+    border: 1px solid var(--rule-2); border-bottom: 0; border-radius: 6px 6px 0 0;
+    box-shadow: inset 0 4px 0 var(--hue);
+  }
+  .home-tab-label {
+    writing-mode: horizontal-tb; transform: none; white-space: normal; text-align: center;
+    font-size: 11px; line-height: 1.2; letter-spacing: 0.06em;
+  }
+  .home-tab:active:not(:disabled) { transform: translateY(1px); }
+  .home-tab[aria-selected='true'] {
+    flex-grow: 1.5; width: auto; margin-top: 0; padding: 13px 4px 9px;
+    box-shadow: inset 0 3px 0 var(--ink);
+  }
+  .home-panel { padding-top: 22px; }
+  .home-section > h2 { font-size: 1.6rem; }
+  .contents li { grid-template-columns: 30px minmax(0, 1fr); gap: 2px 10px; }
+  .contents-text { grid-column: 2; }
+  .class-row { grid-template-columns: minmax(0, 1fr); }
+  .class-actions { justify-content: flex-start; }
+}
