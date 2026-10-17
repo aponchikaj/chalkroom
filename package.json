@@ -1,0 +1,32 @@
+{
+  "name": "chalkroom-live",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Chalkroom Live: a live classroom taught by an AI tutor on a shared whiteboard, for up to five learners.",
+  "license": "MIT",
+  "author": "GeoSafety",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "workspaces": ["packages/*"],
+  "scripts": {
+    "dev": "concurrently -k -n api,web -c cyan,magenta \"npm run dev -w @chalk/api\" \"npm run dev -w @chalk/web\"",
+    "dev:api": "npm run dev -w @chalk/api",
+    "dev:web": "npm run dev -w @chalk/web",
+    "db:start": "supabase start",
+    "db:stop": "supabase stop",
+    "db:reset": "supabase db reset",
+    "db:status": "supabase status -o env",
+    "env": "node scripts/write-env.mjs",
+    "build": "npm run build -w @chalk/web && npm run build -w @chalk/api",
+    "typecheck": "tsc -p tsconfig.json && tsc -p packages/web/tsconfig.json && tsc -p packages/api/tsconfig.json",
+    "test": "vitest run",
+    "smoke": "node scripts/smoke.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "concurrently": "^9.2.0",
+    "supabase": "^2.121.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.11"
+  }
+}
