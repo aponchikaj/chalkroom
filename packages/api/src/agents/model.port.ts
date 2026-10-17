@@ -19,7 +19,9 @@ export interface ModelRequest {
   roomId?: string;
   /**
    * Stable text shared by every agent in a room (system rules + Board Script + lesson plan).
-   * Sent first with cache_control so lead, thread and triage calls reuse one cached prefix.
+   * Sent first with cache_control. The provider's cache key starts with the tool definitions,
+   * and each agent forces its own tool, so each agent (per room) has its own cached prefix:
+   * repeated calls of one agent hit it (lead segments, thread replies); agents do not share it.
    */
   prefix: string;
   /** Agent-specific instructions, after the cached prefix. */
