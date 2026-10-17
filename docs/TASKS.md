@@ -35,6 +35,7 @@ Done = built and tested. Next = being built. Todo = planned.
 | **Notes and recap** | Segment summaries (`segment_summary`), notes at class end (segments, takeaways, class questions), `PUT /rooms/:id/notes/:blockId` with version check, course FAQ; web: notes and recap, one editor per block | | A5 done on fixtures | B3 done |
 | **AI tutor** | Groq free tier (lead gpt-oss-120b, thread qwen3.8-27b, triage/scribe/planning/Q&A gpt-oss-20b) with per-model pacing and mock fallback; Claude adapter kept; usage metering per room; steps streamed as written; pipelining (off on the free tier); a full class runs end to end on Groq | Prompt tuning by watching real boards | | B1 done |
 | **Knowledge (RAG)** | Upload (PDF, PPTX, DOCX, text, Markdown) and links (SSRF-guarded), ingest worker, page-numbered chunks, keyword search (embeddings pluggable), passages for every tutor, citation check, syllabus/transcript/notes/FAQ indexed automatically | | A11 sources panel, citations (todo) | B12 done |
+| **Community and library** | Courses (catalog, search, page, fork, ratings, owner edit; syllabus drafted by the planner), lobby of public rooms with start times, start from a topic, course or goal, FAQ reuse in triage; quiz duel and teach-back at checks; replays with chapters, book the next session (.ics, Google Calendar), kudos, export notes (Markdown) and cards (Anki CSV); unmerge a grouped question, join a thread from a peek, citation tags on board shapes; pitch deck in `docs/pitch/` | Feed `duel_end.reteach` into the next segment; real-model rehearsal | A12 done | API for A12 built with it |
 | **Reliability** | Room token budget (`ROOM_TOKEN_BUDGET`, then the backup tutor with one notice), simple-mode retry for invalid Board Script, `POST /rooms/:id/moderate` (mute, unmute, kick), auto-mute after 3 flagged questions | | mute/kick buttons (todo) | B6 done |
 
 ## Numbers (measured 2026-10-17, local, mock tutor)
@@ -219,6 +220,13 @@ lowercase, uppercase and digits. The pre-join mic test was removed (text only).
 ### A11 Sources and citations (P1) · needs B12
 - Sources panel: upload a file, add a link, see status (`pending`, `ready`, `failed`).
 - Citation chips on board shapes with `source: "res:<id>#p<page>"`.
+
+### A12 Community features (P2) · done 2026-10-18
+- Home: Lobby and Courses tabs; the start form picks a topic, a course or a goal, public or private, with a start time.
+- `/courses/:id`: syllabus checklist, FAQ, rating, start a class, fork, owner edit.
+- Classroom: quiz duel and teach-back for the host at a check (`features/activities`); "Not the same question"
+  on grouped cards; "Join this thread" when peeking; citation tags on cited board shapes.
+- `/replays` and `/c/:id/replay`; book the next session from the recap and the class page; kudos; export.
 
 ---
 
