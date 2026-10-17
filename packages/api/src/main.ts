@@ -27,8 +27,8 @@ if (config.sandbox) {
   app.useStaticAssets(supabaseUmd, { prefix: '/sandbox/vendor/' });
   app.useStaticAssets(fileURLToPath(new URL('../sandbox/', import.meta.url)), { prefix: '/sandbox/' });
 }
-// the web app's origin; any local origin only while developing against the local stack
-app.enableCors({ origin: local ? [config.webUrl, /^http:\/\/(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+):\d+$/] : [config.webUrl], credentials: true });
+// the web app's origins (WEB_URL); any local origin only while developing against the local stack
+app.enableCors({ origin: local ? [...config.webOrigins, /^http:\/\/(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+):\d+$/] : config.webOrigins, credentials: true });
 app.enableShutdownHooks();
 await app.listen(config.port, '0.0.0.0');
 new Logger('API').log(`listening on http://localhost:${config.port} (model: ${config.model})${config.sandbox ? `, sandbox on /sandbox/` : ''}`);
