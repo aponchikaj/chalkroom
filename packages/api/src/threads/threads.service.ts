@@ -12,6 +12,8 @@ import { ConductorService } from '../conductor/conductor.service';
 import { ThreadTutorAgent } from '../agents/thread-tutor.agent';
 import { ThreadStore } from './thread-store';
 import { boardOf, chatHistory } from './thread-context';
+import { RetrieveService } from '../rag/retrieve.service';
+import { keepKnownCitations } from '../rag/citations';
 
 const greeting = (topic: string) => `Let's dig into **${topic}**. What would you like to know?`;
 const SORRY = 'I could not answer that just now. Try asking again in a moment.';
@@ -28,6 +30,7 @@ export class ThreadsService {
     private store: ThreadStore,
     private tutor: ThreadTutorAgent,
     private conductor: ConductorService,
+    private retrieve: RetrieveService,
   ) {}
 
   private async owned(threadId: string, userId: string): Promise<ThreadRow> {
@@ -76,15 +79,17 @@ export class ThreadsService {
     const room = await this.rooms.get(t.room_id);
     const [main, mine] = await Promise.all([this.events.after(room.main_stream_id), this.events.after(t.stream_id)]);
     try {
+      const found = await this.retrieve.context(room, `${t.topic} ${text}`);
       const out = await this.tutor.reply({
         roomId: t.room_id,
+        context: found.text,
         prefix: await this.rooms.prefixOf(room),
         mainBoard: describeBoard(boardOf(main)),
         topic: t.topic,
         history: chatHistory(mine.filter((e) => e.seq < askedSeq)),
       }, text);
       await this.events.append(t.stream_id, 'chat', { role: 'tutor', markdown: out.markdown }, 'thread');
-      if (out.steps?.length) await this.events.append(t.stream_id, 'board', { steps: out.steps }, 'thread');
+      if (out.steps?.length) await this.events.append(t.stream_id, 'board', { steps: keepKnownCitations(out.steps, await this.retrieve.known(room)) }, 'thread');
     } catch (e) {
       this.log.warn(`thread ${t.id.slice(0, 8)}: reply failed (${(e as Error).message})`);
       await this.events.append(t.stream_id, 'chat', { role: 'tutor', markdown: SORRY }, 'thread');

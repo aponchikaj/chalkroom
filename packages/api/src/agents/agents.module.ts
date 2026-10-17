@@ -4,6 +4,7 @@ import { ModelPort } from './model.port';
 import { MockModel } from './mock.model';
 import { AnthropicModel, FallbackModel } from './anthropic.model';
 import { MeteredModel, UsageMeter } from './metered.model';
+import { GroqModel } from './groq.model';
 import { LeadTutorAgent } from './lead-tutor.agent';
 import { TriageAgent } from './triage.agent';
 import { ThreadTutorAgent } from './thread-tutor.agent';
@@ -24,8 +25,9 @@ const log = new Logger('Model');
           log.log('Using the scripted mock tutor (MODEL=mock)');
           return new MeteredModel(new MockModel(), meter, usage);
         }
-        log.log(`Using ${config.modelId}, falling back to the mock tutor on errors`);
-        return new MeteredModel(new FallbackModel(new AnthropicModel(), new MockModel(), (m) => log.warn(m)), meter, usage, { tokens: config.roomTokenBudget, fallback: new MockModel() });
+        const real = config.model === 'groq' ? new GroqModel(process.env.GROQ_API_KEY ?? '', (agent, tool) => (tool === 'plan_lesson' ? config.agentModels.triage : tool === 'answer_cluster' ? config.agentModels.triage : config.agentModels[agent])) : new AnthropicModel();
+        log.log(`Using ${real.name} (${Object.entries(config.agentModels).map(([a, m]) => `${a}: ${m}`).join(', ')}), falling back to the mock tutor on errors`);
+        return new MeteredModel(new FallbackModel(real, new MockModel(), (m) => log.warn(m)), meter, usage, { tokens: config.roomTokenBudget, fallback: new MockModel() });
       },
     },
     LeadTutorAgent, TriageAgent, ThreadTutorAgent, ScribeAgent,

@@ -14,3 +14,12 @@ describe('agent tool schemas', () => {
     }
   });
 });
+
+describe('tool schemas describe inputs', () => {
+  it('leave defaulted fields optional (providers validate against this)', async () => {
+    const { TeachSegment } = await import('@chalk/schema');
+    const tool = toolFrom('teach_segment', 'x', TeachSegment as z.ZodObject);
+    const check = (tool.input_schema.properties as Record<string, { required?: string[] }>).check as { required?: string[]; anyOf?: unknown };
+    expect(JSON.stringify(check)).not.toMatch(/"required":\[[^\]]*"difficulty"/);
+  });
+});

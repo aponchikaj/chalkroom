@@ -14,9 +14,14 @@ import type { RoomsService } from '../rooms/rooms.service';
 import type { LeadTutorAgent } from '../agents/lead-tutor.agent';
 import type { TriageService } from '../triage/triage.service';
 import type { ScribeAgent } from '../agents/scribe.agent';
+import type { RetrieveService } from '../rag/retrieve.service';
+import type { IngestWorker } from '../rag/ingest.worker';
+import { keepKnownCitations } from '../rag/citations';
+import { citation } from '@chalk/schema';
 import { checkResults, segmentTranscript, summariesOf } from './narration';
 import { buildNotes } from '../notes/notes';
 import { prefetch, type ChunkBuffer } from './prefetch';
+import { config } from '../config';
 import type { TeachChunk } from '../agents/lead-tutor.agent';
 
 export interface ConductorDeps {
@@ -26,6 +31,8 @@ export interface ConductorDeps {
   lead: LeadTutorAgent;
   triage: TriageService;
   scribe: ScribeAgent;
+  retrieve: RetrieveService;
+  ingest: IngestWorker;
 }
 
 export type HostAction = 'skip' | 'hold' | 'resume' | 'slower' | 'end';
@@ -76,6 +83,7 @@ export class RoomConductor {
   private async doStart() {
     let room = await this.deps.rooms.get(this.roomId);
     if (room.phase !== 'lobby') return;
+    await this.indexSyllabus(room);
     const plan = await this.deps.lead.plan(await this.prefix(room), room.title, room.id);
     room = await this.deps.rooms.update(room.id, { lesson_plan: plan, started_at: new Date().toISOString() });
     await this.teach(room, 0);
@@ -89,10 +97,11 @@ export class RoomConductor {
     const slower = this.slower;
     this.slower = false;
     let drawn = 0;
+    const known = await this.deps.retrieve.known(room);
     const run = async (source: AsyncIterable<TeachChunk>) => {
       for await (const chunk of source) {
         drawn++;
-        if ('steps' in chunk) await this.deps.events.append(main, 'board', { steps: chunk.steps }, 'lead');
+        if ('steps' in chunk) await this.deps.events.append(main, 'board', { steps: keepKnownCitations(chunk.steps, known) }, 'lead');
         else if ('check' in chunk) {
           const row = await this.db.from('checks').insert({ room_id: room.id, segment, question: chunk.check }).select('id').single();
           if (row.error) throw new Error(row.error.message);
@@ -120,7 +129,7 @@ export class RoomConductor {
     // the summary runs beside the gate, never in front of it
     this.pendingSummary = this.summarize(room, segment, plan.segments[segment].title);
     // pipelining: write the next segment while the class answers the check and votes
-    if (segment + 1 < plan.segments.length) {
+    if (config.pipeline && segment + 1 < plan.segments.length) {
       this.next = { segment: segment + 1, chunks: prefetch(this.deps.lead.teach(await this.teachContext(room, segment + 1, false))) };
     }
     await this.deps.rooms.update(room.id, { phase: 'check' });
@@ -128,7 +137,9 @@ export class RoomConductor {
   }
 
   private async teachContext(room: RoomRow, segment: number, slower: boolean) {
-    return { roomId: room.id, prefix: await this.prefix(room), plan: room.lesson_plan!, segment, slower, lastCheck: this.lastCheck, summaries: this.summaries };
+    const seg = room.lesson_plan!.segments[segment];
+    const context = (await this.deps.retrieve.context(room, `${seg.title}. ${seg.objective}`)).text;
+    return { roomId: room.id, prefix: await this.prefix(room), plan: room.lesson_plan!, segment, slower, lastCheck: this.lastCheck, summaries: this.summaries, context };
   }
 
   /** The prefetched segment, unless the host asked for Slower or under half the class got the check right. */
@@ -210,11 +221,16 @@ export class RoomConductor {
     const clusters = await this.db.from('clusters').select('*').eq('room_id', room.id).eq('route', 'class').eq('answered', false);
     if (!clusters.data?.length) return;
     const prefix = await this.prefix(room);
+    const known = await this.deps.retrieve.known(room);
     for (const c of clusters.data) {
       const qs = await this.db.from('questions').select('text, author_name').eq('cluster_id', c.id);
       const askers = [...new Set((qs.data ?? []).map((q) => q.author_name as string))];
+      const texts = (qs.data ?? []).map((q) => q.text as string);
       try {
-        const steps = await this.deps.lead.answerCluster(prefix, c.title, (qs.data ?? []).map((q) => q.text as string), askers, room.id);
+        const found = await this.deps.retrieve.context(room, [c.title, ...texts].join(' '));
+        const top = found.passages[0];
+        const raw = await this.deps.lead.answerCluster(prefix, c.title, texts, askers, room.id, { text: found.text, cite: top ? citation(top.sourceId, top.page) : undefined });
+        const steps = keepKnownCitations(raw, known);
         await this.deps.events.append(room.main_stream_id, 'answer_cluster', { clusterId: c.id, title: c.title, askers, steps }, 'lead');
         const said = steps.flatMap((s) => ('say' in s ? [s.say] : [])).join(' ');
         await this.db.from('clusters').update({ answered: true, answer: said || null }).eq('id', c.id);
@@ -235,6 +251,18 @@ export class RoomConductor {
     await this.writeDeck(room);
   }
 
+  /** B12: a course's syllabus is searchable once per course. Never rejects. */
+  private async indexSyllabus(room: RoomRow) {
+    try {
+      const syllabus = await this.deps.rooms.syllabusOf(room);
+      if (!room.course_id || !syllabus) return;
+      const has = await this.db.from('sources').select('id', { count: 'exact', head: true }).eq('course_id', room.course_id).eq('kind', 'syllabus');
+      if (!has.count) await this.deps.ingest.indexNow({ course_id: room.course_id }, 'syllabus', 'Course syllabus', [{ page: null, text: syllabus, heading: 'Syllabus' }]);
+    } catch (e) {
+      this.log.warn(`syllabus: ${(e as Error).message}`);
+    }
+  }
+
   /** Never rejects: a missing summary must not break the class. */
   private async summarize(room: RoomRow, segment: number, title: string) {
     try {
@@ -242,9 +270,12 @@ export class RoomConductor {
       const asked = await this.db.from('questions').select('text').eq('room_id', room.id).eq('segment', segment);
       const questions = (asked.data ?? []).map((q) => `- ${q.text as string}`).join('\n');
       const transcript = [segmentTranscript(events, segment), questions && `Learners asked:\n${questions}`].filter(Boolean).join('\n\n');
-      const summary = await this.deps.scribe.summarize(await this.prefix(room), title, transcript, room.id);
+      const summary = await this.deps.scribe.summarize(await this.deps.rooms.prefixOf(room, { board: false }), title, transcript, room.id);
       await this.deps.events.append(room.main_stream_id, 'segment_summary', { segment, title, summary }, 'scribe');
       this.summaries.push(summary);
+      // B12: the class transcript becomes searchable for threads and the Q&A beat
+      const narration = segmentTranscript(events, segment);
+      if (narration) await this.deps.ingest.indexNow({ room_id: room.id }, 'transcript', `Segment ${segment}: ${title}`, [{ page: null, text: `${narration}\n\nSummary: ${summary}`, heading: title }]);
     } catch (e) {
       this.log.warn(`summary ${segment}: ${(e as Error).message}`);
     }
@@ -261,6 +292,12 @@ export class RoomConductor {
     const blocks = buildNotes({ plan: room.lesson_plan, summaries: summariesOf(events), checks: checkResults(events), clusters });
     const ins = await this.db.from('note_blocks').insert(blocks.map((markdown, idx) => ({ room_id: room.id, idx, markdown })));
     if (ins.error) this.log.error(`notes: ${ins.error.message}`);
+    // B12: the next classes of the course can search these notes and answers
+    if (room.course_id) {
+      await this.deps.ingest.indexNow({ course_id: room.course_id }, 'notes', `Notes: ${room.title}`, blocks.map((b) => ({ page: null, text: b, heading: '' })));
+      const answered = clusters.filter((c) => c.answer);
+      if (answered.length) await this.deps.ingest.indexNow({ course_id: room.course_id }, 'faq', `FAQ: ${room.title}`, answered.map((c) => ({ page: null, text: `Q: ${c.title}\nA: ${c.answer}`, heading: c.title })));
+    }
     const faq = clusters.filter((c) => c.answer);
     if (room.course_id && faq.length) {
       const f = await this.db.from('faq').insert(faq.map((c) => ({ course_id: room.course_id, topic_id: room.topic_id, question: c.title, answer: c.answer, askers_total: c.askers })));

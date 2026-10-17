@@ -15,6 +15,8 @@ const replyTool = toolFrom('reply', 'Reply to the learner in the thread, optiona
 
 export interface ThreadContext {
   roomId?: string;
+  /** B12: retrieved passages for the learner's message */
+  context?: string;
   /** the room's shared prefix: the same bytes the lead tutor uses, so the cache is shared */
   prefix: string;
   /** describeBoard() of the main board right now */
@@ -32,7 +34,7 @@ export class ThreadTutorAgent {
       agent: 'thread', roomId: ctx.roomId, prefix: ctx.prefix,
       system: `${PROMPTS.thread}\n\nThread topic: ${ctx.topic}\nMain board now: ${JSON.stringify(ctx.mainBoard)}`,
       tool: replyTool, maxTokens: 3000,
-      messages: [...ctx.history, { role: 'user', content: text }],
+      messages: [...ctx.history, { role: 'user', content: ctx.context ? `${ctx.context}\n\n${text}` : text }],
       mock: () => mockThreadReply(text),
     }, ThreadReply);
   }
