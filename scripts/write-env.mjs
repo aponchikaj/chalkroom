@@ -21,6 +21,8 @@ const managed = {
   VITE_SUPABASE_URL: url,
   VITE_SUPABASE_ANON_KEY: anon,
   VITE_API_URL: 'http://localhost:3001',
+  // Mailpit SMTP (supabase/config.toml local_smtp.smtp_port); view mail at http://127.0.0.1:55424
+  SMTP_URL: 'smtp://127.0.0.1:55425',
 };
 const keep = existsSync('.env')
   ? readFileSync('.env', 'utf8').split(/\r?\n/).filter((l) => l.trim() && !Object.keys(managed).some((k) => l.startsWith(`${k}=`)))

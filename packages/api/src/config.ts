@@ -16,5 +16,19 @@ export const config = {
   /** delay between scripted steps in mock mode, so the board still "streams" */
   mockDelayMs: Number(process.env.MOCK_DELAY_MS ?? 400),
   /** dev console at /sandbox. On by default only against a local Supabase; SANDBOX=1/0 overrides. */
+  /** accounts required: reject anonymous Supabase users. Off until the web ships login (B9). */
+  requireAccount: process.env.REQUIRE_ACCOUNT === '1',
+  /** email (2FA codes, B11). Without SMTP_URL mail is logged, not sent. */
+  mail: {
+    smtpUrl: process.env.SMTP_URL || null,
+    from: process.env.MAIL_FROM ?? 'Chalkroom <no-reply@chalkroom.local>',
+  },
+  /** HMAC key for email 2FA codes (B11). Required before email 2FA is turned on. */
+  otpSecret: process.env.OTP_SECRET || null,
+  /** RAG embeddings (B12): 'none' means full-text search only. */
+  embeddings: {
+    provider: (process.env.EMBEDDINGS ?? (process.env.VOYAGE_API_KEY ? 'voyage' : 'none')) as 'voyage' | 'none',
+    model: process.env.EMBEDDING_MODEL ?? 'voyage-3.5',
+  },
   sandbox: process.env.SANDBOX ? process.env.SANDBOX === '1' : /^http:\/\/(127\.0\.0\.1|localhost)[:/]/.test(process.env.SUPABASE_URL ?? ''),
 };
