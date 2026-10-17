@@ -189,7 +189,7 @@ Content-Type: application/json
 
 { "title": "", "displayName": "A", "color": "red" }
 
-### Threads (B4, returns 501 until built): open
+### Open a thread (or accept an offer with { "threadId": "..." })
 POST {{api}}/rooms/{{roomId}}/threads
 Authorization: Bearer {{gio}}
 Content-Type: application/json
