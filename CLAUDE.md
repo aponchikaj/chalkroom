@@ -2,13 +2,27 @@
 
 ## Project
 
-AI classroom: people join a room, an AI model (e.g. Claude) is the teacher, and it teaches with
-a live whiteboard, voice, subtitles, quizzes and flashcards. Working name: **Chalkmates**.
+**Chalkroom Live**: up to five people join a live class taught by AI tutors on one shared
+whiteboard (Hacktoberfest Georgia 2026). Two developers build it in parallel.
 
-- `IDEA.md` is the source of truth for the concept, architecture options, cost model,
-  competitors, roadmap and naming. Read it before planning or building anything.
-- The starting codebase is `github.com/kotebibo/chalkroom` (single-user, local-only Claude Code
-  plugin). Its `docs/design.md` explains the current architecture.
+- `docs/design.md` is the product source of truth (the hackathon design). `IDEA.md` is the
+  earlier analysis of the v1 codebase (`github.com/kotebibo/chalkroom`).
+- `docs/TASKS.md` is the task board: what is built, the two lanes (A frontend, B backend),
+  milestones. Check it before starting work and tick items off in your PR.
+- `README.md` explains how to run everything.
+
+## Architecture rules
+
+- `packages/schema/src/live.ts` is the contract between web and API. Change it first, in its
+  own small PR, then build against it. Never send a shape that is not defined there.
+- Only the API writes to the database. The web reads with RLS and listens on the private
+  channel `room:{id}`; every learner action is a REST call.
+- Stream events are append-only with one writer: always go through `EventsService.append`
+  (validated with Zod, gap-free `seq` from `append_event()`).
+- Agents call models only through `ModelPort`, answer with one validated tool call, and keep
+  a working `mock` answer (demo insurance; `MODEL=mock` must always run a full class).
+- New SQL goes in a new migration file; never edit a migration that is already on `main`.
+- Default model for all agents: `claude-haiku-4-5` (design doc, "Model choice").
 
 ## Rules
 
