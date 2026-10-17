@@ -1,0 +1,56 @@
+/* A4 (Dev A): ready gate, host overrides and the Q&A strip. */
+
+/* ---------- ready gate ---------- */
+.ready-strip { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.ready-people { list-style: none; margin: 0; padding: 0; display: flex; align-items: center; gap: 12px; }
+.ready-person { display: flex; align-items: center; gap: 7px; }
+.ready-name { display: flex; flex-direction: column; line-height: 1.1; font-size: var(--t-xs); font-weight: 650; font-stretch: 84%; color: var(--ink); }
+.ready-state { font-weight: 500; color: var(--ink-3); }
+.ready-person.is-ready .ready-state { color: var(--ok); font-weight: 650; }
+.ready-person.is-away .ready-name { color: var(--ink-3); }
+.ready-count { font-size: var(--t-sm); color: var(--ink); white-space: nowrap; }
+.ready-count .mono { font-weight: 600; }
+.ready-held { font-size: var(--t-sm); font-weight: 650; color: var(--warn); }
+.ready-strip .stamp { min-height: 36px; padding: 0 12px; font-size: var(--t-xs); }
+.ready-strip .stamp-ok { background: color-mix(in srgb, var(--ok) 10%, var(--leaf)); }
+.ready-strip .errata, .host-controls .errata { flex-basis: 100%; }
+
+/* ---------- host overrides ---------- */
+.host-controls { flex-wrap: wrap; }
+.host-label { font-size: var(--t-xs); font-weight: 700; font-stretch: 78%; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-2); margin-right: 2px; }
+.host-controls .btn.small { gap: 6px; }
+.host-controls .host-end { color: var(--ink-2); }
+.host-controls .btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.host-controls.is-confirm { background: var(--leaf); border: 1px solid var(--rule-2); border-radius: var(--r); padding: 6px 8px 6px 12px; box-shadow: var(--shadow-leaf); }
+.host-confirm-q { font-size: var(--t-sm); font-weight: 650; color: var(--ink); }
+
+/* ---------- Q&A strip above the board leaf (in the stage head, never over the figure) ---------- */
+.qa-banner {
+  width: max-content; max-width: 100%;
+  display: flex; align-items: center; gap: 10px; padding: 7px 14px;
+  font-size: var(--t-sm); color: var(--ink);
+}
+.qa-banner > .lucide { flex: none; color: var(--section); }
+.qa-count { font-weight: 700; font-stretch: 84%; white-space: nowrap; }
+.qa-items { list-style: none; margin: 0; padding: 0 0 0 10px; border-left: 1px solid var(--rule-2); display: flex; flex-wrap: wrap; gap: 2px 16px; min-width: 0; }
+.qa-item { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+.qa-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qa-askers { color: var(--ink-2); white-space: nowrap; }
+.qa-status { font-size: var(--t-xs); font-weight: 700; font-stretch: 80%; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-2); }
+.qa-item.is-now .qa-status { color: var(--ink); }
+.qa-item.is-done .qa-title { color: var(--ink-2); }
+
+@media (max-width: 760px) {
+  .ready-name { display: none; }
+  .ready-people { gap: 8px; }
+  /* phones keep the short words: an unlabelled icon row is a guessing game */
+  .host-label { display: none; }
+  .host-controls .btn.small { min-height: 36px; padding: 0 10px; }
+  .qa-banner { padding: 6px 10px; flex-wrap: wrap; width: 100%; }
+  .qa-items { border-left: 0; padding-left: 0; flex-basis: 100%; }
+  .qa-item { flex-wrap: wrap; }
+}
+@container (max-width: 620px) {
+  .qa-banner { flex-wrap: wrap; width: 100%; }
+  .qa-items { border-left: 0; padding-left: 0; flex-basis: 100%; }
+}

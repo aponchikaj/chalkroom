@@ -1,0 +1,82 @@
+/* Shared manual components: punches (people), stamps (status), the lesson tab rail. */
+
+/* ---------- punch: a person on the binding edge ---------- */
+.punch { position: relative; display: inline-grid; place-items: center; flex: none; }
+.punch-md { --d: 34px; }
+.punch-sm { --d: 24px; }
+.punch-hole {
+  width: var(--d); height: var(--d); border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--paper-3); color: var(--ink);
+  box-shadow: inset 0 2px 3px rgba(40, 30, 10, 0.35), 0 0 0 3px var(--who);
+  font-size: calc(var(--d) * 0.42); font-weight: 800; font-stretch: 80%;
+}
+.punch.away .punch-hole { box-shadow: inset 0 2px 3px rgba(40, 30, 10, 0.25), 0 0 0 2px var(--rule-2); color: var(--ink-3); background: var(--paper-2); }
+.punch-mark {
+  position: absolute; right: -4px; bottom: -4px; width: 16px; height: 16px; border-radius: 50%;
+  display: grid; place-items: center; background: var(--ink); color: var(--paper); border: 2px solid var(--paper);
+}
+.punch-host {
+  position: absolute; left: -5px; top: -5px; min-width: 15px; height: 15px; padding: 0 3px;
+  display: grid; place-items: center; border-radius: 2px;
+  background: var(--ink); color: var(--paper); font-size: 9px; font-weight: 800; letter-spacing: 0.04em;
+}
+
+/* ---------- stamp: a printed status label ---------- */
+.stamp {
+  display: inline-flex; align-items: center; gap: 5px;
+  min-height: 20px; padding: 1px 7px;
+  border: 1.5px solid currentColor; border-radius: 2px;
+  font-size: 10.5px; font-weight: 750; font-stretch: 80%; letter-spacing: 0.1em; text-transform: uppercase;
+  white-space: nowrap; line-height: 1.2;
+}
+.stamp .lucide { width: 12px; height: 12px; }
+.stamp-pending { color: var(--ink-3); border-style: dashed; }
+.stamp-section { color: var(--section); }
+.stamp-ink { color: var(--ink); }
+.stamp-ok { color: var(--ok); }
+.stamp-action { color: var(--action-ink); background: var(--action); border-color: var(--action-ink); }
+.stamp-errata { color: var(--errata); }
+.stamp-muted { color: var(--ink-3); border-color: var(--rule-2); }
+
+/* ---------- tab rail: the lesson on the fore edge ---------- */
+.tabrail ol { list-style: none; margin: 0; padding: 0; display: flex; }
+.tabrail-vertical { height: 100%; padding: 14px 0; }
+.tabrail-vertical ol { flex-direction: column; height: 100%; gap: 4px; }
+.tabrail-vertical .tab {
+  position: relative; min-height: 64px; flex-basis: 0;
+  margin-left: 8px; padding: 10px 0;
+  background: var(--hue); color: var(--on-hue, #fff);
+  border-radius: 0 6px 6px 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 8px;
+}
+.tabrail-vertical .tab-title {
+  writing-mode: vertical-rl; transform: rotate(180deg);
+  font-size: var(--t-xs); font-weight: 750; font-stretch: 78%; letter-spacing: 0.08em; text-transform: uppercase;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-height: 100%; min-height: 0; flex: 1;
+}
+.tabrail-vertical .tab-time { font-size: 10px; white-space: nowrap; }
+.tabrail-vertical .tab-done { filter: saturate(0.55); }
+.tabrail-vertical .tab-todo { margin-left: 14px; }
+/* the current tab extends past the others and owns the fore edge */
+.tabrail-vertical .tab-now { margin-left: 0; box-shadow: -3px 0 0 var(--ink) inset; }
+.tabrail-empty { display: block; writing-mode: vertical-rl; transform: rotate(180deg); margin: auto; color: var(--ink-3); font-size: var(--t-xs); letter-spacing: 0.08em; text-transform: uppercase; }
+
+/* across a phone: every tab fits the width; titles wrap to two lines, the current one in full */
+.tabrail-horizontal { overflow: hidden; }
+.tabrail-horizontal ol { gap: 3px; align-items: flex-end; }
+.tabrail-horizontal .tab {
+  min-width: 0; padding: 6px 8px 5px; flex-basis: 0;
+  background: var(--hue); color: var(--on-hue, #fff); border-radius: 6px 6px 0 0;
+  display: flex; flex-direction: column; gap: 1px; margin-top: 6px;
+}
+.tabrail-horizontal .tab-now { margin-top: 0; padding-top: 10px; }
+.tabrail-horizontal .tab-done { filter: saturate(0.55); }
+.tabrail-horizontal .tab-title {
+  font-size: 11px; line-height: 1.2; font-weight: 750; font-stretch: 80%; letter-spacing: 0.04em; text-transform: uppercase;
+  overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.tabrail-horizontal .tab-now { flex-grow: 70 !important; }
+.tabrail-horizontal .tab-now .tab-title { -webkit-line-clamp: 3; }
+.tabrail-horizontal .tab-time { font-size: 10px; white-space: nowrap; }
+.tabrail-horizontal .tabrail-empty { writing-mode: horizontal-tb; transform: none; padding: 8px 12px; }

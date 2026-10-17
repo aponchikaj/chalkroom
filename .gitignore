@@ -243,3 +243,8 @@ $RECYCLE.BIN/
 *.zip
 *.tar.gz
 *.tgz
+
+# Impeccable design-review captures (regenerate with scripts/shoot.mjs)
+.impeccable/scratch/
+.impeccable/review/
+.impeccable/ref/*.png

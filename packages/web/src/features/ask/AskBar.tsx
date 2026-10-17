@@ -1,0 +1,104 @@
+// A2 (Dev A): the ask bar. Type and press Enter; when shapes are selected on the board the
+// question is pinned to them. Typing shows in presence. Text only: people never use a
+// microphone (decision 2026-10-17); the AI tutor is the only voice.
+import { useEffect, useRef, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
+import { Pin, X } from 'lucide-react';
+import { useRoom } from '../../room/store';
+import { useRoomConn } from '../../room/context';
+import { api, ApiError } from '../../lib/api';
+import './ask.css';
+
+const MAX = 500;
+const TYPING_IDLE_MS = 2_000;
+
+function errorText(err: unknown) {
+  if (err instanceof ApiError && err.status === 429) return 'Too many questions; wait a moment, then press Ask again.';
+  if (err instanceof ApiError) return `${err.message}. Your question is still in the box.`;
+  return 'Could not send your question. Check your connection, then press Ask again.';
+}
+
+export function AskBar() {
+  const room = useRoom((s) => s.room)!;
+  const selection = useRoom(useShallow((s) => s.selection));
+  const conn = useRoomConn();
+  const [text, setText] = useState('');
+  const [error, setError] = useState('');
+  const [sending, setSending] = useState(false);
+  const typing = useRef({ on: false, timer: 0 });
+  const ended = room.phase === 'ended';
+  const anchored = !ended && selection.length > 0;
+
+  const setTyping = (on: boolean) => {
+    window.clearTimeout(typing.current.timer);
+    if (typing.current.on === on) return;
+    typing.current.on = on;
+    conn?.track({ typing: on });
+  };
+  const bumpTyping = () => {
+    setTyping(true);
+    typing.current.timer = window.setTimeout(() => setTyping(false), TYPING_IDLE_MS);
+  };
+
+  const submit = (raw: string) => {
+    const body = raw.trim();
+    if (!body || sending || ended) return;
+    const shapeIds = useRoom.getState().selection;
+    const anchor = shapeIds.length ? { streamId: room.main_stream_id, shapeIds } : undefined;
+    setSending(true);
+    setError('');
+    setTyping(false);
+    api.ask(room.id, anchor ? { text: body, anchor } : { text: body })
+      .then(() => {
+        setText((t) => (t.trim() === body ? '' : t));
+        if (anchor) useRoom.setState({ selection: [] });
+      })
+      .catch((err) => { setText((t) => t || body); setError(errorText(err)); })
+      .finally(() => setSending(false));
+  };
+
+  useEffect(() => () => {
+    window.clearTimeout(typing.current.timer);
+    if (typing.current.on) conn?.track({ typing: false });
+  }, [conn]);
+
+  const placeholder = ended ? 'Class has ended.'
+    : anchored ? 'Ask about the selected shapes'
+    : 'Ask anything';
+  const canSend = !!text.trim() && !sending && !ended;
+
+  return (
+    <form className="askbar" onSubmit={(e) => { e.preventDefault(); submit(text); }} aria-busy={sending}>
+      {error ? (
+        <div className="ask-slip errata hinge-in" role="alert">
+          <span className="grow">{error}</span>
+          <button type="button" className="btn ghost small icon-btn ask-dismiss" onClick={() => setError('')} aria-label="Dismiss this message"><X size={14} strokeWidth={2.25} /></button>
+        </div>
+      ) : null}
+
+      {anchored && (
+        <span className="ask-anchor step-in">
+          <Pin size={14} strokeWidth={2.25} aria-hidden />
+          <span>Pinned to <span className="mono">{selection.length}</span> {selection.length === 1 ? 'shape' : 'shapes'}</span>
+          <button type="button" className="btn ghost small icon-btn ask-dismiss" onClick={() => useRoom.setState({ selection: [] })}
+            aria-label="Clear the selection and ask about the whole lesson" title="Clear the selection">
+            <X size={14} strokeWidth={2.25} />
+          </button>
+        </span>
+      )}
+
+      <span className="ask-field">
+        <input className="input" placeholder={placeholder} value={text} maxLength={MAX}
+          disabled={ended} aria-label={anchored ? 'Ask about the selected shapes' : 'Ask a question'}
+          aria-invalid={!!error || undefined}
+          onChange={(e) => { setText(e.target.value); setError(''); if (e.target.value) bumpTyping(); else setTyping(false); }}
+          onBlur={() => setTyping(false)} />
+        {text.length > MAX - 100 && <span className="ask-count mono" aria-live="polite">{text.length}/{MAX}</span>}
+      </span>
+
+      <button type="submit" className={`btn${canSend ? ' primary' : ''}`} disabled={!canSend}>
+        {sending ? 'Sending' : anchored ? 'Ask about this' : 'Ask'}
+      </button>
+    </form>
+  );
+}

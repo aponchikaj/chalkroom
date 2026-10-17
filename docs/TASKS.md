@@ -29,10 +29,10 @@ Done = built and tested. Next = being built. Todo = planned.
 |---|---|---|---|---|
 | **Platform** | Monorepo, CI, contracts, board engine, local Supabase (Postgres 17), env split local/prod, backend folder structure, sandbox console, e2e + pgTAP + smoke + bench | Deploy (todo) | | B0 done, B7 todo |
 | **Accounts and security** | Schema for profiles, settings, 2FA, moderation; signup trigger; `GET /me`; rooms use the profile; `PATCH /me`, settings, profile picture, public profiles, account deletion; 2FA: authenticator app enforcement and email codes (`/me/2fa`), gated in the API and in RLS; email users in every test; `REQUIRE_ACCOUNT` switch | Switch off anonymous sign-in with the web login (next) | A8 login, A9 profile and settings, A10 2FA (todo) | B9 done except the switch, B10 done, B11 done |
-| **Live class** | Rooms (max 5), join by code, gate (all ready / 60 s / skip), hold, resume, slower, end, checks with spread, reactions, Q&A beat, resume after restart | Presence-aware gate, host handoff (todo) | A4 polish | B5 todo |
-| **Questions** | Ask, anonymous +1, rate limit 6/min | Triage: clusters and routes (todo) | A1 rail, A2 ask UX | B2 todo |
-| **Threads** | Routes in the contract (501) | Thread service (todo) | A3 drawer | B4 todo |
-| **Notes and recap** | `note_blocks` table and broadcast | Scribe summaries, notes, edit route (todo) | A5 | B3 todo |
+| **Live class** | Rooms (max 5), join by code, gate (all ready / 60 s / skip), hold, resume, slower, end, checks with spread, reactions, Q&A beat, resume after restart; web: classroom in the Acetate Manual design, check card, gate, laser, confusion heat | Presence-aware gate, host handoff (todo) | A4, A6, A7 done on fixtures | B5 todo |
+| **Questions** | Ask, anonymous +1, rate limit 6/min; web: question rail and ask bar (text only) | Triage: clusters and routes (todo) | A1, A2 done on fixtures | B2 todo |
+| **Threads** | Routes in the contract (501); web: thread drawer, offer, catch-up | Thread service (todo) | A3 done on fixtures | B4 todo |
+| **Notes and recap** | `note_blocks` table and broadcast; web: notes and recap, one editor per block | Scribe summaries, notes, edit route (todo) | A5 done on fixtures | B3 todo |
 | **AI tutor** | ModelPort, mock tutor, Claude adapter with fallback, four agents callable | Real model, streaming steps, pipelining (todo, needs `ANTHROPIC_API_KEY`) | | B1 todo |
 | **Knowledge (RAG)** | Schema: sources, chunks, hybrid search, resources bucket; `EmbeddingPort` | Ingest, retrieval, citations (todo) | A11 sources panel, citations | B12 todo |
 | **Reliability** | Mute/ban columns in the schema | Token budget, simple-mode retry, moderation routes (todo) | buttons | B6 todo |
@@ -119,6 +119,14 @@ B1 (real model) can start any time; the mock speaks the same contract.
 ---
 
 ## Dev A: Frontend tasks
+
+**Status (branch `a/frontend`):** A1-A7 are built in the "Acetate Manual" visual world
+(`DESIGN.md`, `PRODUCT.md`) and work end to end in the dev preview
+`/dev/classroom?state=lobby|teaching|check|result|qa|offer|thread|catchup|ended&as=ana|nika|gio|mari`,
+which runs on fixtures and a fake API (`packages/web/src/dev/`). Screenshots: `node scripts/shoot.mjs`.
+Waiting on Dev B to connect for real: question statuses and clusters (B2), threads endpoints (B4),
+`segment_summary` events, note blocks and `PUT /rooms/:id/notes/:blockId` (B3), presence-based
+gate (B5). Not done: notices as toasts (the rail shows the latest notices instead).
 
 ### A1 Question rail (P0) · needs B2 for real statuses (build against hand-made rows first)
 - Replace the bare list in `components/RightPanel.tsx`.
