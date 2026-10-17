@@ -160,6 +160,39 @@ await step('Notes tab after class', async () => {
   await snap(ana, 'notes');
 }, [ana]);
 
+await step('Class page: Ana studies the deck', async () => {
+  await ana.page.getByRole('button', { name: /open class page/i }).click();
+  await ana.page.waitForURL(/\/c\/[0-9a-f-]{36}/, { timeout: 10000 });
+  await ana.page.getByRole('tab', { name: /flashcards/i }).click();
+  await ana.page.keyboard.press('Space');
+  await ana.page.waitForTimeout(300);
+  await snap(ana, 'card-revealed');
+  const reviewed = ana.page.waitForResponse((r) => /\/cards\/.+\/review/.test(r.url()) && r.status() < 300, { timeout: 10000 });
+  await ana.page.keyboard.press('3'); // Good
+  await reviewed;
+  for (const tab of ['notes', 'questions', 'materials', 'checks']) {
+    await ana.page.getByRole('tab', { name: new RegExp(tab, 'i') }).click();
+    await ana.page.waitForTimeout(300);
+    await snap(ana, `shelf-${tab}`);
+  }
+}, [ana]);
+
+await step('Home: the class is under Your classes, and Gio rejoins a live one', async () => {
+  await ana.page.goto(`${BASE}/#classes`);
+  await ana.page.getByRole('tabpanel').getByText('Solana PDAs').first().waitFor({ timeout: 10000 });
+  await snap(ana, 'your-classes');
+  // Gio starts a second class of his own; it shows as waiting, and Rejoin brings him back in
+  await gio.page.goto(`${BASE}/#start`);
+  await gio.page.getByPlaceholder('A topic, e.g. Solana PDAs').fill('Rust ownership');
+  await gio.page.getByRole('button', { name: /start a class/i }).last().click();
+  await gio.page.waitForURL(/\/r\/[A-Z0-9]+/, { timeout: 15000 });
+  await gio.page.goto(`${BASE}/#classes`);
+  await gio.page.getByText('Rust ownership').first().waitFor({ timeout: 10000 });
+  await snap(gio, 'your-classes');
+  await gio.page.getByText(/^rejoin/i).first().click();
+  await gio.page.locator('.live').waitFor({ timeout: 15000 });
+}, [ana, gio]);
+
 await browser.close();
 console.log(problems.length ? `\nPROBLEMS (${problems.length}):\n  ${[...new Set(problems)].join('\n  ')}` : '\nno problems recorded');
 console.log(`screenshots: ${OUT}`);

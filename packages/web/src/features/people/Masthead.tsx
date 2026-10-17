@@ -2,7 +2,7 @@
 // the class is (phase in words), the gate timer and the voice switch. On phones it also carries
 // the people as a row of small punches (the binding column is hidden there).
 import { useEffect, useState } from 'react';
-import { Timer, Volume2, VolumeX } from 'lucide-react';
+import { Library, Timer, Volume2, VolumeX } from 'lucide-react';
 import { mainPlayer, useRoom } from '../../room/store';
 import { usePlayer } from '../../board/Board';
 import { navigate } from '../../lib/router';
@@ -29,6 +29,9 @@ export function Masthead() {
       <div className="masthead-state">
         <Stamp tone={room.phase === 'ended' ? 'muted' : 'section'}>{PHASE[room.phase]}</Stamp>
         <GateTimer deadline={room.gate_deadline} held={room.gate_held} />
+        <button className="btn ghost masthead-classes" onClick={() => navigate('/#classes')} title="All the classes you joined">
+          <Library size={16} aria-hidden /><span className="masthead-voice-word">Your classes</span>
+        </button>
         <button className="btn ghost masthead-voice" aria-label={muted ? 'Tutor voice is off. Turn it on' : 'Tutor voice is on. Turn it off'}
           title={muted ? 'Turn tutor voice on' : 'Turn tutor voice off'} onClick={() => mainPlayer.setMuted(!muted)}>
           {muted ? <VolumeX size={16} aria-hidden /> : <Volume2 size={16} aria-hidden />}

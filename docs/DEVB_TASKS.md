@@ -40,6 +40,7 @@ The anonymous-join demo in `docs/design.md` ("join by QR, the avatars pop in") n
 | 9 | B12 RAG | P1 | M5 | sources panel, citations | L |
 | 10 | B6 Reliability | P1, **done** | M5 Polish | host mute/kick buttons | M |
 | 11 | B7 Deploy | P1 | M5, before rehearsal | the demo itself | S |
+| 12 | Class deck: scribe `propose_cards` at end of class, `POST /cards/:id/review` (FSRS via ts-fsrs) | P1, **done** | M4 Wrap-up | deck and review screens | S |
 
 B1 can start any time once an `ANTHROPIC_API_KEY` exists. B9 comes early because "accounts
 required" changes how every test and the web sign in; ship it together with Dev A's login
