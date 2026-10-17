@@ -35,10 +35,16 @@ async function user(name, color) {
 function subscribe(u, roomId) {
   return new Promise((resolve, reject) => {
     u.sb.realtime.setAuth(u.token);
-    const ch = u.sb.channel(`room:${roomId}`, { config: { private: true } })
+    // presence like the web client: the API counts only present learners at the gate
+    const ch = u.sb.channel(`room:${roomId}`, { config: { private: true, presence: { key: u.id } } })
       .on('broadcast', { event: 'event' }, ({ payload }) => u.events.push(payload))
       .on('broadcast', { event: 'row' }, ({ payload }) => u.rows.push(payload))
-      .subscribe((s, err) => { if (s === 'SUBSCRIBED') resolve(ch); else if (s === 'CHANNEL_ERROR') reject(new Error(`${u.name} channel: ${err?.message ?? s}`)); });
+      .subscribe(async (s, err) => {
+        if (s === 'SUBSCRIBED') {
+          await ch.track({ userId: u.id, name: u.name, color: u.color, threadId: null, typing: false, onlineAt: new Date().toISOString() });
+          resolve(ch);
+        } else if (s === 'CHANNEL_ERROR') reject(new Error(`${u.name} channel: ${err?.message ?? s}`));
+      });
   });
 }
 
@@ -112,9 +118,13 @@ try {
   if (ana.rows.some((r) => r.table === 'check_answers' && 'answer' in r.row)) fail('check_answers broadcast leaked an answer');
   step(`row broadcasts received: ${[...tables].join(', ')}`);
 
-  await ana.call('POST', `/rooms/${room.id}/host`, { action: 'end' });
+  await chA.untrack();
+  await ana.call('POST', `/rooms/${room.id}/leave`, {});
+  await waitRow(gio, (r) => r.table === 'rooms' && r.row.host_id === gio.id, 'host handoff');
+  step('host passed to Gio when Ana left');
+  await gio.call('POST', `/rooms/${room.id}/host`, { action: 'end' });
   await waitFor(gio, (e) => e.kind === 'notice' && /ended/i.test(e.data.text), 'class end');
-  step('host ended the class');
+  step('Gio (new host) ended the class');
   const note = await waitRow(gio, (r) => r.table === 'note_blocks', 'shared notes');
   await gio.call('PUT', `/rooms/${room.id}/notes/${note.row.id}`, { markdown: 'edited', version: note.row.version });
   const stale = await fetch(`${API}/rooms/${room.id}/notes/${note.row.id}`, { method: 'PUT', headers: { 'content-type': 'application/json', authorization: `Bearer ${ana.token}` }, body: JSON.stringify({ markdown: 'late', version: note.row.version }) });

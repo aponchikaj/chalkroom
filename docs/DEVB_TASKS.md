@@ -33,7 +33,7 @@ The anonymous-join demo in `docs/design.md` ("join by QR, the avatars pop in") n
 | 2 | B9 Accounts (email + password, accounts required) | P0, **done** (anonymous switch-off waits for A8) | M2 | login, register, reset screens | M |
 | 3 | B4 Threads | P0, **done** | M3 Threads | A3 thread drawer | M |
 | 4 | B3 Scribe and notes | P0, **done** | M4 Wrap-up | A3 catch-up card, A5 notes | M |
-| 5 | B5 Presence gate and host handoff | P0 | M4 Wrap-up | A4 ready bar | M |
+| 5 | B5 Presence gate and host handoff | P0, **done** | M4 Wrap-up | A4 ready bar | M |
 | 6 | B10 Profiles, avatars and settings | P1, **done** | M4 | profile page, avatar picker, settings | M |
 | 7 | B1 Real model | P0 | M5 Polish | nothing (mock speaks the same contract) | M |
 | 8 | B11 Two-factor authentication | P1, **done** | M5 | 2FA settings and login step | M |
