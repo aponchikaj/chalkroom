@@ -248,6 +248,8 @@ export interface PresenceState {
   /** thread id when the learner is in a thread drawer */
   threadId: string | null;
   typing: boolean;
+  /** note block id this learner is editing (one editor per block) */
+  editing?: string | null;
   onlineAt: string;
 }
 
