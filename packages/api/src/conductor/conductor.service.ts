@@ -1,6 +1,6 @@
 // One RoomConductor per live room. A single API instance runs every room for the hackathon;
 // later a Postgres advisory lock per room lets several instances share the load.
-import { Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common';
+import { Injectable, Logger, type OnApplicationBootstrap, type OnModuleDestroy } from '@nestjs/common';
 import { SupabaseService } from '../core/supabase.service';
 import { EventsService } from '../core/events.service';
 import { RoomsService } from '../rooms/rooms.service';
@@ -15,9 +15,10 @@ import { RoomConductor } from './room-conductor';
 import { config } from '../config';
 
 @Injectable()
-export class ConductorService implements OnApplicationBootstrap {
+export class ConductorService implements OnApplicationBootstrap, OnModuleDestroy {
   private rooms = new Map<string, RoomConductor>();
   private log = new Logger('Conductor');
+  private heartbeat: ReturnType<typeof setInterval> | null = null;
 
   constructor(
     private supa: SupabaseService,
@@ -42,17 +43,31 @@ export class ConductorService implements OnApplicationBootstrap {
     if (!c) {
       c = new RoomConductor(roomId, { supa: this.supa, events: this.events, rooms: this.roomsService, lead: this.lead, triage: this.triage, scribe: this.scribe, retrieve: this.retrieve, ingest: this.ingest });
       this.rooms.set(roomId, c);
+      void this.lease([roomId]);
     }
     // idempotent; re-watches a room after it emptied out and someone came back
     this.presence.watch(roomId);
     return c;
   }
 
-  async onApplicationBootstrap() {
-    if (!config.resumeRooms) return;
-    const r = await this.supa.db.from('rooms').select('id').in('phase', ['teaching', 'check', 'qa']);
-    if (r.error) { this.log.warn(`could not resume rooms: ${r.error.message}`); return; }
-    for (const { id } of r.data ?? []) { void this.for(id).recover(); this.triage.schedule(id); }
-    if (r.data?.length) this.log.log(`resuming ${r.data.length} live room(s)`);
+  /** Take or refresh the lease on rooms this instance drives (room_leases, not broadcast). */
+  private async lease(roomIds: string[]) {
+    if (!roomIds.length) return;
+    const now = new Date().toISOString();
+    const r = await this.supa.db.from('room_leases').upsert(roomIds.map((room_id) => ({ room_id, conductor_id: config.instanceId, seen_at: now })));
+    if (r.error) this.log.warn(`lease: ${r.error.message}`);
   }
+
+  async onApplicationBootstrap() {
+    this.heartbeat = setInterval(() => void this.lease([...this.rooms.keys()]), 10_000);
+    if (!config.resumeRooms) return;
+    // only rooms this instance owned, or whose owner stopped heartbeating: never another live instance's
+    const r = await this.supa.db.rpc('resumable_rooms', { p_instance: config.instanceId });
+    if (r.error) { this.log.warn(`could not resume rooms: ${r.error.message}`); return; }
+    const ids = (r.data ?? []) as string[];
+    for (const id of ids) { void this.for(id).recover(); this.triage.schedule(id); }
+    if (ids.length) this.log.log(`resuming ${ids.length} live room(s)`);
+  }
+
+  onModuleDestroy() { if (this.heartbeat) clearInterval(this.heartbeat); }
 }
