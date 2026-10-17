@@ -6,6 +6,17 @@ import { ModelPort, type ModelEvent, type ModelRequest, type Usage } from './mod
 @Injectable()
 export class UsageMeter {
   private rooms = new Map<string, Usage>();
+  private exceeded = new Set<string>();
+  private listeners: ((roomId: string) => void)[] = [];
+
+  onBudgetExceeded(fn: (roomId: string) => void) { this.listeners.push(fn); }
+
+  /** true once a room spent its budget; the first time also notifies the listeners */
+  overBudget(roomId: string, budget: number): boolean {
+    if (this.total(roomId) < budget) return false;
+    if (!this.exceeded.has(roomId)) { this.exceeded.add(roomId); for (const fn of this.listeners) fn(roomId); }
+    return true;
+  }
   add(roomId: string, u: Usage) {
     const t = this.rooms.get(roomId) ?? { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
     this.rooms.set(roomId, { input: t.input + u.input, output: t.output + u.output, cacheRead: t.cacheRead + u.cacheRead, cacheWrite: t.cacheWrite + u.cacheWrite });
@@ -19,14 +30,17 @@ export class UsageMeter {
 
 export class MeteredModel extends ModelPort {
   readonly name: string;
-  constructor(private inner: ModelPort, private meter: UsageMeter, private log: (m: string) => void) {
+  constructor(private inner: ModelPort, private meter: UsageMeter, private log: (m: string) => void,
+    /** B6: over this many tokens a room answers from `fallback` (the mock) */
+    private budget?: { tokens: number; fallback: ModelPort }) {
     super();
     this.name = inner.name;
   }
 
   async *stream(req: ModelRequest): AsyncIterable<ModelEvent> {
     const started = Date.now();
-    for await (const e of this.inner.stream(req)) {
+    const source = this.budget && req.roomId && this.meter.overBudget(req.roomId, this.budget.tokens) ? this.budget.fallback : this.inner;
+    for await (const e of source.stream(req)) {
       if (e.type === 'done' && e.usage) {
         if (req.roomId) this.meter.add(req.roomId, e.usage);
         const u = e.usage;

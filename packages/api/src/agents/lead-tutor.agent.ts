@@ -24,6 +24,8 @@ export interface TeachContext {
   lastCheck?: { prompt: string; spread: CheckSpread; answerText: string };
   /** scribe summaries of finished segments, oldest first */
   summaries: string[];
+  /** B6 retry after invalid Board Script: only the simplest steps */
+  simple?: boolean;
 }
 
 export type { TeachChunk } from './teach-stream';
@@ -49,6 +51,7 @@ export class LeadTutorAgent {
     const notes = [
       `Teach segment ${ctx.segment}: "${seg.title}". Objective: ${seg.objective}`,
       ctx.slower ? 'The host asked to go slower: smaller steps, simpler words.' : '',
+      ctx.simple ? 'Keep the board simple: use only page, text, box, sticky and say steps.' : '',
       ctx.lastCheck ? `Last check "${ctx.lastCheck.prompt}": ${ctx.lastCheck.spread.correct}/${ctx.lastCheck.spread.total} correct (answer: ${ctx.lastCheck.answerText}).` : '',
       ctx.summaries.length ? `So far:\n${ctx.summaries.join('\n')}` : '',
     ].filter(Boolean).join('\n');

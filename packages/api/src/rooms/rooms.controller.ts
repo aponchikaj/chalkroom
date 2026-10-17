@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
 import { z } from 'zod';
 import { Api, type CreateRoomRes, type JoinRoomRes, type RoomPreview } from '@chalk/schema';
 import { AuthGuard, CurrentUser, type AuthUser } from '../core/auth.guard';
@@ -63,6 +63,16 @@ export class RoomsController {
     await this.rooms.requireHost(id, u.id);
     void this.conductor.for(id).host(body.action);
     return { ok: true };
+  }
+
+  @Post(':id/moderate')
+  @HttpCode(204)
+  @UseGuards(AuthGuard)
+  async moderate(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(Api.moderate)) body: z.infer<typeof Api.moderate>) {
+    await this.rooms.requireHost(id, u.id);
+    if (body.userId === u.id) throw new BadRequestException('you cannot moderate yourself');
+    await this.rooms.moderate(id, body.userId, body.action);
+    void this.conductor.for(id).membersChanged();
   }
 
   @Post(':id/checks/:checkId/answer')

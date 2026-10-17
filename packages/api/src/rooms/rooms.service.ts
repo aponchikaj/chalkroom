@@ -130,6 +130,7 @@ export class RoomsService {
     const room = await this.byCode(body.inviteCode);
     const { displayName, color } = await this.identity(userId, body);
     const existing = await this.member(room.id, userId);
+    if (existing?.banned) throw new ForbiddenException('you were removed from this room');
     if (!existing) {
       const active = await this.activeMembers(room.id);
       if (active.length >= room.seats) throw new ConflictException('the room is full');
@@ -139,6 +140,14 @@ export class RoomsService {
       display_name: displayName, color, left_at: null,
     }).select('*').single(), 'join') as MemberRow;
     return { room, member };
+  }
+
+  /** B6: mute (cannot ask), unmute, kick (banned: cannot rejoin or read the room). */
+  async moderate(roomId: string, userId: string, action: 'mute' | 'unmute' | 'kick') {
+    const patch = action === 'kick' ? { banned: true, left_at: new Date().toISOString() } : { muted: action === 'mute' };
+    const r = await this.db.from('room_members').update(patch).eq('room_id', roomId).eq('user_id', userId).select('user_id');
+    if (r.error) throw new Error(r.error.message);
+    if (!r.data?.length) throw new NotFoundException('not a member of this room');
   }
 
   async leave(roomId: string, userId: string) {

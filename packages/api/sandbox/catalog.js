@@ -49,6 +49,9 @@ export const ENDPOINTS = [
   { group: 'Rooms', name: 'React to a shape', method: 'POST', path: '/rooms/:roomId/reactions', body: () => ({ shapeId: 'pda', kind: 'confused' }),
     note: 'kind: confused | got_it. Same call again removes it.' },
 
+  { group: 'Rooms', name: 'Moderate a member (host)', method: 'POST', path: '/rooms/:roomId/moderate',
+    body: () => ({ userId: '<member user id>', action: 'mute' }), note: 'action: mute | unmute | kick. Kicked members cannot rejoin or read the room.' },
+
   { group: 'Questions', name: 'Ask', method: 'POST', path: '/rooms/:roomId/questions', learn: 'question',
     body: () => ({ text: 'Why can a PDA not sign?' }), note: 'Rate limit: 6 per minute per user (429).' },
   { group: 'Questions', name: 'Vote +1 (toggle)', method: 'POST', path: '/questions/:questionId/vote', body: () => ({}) },

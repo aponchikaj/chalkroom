@@ -6,7 +6,8 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 import { LIVE, roomTopic } from '@chalk/schema';
 import { SupabaseService } from '../core/supabase.service';
 import { RoomsService } from '../rooms/rooms.service';
-import { PresenceTracker } from './presence-tracker';
+import { NotFoundException } from '@nestjs/common';
+import { PresenceTracker, shouldUnwatch } from './presence-tracker';
 
 interface Watch { channel: RealtimeChannel; tracker: PresenceTracker; timer: ReturnType<typeof setInterval>; subscribed: boolean; busy: boolean }
 
@@ -48,11 +49,11 @@ export class PresenceService implements OnModuleDestroy {
     if (!w || !w.subscribed || w.busy) return;
     w.busy = true;
     try {
-      const room = await this.rooms.get(roomId);
-      if (room.phase === 'ended') { await this.unwatch(roomId); return; }
+      const room = await this.rooms.get(roomId).catch((e) => { if (e instanceof NotFoundException) return null; throw e; });
       const present = new Set(Object.keys(w.channel.presenceState()));
-      const members = await this.rooms.allMembers(roomId);
-      const { leave, back } = w.tracker.sync(present, members.map((m) => ({ userId: m.user_id, active: m.left_at === null })), Date.now());
+      const members = room ? (await this.rooms.allMembers(roomId)).map((m) => ({ userId: m.user_id, active: m.left_at === null })) : [];
+      if (shouldUnwatch(room?.phase ?? null, members, present)) { await this.unwatch(roomId); return; }
+      const { leave, back } = w.tracker.sync(present, members, Date.now());
       if (!leave.length && !back.length) return;
       await this.rooms.setPresence(roomId, back, leave);
       await this.rooms.handOffHost(roomId);

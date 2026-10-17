@@ -101,3 +101,10 @@ export function planTriage(result: TriageResult, questions: TriageQuestion[], cl
     offers,
   };
 }
+
+/** Authors with at least `threshold` flagged questions (they get muted automatically, B6). */
+export function spammers(flaggedAuthors: string[], threshold = 3): string[] {
+  const counts = new Map<string, number>();
+  for (const a of flaggedAuthors) counts.set(a, (counts.get(a) ?? 0) + 1);
+  return [...counts].filter(([, n]) => n >= threshold).map(([a]) => a);
+}

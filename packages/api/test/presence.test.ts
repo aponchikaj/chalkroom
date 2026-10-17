@@ -33,3 +33,14 @@ describe('pickSuccessor', () => {
     expect(pickSuccessor([m('h', '2026-01-01')], 'h')).toBeNull();
   });
 });
+
+describe('shouldUnwatch', () => {
+  it('stops watching deleted, ended and empty rooms', async () => {
+    const { shouldUnwatch } = await import('../src/presence/presence-tracker');
+    expect(shouldUnwatch(null, [], new Set())).toBe(true); // deleted
+    expect(shouldUnwatch('ended', [{ userId: 'a', active: true }], new Set(['a']))).toBe(true);
+    expect(shouldUnwatch('lobby', [{ userId: 'a', active: false }], new Set())).toBe(true); // everyone gone
+    expect(shouldUnwatch('lobby', [{ userId: 'a', active: true }], new Set())).toBe(false); // may be absent briefly
+    expect(shouldUnwatch('check', [{ userId: 'a', active: false }], new Set(['a']))).toBe(false); // someone is back
+  });
+});

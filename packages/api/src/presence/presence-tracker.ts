@@ -31,3 +31,10 @@ export class PresenceTracker {
 export function pickSuccessor(active: MemberRow[], hostId: string): MemberRow | null {
   return active.filter((m) => m.user_id !== hostId).sort((a, b) => a.joined_at.localeCompare(b.joined_at))[0] ?? null;
 }
+
+/** Stop watching a room that was deleted (`phase` null), has ended, or that everyone left
+ *  (no active member and nobody present). It is watched again when someone joins. */
+export function shouldUnwatch(phase: string | null, members: PresenceMember[], present: Set<string>): boolean {
+  if (phase === null || phase === 'ended') return true;
+  return !members.some((m) => m.active) && present.size === 0;
+}

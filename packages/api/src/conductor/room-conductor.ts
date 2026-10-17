@@ -88,9 +88,10 @@ export class RoomConductor {
     await this.deps.events.append(main, 'segment_start', { segment, title: plan.segments[segment].title }, 'lead');
     const slower = this.slower;
     this.slower = false;
-    try {
-      const source = this.takePrefetch(segment, slower) ?? this.deps.lead.teach(await this.teachContext(room, segment, slower));
+    let drawn = 0;
+    const run = async (source: AsyncIterable<TeachChunk>) => {
       for await (const chunk of source) {
+        drawn++;
         if ('steps' in chunk) await this.deps.events.append(main, 'board', { steps: chunk.steps }, 'lead');
         else if ('check' in chunk) {
           const row = await this.db.from('checks').insert({ room_id: room.id, segment, question: chunk.check }).select('id').single();
@@ -98,9 +99,22 @@ export class RoomConductor {
           await this.deps.events.append(main, 'check', { checkId: row.data.id, segment, question: PublicQuestion.parse(chunk.check) }, 'lead');
         }
       }
+    };
+    try {
+      await run(this.takePrefetch(segment, slower) ?? this.deps.lead.teach(await this.teachContext(room, segment, slower)));
     } catch (e) {
       this.log.error(`teach ${segment}: ${(e as Error).message}`);
-      await this.notice(room, 'The tutor had trouble with this segment. Ask a question, or the host can skip ahead.', 'warn');
+      // B6: Board Script still invalid after the repair pass and nothing drawn yet: one simple retry
+      let recovered = false;
+      if (!drawn && /invalid teach_segment/.test((e as Error).message)) {
+        try {
+          await run(this.deps.lead.teach({ ...(await this.teachContext(room, segment, slower)), simple: true }));
+          recovered = true;
+        } catch (e2) {
+          this.log.error(`teach ${segment} (simple): ${(e2 as Error).message}`);
+        }
+      }
+      if (!recovered) await this.notice(room, 'The tutor had trouble with this segment. Ask a question, or the host can skip ahead.', 'warn');
     }
     await this.deps.events.append(main, 'segment_end', { segment }, 'lead');
     // the summary runs beside the gate, never in front of it

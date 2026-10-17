@@ -8,7 +8,7 @@ import { SupabaseService, must } from '../core/supabase.service';
 import { RoomsService } from '../rooms/rooms.service';
 import { TriageAgent } from '../agents/triage.agent';
 import { ThreadStore } from '../threads/thread-store';
-import { EMPTY_TRIAGE, planTriage, type TriageCluster, type TriagePlan } from './triage-plan';
+import { EMPTY_TRIAGE, planTriage, spammers, type TriageCluster, type TriagePlan } from './triage-plan';
 
 interface Lane { timer: ReturnType<typeof setTimeout> | null; running: Promise<void> }
 
@@ -95,5 +95,11 @@ export class TriageService {
       if (up.error) throw new Error(up.error.message);
     }
     for (const o of plan.offers) await this.threads.offer(room, o.ownerId, o.topic);
+    // B6: three flagged questions in a room mute their author
+    if (plan.questions.some((q) => q.status === 'flagged')) {
+      const rows = must(await this.db.from('questions').select('author_id').eq('room_id', room.id).eq('status', 'flagged'), 'flags') as { author_id: string }[];
+      const mute = spammers(rows.map((r) => r.author_id));
+      if (mute.length) await this.db.from('room_members').update({ muted: true }).eq('room_id', room.id).in('user_id', mute);
+    }
   }
 }

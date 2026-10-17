@@ -1,6 +1,6 @@
 // Questions: stored as `pending`, then triage groups and routes them.
 // Each new question schedules triage for the room (TriageService: 4 s batch window).
-import { Body, Controller, HttpCode, HttpException, NotFoundException, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, HttpCode, HttpException, NotFoundException, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
 import { z } from 'zod';
 import { Api, LIVE, type QuestionRow } from '@chalk/schema';
 import { AuthGuard, CurrentUser, type AuthUser } from '../core/auth.guard';
@@ -26,6 +26,8 @@ export class QuestionsController {
   @Post('rooms/:id/questions')
   async ask(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(Api.ask)) body: z.infer<typeof Api.ask>): Promise<QuestionRow> {
     const member = await this.rooms.requireMember(id, u.id);
+    if (member.muted) throw new ForbiddenException('the host muted you in this room');
+    if (member.banned) throw new ForbiddenException('you were removed from this room');
     rateLimit(u.id);
     const room = await this.rooms.get(id);
     const q = must(await this.supa.db.from('questions').insert({

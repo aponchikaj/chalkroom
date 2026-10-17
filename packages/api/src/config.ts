@@ -17,6 +17,8 @@ export const config = {
   mockDelayMs: Number(process.env.MOCK_DELAY_MS ?? 400),
   /** dev console at /sandbox. On by default only against a local Supabase; SANDBOX=1/0 overrides. */
   /** resume live rooms at boot. Off for extra instances (tests) so two APIs never drive one room. */
+  /** B6: tokens (input + output) a room may spend before the backup tutor takes over */
+  roomTokenBudget: Number(process.env.ROOM_TOKEN_BUDGET ?? 300_000),
   resumeRooms: process.env.RESUME_ROOMS !== '0',
   /** accounts required: reject anonymous Supabase users. Off until the web ships login (B9). */
   requireAccount: process.env.REQUIRE_ACCOUNT === '1',
