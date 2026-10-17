@@ -25,7 +25,7 @@ const log = new Logger('Model');
           return new MeteredModel(new MockModel(), meter, usage);
         }
         log.log(`Using ${config.modelId}, falling back to the mock tutor on errors`);
-        return new MeteredModel(new FallbackModel(new AnthropicModel(), new MockModel(), (m) => log.warn(m)), meter, usage);
+        return new MeteredModel(new FallbackModel(new AnthropicModel(), new MockModel(), (m) => log.warn(m)), meter, usage, { tokens: config.roomTokenBudget, fallback: new MockModel() });
       },
     },
     LeadTutorAgent, TriageAgent, ThreadTutorAgent, ScribeAgent,

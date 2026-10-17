@@ -35,7 +35,7 @@ Done = built and tested. Next = being built. Todo = planned.
 | **Notes and recap** | Segment summaries (`segment_summary`), notes at class end (segments, takeaways, class questions), `PUT /rooms/:id/notes/:blockId` with version check, course FAQ; web: notes and recap, one editor per block | | A5 done on fixtures | B3 done |
 | **AI tutor** | ModelPort, mock tutor, Claude adapter with fallback, all four agents wired in, usage metering per room, steps streamed as written, next segment pipelined | Run with a real key, measure caching, tune prompts (needs `ANTHROPIC_API_KEY`) | | B1 built |
 | **Knowledge (RAG)** | Schema: sources, chunks, hybrid search, resources bucket; `EmbeddingPort` | Ingest, retrieval, citations (todo) | A11 sources panel, citations | B12 todo |
-| **Reliability** | Mute/ban columns in the schema | Token budget, simple-mode retry, moderation routes (todo) | buttons | B6 todo |
+| **Reliability** | Room token budget (`ROOM_TOKEN_BUDGET`, then the backup tutor with one notice), simple-mode retry for invalid Board Script, `POST /rooms/:id/moderate` (mute, unmute, kick), auto-mute after 3 flagged questions | | mute/kick buttons (todo) | B6 done |
 
 ## Numbers (measured 2026-10-17, local, mock tutor)
 
@@ -231,7 +231,7 @@ Detail: [`DEVB_TASKS.md`](DEVB_TASKS.md). Steps, code and tests: [`PLANS_DEVB.md
 | B5 Presence and host handoff | done | gate counts present learners (15 s), host handoff on leave or drop |
 | B1 Real model | built, needs a key to verify | per-room usage metering, steps streamed as written, next segment pipelined; left: run with `ANTHROPIC_API_KEY`, measure caching, tune prompts |
 | B12 RAG | todo | ingest, retrieval, citations |
-| B6 Reliability | todo | budget, retry, moderation routes |
+| B6 Reliability | done | room token budget (backup tutor + notice), simple-mode retry, mute/unmute/kick, auto-mute after 3 flags |
 | B7 Deploy | todo | hosted Supabase, API host, Vercel |
 
 ## Definition of done for the demo (P0)

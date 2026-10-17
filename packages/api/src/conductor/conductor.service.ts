@@ -8,6 +8,7 @@ import { LeadTutorAgent } from '../agents/lead-tutor.agent';
 import { TriageService } from '../triage/triage.service';
 import { ScribeAgent } from '../agents/scribe.agent';
 import { PresenceService } from '../presence/presence.service';
+import { UsageMeter } from '../agents/metered.model';
 import { RoomConductor } from './room-conductor';
 import { config } from '../config';
 
@@ -24,8 +25,12 @@ export class ConductorService implements OnApplicationBootstrap {
     private triage: TriageService,
     private scribe: ScribeAgent,
     private presence: PresenceService,
+    meter: UsageMeter,
   ) {
     this.presence.onMembersChanged((id) => void this.for(id).membersChanged());
+    meter.onBudgetExceeded((roomId) => void this.roomsService.get(roomId)
+      .then((room) => this.events.append(room.main_stream_id, 'notice', { text: 'This class reached its AI budget; the backup tutor takes over.', level: 'warn' }, 'system'))
+      .catch(() => undefined));
   }
 
   for(roomId: string): RoomConductor {
@@ -33,8 +38,9 @@ export class ConductorService implements OnApplicationBootstrap {
     if (!c) {
       c = new RoomConductor(roomId, { supa: this.supa, events: this.events, rooms: this.roomsService, lead: this.lead, triage: this.triage, scribe: this.scribe });
       this.rooms.set(roomId, c);
-      this.presence.watch(roomId);
     }
+    // idempotent; re-watches a room after it emptied out and someone came back
+    this.presence.watch(roomId);
     return c;
   }
 

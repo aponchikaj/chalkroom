@@ -38,7 +38,7 @@ The anonymous-join demo in `docs/design.md` ("join by QR, the avatars pop in") n
 | 7 | B1 Real model | P0, **built** (verify with a key) | M5 Polish | nothing (mock speaks the same contract) | M |
 | 8 | B11 Two-factor authentication | P1, **done** | M5 | 2FA settings and login step | M |
 | 9 | B12 RAG | P1 | M5 | sources panel, citations | L |
-| 10 | B6 Reliability | P1 | M5 Polish | host mute/kick buttons | M |
+| 10 | B6 Reliability | P1, **done** | M5 Polish | host mute/kick buttons | M |
 | 11 | B7 Deploy | P1 | M5, before rehearsal | the demo itself | S |
 
 B1 can start any time once an `ANTHROPIC_API_KEY` exists. B9 comes early because "accounts
