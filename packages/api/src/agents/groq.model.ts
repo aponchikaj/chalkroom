@@ -31,6 +31,11 @@ export class GroqModel extends ModelPort {
     super();
   }
 
+  /** When a model's daily budget is back (now or earlier when it is not exhausted). */
+  availableAt(model: string): number {
+    return this.exhausted.get(model) ?? 0;
+  }
+
   private window(model: string) {
     let w = this.windows.get(model);
     if (!w) { w = new RateWindow(); this.windows.set(model, w); }
