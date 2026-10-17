@@ -10,6 +10,9 @@ whiteboard (Hacktoberfest Georgia 2026). Two developers build it in parallel.
 - `docs/TASKS.md` is the task board: what is built, the two lanes (A frontend, B backend),
   milestones. Check it before starting work and tick items off in your PR.
 - `README.md` explains how to run everything.
+- Team: **Dev A (frontend lane) is Kote Bibilauri**; **Dev B (backend + agents lane) is Lazare
+  Mirziashvili** (git user `aponchikaj`). Work in your own lane from `docs/TASKS.md`; changes in
+  the other lane go through its owner.
 
 ## Architecture rules
 
