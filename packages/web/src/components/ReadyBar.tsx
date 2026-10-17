@@ -1,5 +1,5 @@
 // Bottom bar: ready chips, I'm ready, host controls, ask box.
-// TODO(frontend): hold Space to talk (lib/stt.ts), "Ask about this" for board selections,
+// TODO(frontend): "Ask about this" for board selections,
 // typing presence, the thread entry point (⋯ thread).
 import { useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';

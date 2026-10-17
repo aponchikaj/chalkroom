@@ -26,7 +26,7 @@ A course is no longer a playlist of videos. It is a **live class** that the AI t
 group, right now:
 
 - **One shared lesson.** A lead tutor draws and narrates on one board that everyone sees in sync.
-- **Questions never stall the class.** You can ask at any time, by comment, by voice, or pinned to
+- **Questions never stall the class.** You can ask at any time, as text or pinned to
   a shape on the board. A triage agent groups duplicates ("3 people asked this") and decides where
   each question is answered.
 - **Threads for deep dives.** A learner who keeps asking about one subtopic gets a personal thread
@@ -60,8 +60,9 @@ group, right now:
 3. **Lobby → start.** Presence avatars appear as people arrive. The host presses *Start*, or the
    class starts when all seats are ready.
 4. **Learn.** The lead tutor teaches a segment of 2–4 minutes. Everyone's board draws in sync, and
-   captions and voice play on each device.
-5. **Ask.** Type, hold Space to talk, or select shapes and press *Ask about this*. Within a few
+   captions and the tutor's voice play on each device. People only type: learners never speak
+   or use a microphone; the AI tutor is the only voice in the room.
+5. **Ask.** Type, or select shapes and press *Ask about this*. Within a few
    seconds your question shows a status chip:
    - `grouped · 3 asked`: merged with others' questions; the class will get one answer.
    - `coming up next`: the lesson plan covers it in the next segment.
@@ -110,7 +111,7 @@ and the main board continues as a live mini view in the corner.
 |---|---|
 | Catalog / course page | Community syllabi, "start a room", past replays, FAQ |
 | Lobby | Open rooms by topic, seats, start time; create a private room |
-| Pre-join | Name, colour, mic test, "join muted" |
+| Pre-join | Log in, room preview, join (no microphone: learners only type) |
 | Classroom | Board, people, question rail, notes, ready bar, thread drawer |
 | Recap | Shared notes, your questions and their answers, cards, next session |
 
@@ -275,7 +276,7 @@ the agents.
 | Tool | How it works | Phase |
 |---|---|---|
 | Whiteboard primitives | Boxes, arrows, KaTeX, code, tables, charts, Mermaid (Chalkroom renderer) | MVP (reuse) |
-| Voice | Browser TTS per device + push-to-talk STT (reuse) | MVP (reuse) |
+| Voice | Tutor only: browser TTS per device. No microphone or speech-to-text for people | MVP (reuse) |
 | Shared PDFs and links | Upload to Supabase Storage → extract with `packages/ingest` → Postgres full-text search → `[[res:id#p12]]` citations | Stretch |
 | Code runner | Pyodide / JS sandbox in the browser on a board `code` shape; output can be sent to the tutor | Stretch |
 | Graphing | function-plot (MIT) embed for "plot y = …" | Roadmap |
@@ -291,7 +292,7 @@ the agents.
 | **Community courses** | A course is a syllabus (Chalkroom's `syllabus.md` format) plus optional resources. Anyone can publish one or fork and remix it. The catalog shows ratings and how many rooms ran it. |
 | **Living FAQ** | Answered question clusters are saved per course topic. Future triage checks the FAQ first, so popular questions get instant, already-checked answers. The course gets better every time it runs. |
 | **Shared notes** | The scribe drafts notes made of blocks. Anyone can edit, with one editor per block shown by presence (`Gio is editing`), so edits never conflict. |
-| **Teach-back** | The tutor invites a volunteer to explain a concept (voice or text). Peers react, and the tutor adds what was missing. This is Feynman mode for a group. |
+| **Teach-back** | The tutor invites a volunteer to explain a concept in text. Peers react, and the tutor adds what was missing. This is Feynman mode for a group. |
 | **Class quiz duel** | A live quiz, Kahoot-style. Everyone answers at once, the class sees the answer spread, and the tutor re-teaches what the class missed. |
 | **Shared deck, personal schedule** | Group flashcards with FSRS scheduled per learner (reuse `ts-fsrs`). |
 | **Kudos** | "Your question helped 3 people." Credit for questions that turn into class answers and for shared threads. |
