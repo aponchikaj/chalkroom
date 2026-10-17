@@ -35,8 +35,8 @@ function EffectView({ fx, page }: { fx: ActiveEffect; page: BoardPage }) {
   if (!b || fx.kind === 'pulse') return null;
   const key = `fx${fx.key}`;
   if (fx.kind === 'highlight') return <rect className="fx-highlight" x={b.x - 12} y={b.y - 10} width={b.w + 24} height={b.h + 20} rx={14} />;
-  if (fx.kind === 'underline') return <g className="fx draw" style={{ ['--dur' as string]: '450ms' }}><Paths paths={line(key, b.x - 4, b.y + b.h + 9, b.x + b.w + 4, b.y + b.h + 7, { strokeWidth: 3 })} color="var(--chalk-accent)" width={3} /></g>;
-  return <g className="fx draw" style={{ ['--dur' as string]: '600ms' }}><Paths paths={ellipse(key, b.x + b.w / 2, b.y + b.h / 2, b.w * 1.18 + 34, b.h * 1.3 + 30, { strokeWidth: 3 })} color="var(--chalk-accent)" width={3} /></g>;
+  if (fx.kind === 'underline') return <g className="fx draw" style={{ ['--dur' as string]: '450ms' }}><Paths paths={line(key, b.x - 4, b.y + b.h + 9, b.x + b.w + 4, b.y + b.h + 7, { strokeWidth: 3 })} color="var(--fig-accent)" width={3} /></g>;
+  return <g className="fx draw" style={{ ['--dur' as string]: '600ms' }}><Paths paths={ellipse(key, b.x + b.w / 2, b.y + b.h / 2, b.w * 1.18 + 34, b.h * 1.3 + 30, { strokeWidth: 3 })} color="var(--fig-accent)" width={3} /></g>;
 }
 
 export function PageView({ page, camera, animate, effects, selection, onShapeDown }: {
@@ -148,10 +148,10 @@ export function Board({ player, id = 'chalk-board', tool = 'select', selection =
       aria-label={`Whiteboard${page.title ? `: ${page.title}` : ''}. ${page.order.length} shapes.`}
     >
       <PageView page={page} camera={camera} animate={live ? player.animate : undefined} effects={live ? player.effects : undefined} selection={selection} onShapeDown={onShapeDown} />
-      {strokePath && <path d={strokePath} className="stroke" style={{ stroke: 'var(--chalk-warn)', strokeWidth: 3 }} />}
-      {marquee && <rect x={Math.min(marquee.x0, marquee.x1)} y={Math.min(marquee.y0, marquee.y1)} width={Math.abs(marquee.x1 - marquee.x0)} height={Math.abs(marquee.y1 - marquee.y0)} fill="color-mix(in srgb, var(--chalk-blue) 12%, transparent)" stroke="var(--chalk-blue)" strokeDasharray="5 4" />}
+      {strokePath && <path d={strokePath} className="stroke" style={{ stroke: 'var(--fig-warn)', strokeWidth: 3 }} />}
+      {marquee && <rect x={Math.min(marquee.x0, marquee.x1)} y={Math.min(marquee.y0, marquee.y1)} width={Math.abs(marquee.x1 - marquee.x0)} height={Math.abs(marquee.y1 - marquee.y0)} fill="color-mix(in srgb, var(--fig-blue) 12%, transparent)" stroke="var(--fig-blue)" strokeDasharray="5 4" />}
       {!page.order.length && emptyHint && <text className="board-empty" x={BOARD_W / 2} y={BOARD_H / 2} textAnchor="middle" dominantBaseline="central">{emptyHint}</text>}
-      {page.title && page.order.length > 0 && <text x={26} y={40} style={{ fontSize: 22, fill: 'var(--chalk-muted)' }}>{page.title}</text>}
+      {page.title && page.order.length > 0 && <text x={26} y={40} style={{ fontSize: 22, fill: 'var(--fig-muted)' }}>{page.title}</text>}
     </svg>
   );
 }

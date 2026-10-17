@@ -1,5 +1,4 @@
-// rough.js geometry as plain path data, memoised per shape so strokes do not
-// re-jitter on every render.
+// rough.js geometry as plain path data, memoised per shape.
 import rough from 'roughjs';
 import type { Options } from 'roughjs/bin/core';
 
@@ -35,7 +34,13 @@ function memo(key: string, make: () => RPath[]): RPath[] {
   return v;
 }
 
-const base = (seed: number, o: Options = {}): Options => ({ seed, roughness: 1.1, bowing: 1.2, strokeWidth: 2, stroke: '#000', ...o });
+// Figures are typeset like a reference manual: straight single strokes, flat tint fills.
+// Callers may still pass sketch options; the manual world overrides them here.
+const base = (seed: number, o: Options = {}): Options => ({
+  seed, strokeWidth: 2, stroke: '#000', ...o,
+  roughness: 0, bowing: 0, disableMultiStroke: true, disableMultiStrokeFill: true,
+  ...(o.fill ? { fillStyle: 'solid' } : {}),
+});
 
 export const rect = (id: string, x: number, y: number, w: number, h: number, o: Options = {}) =>
   memo(`r|${id}|${x}|${y}|${w}|${h}|${JSON.stringify(o)}`, () => toPaths(gen.rectangle(x, y, w, h, base(seedOf(id), o))));

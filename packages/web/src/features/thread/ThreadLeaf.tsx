@@ -1,18 +1,17 @@
-// Thread drawer (design doc, "Threads in detail"). Placeholder until docs/TASKS.md A3 / B4.
-// Plan: a second Player (silent mini board) fed by a StreamSync on the thread's stream_id
-// via useRoomConn().onEvent; chat from `chat` events; main board as live picture-in-picture;
-// "Back to class" → api.closeThread → catch-up card from thread.left_main_seq.
-import { useRoom } from '../room/store';
+// A3 (Dev A): the thread as an acetate leaf hinged over the board (design doc, "Threads in
+// detail"). Placeholder; A3 owns it. Plan: a second Player fed by a StreamSync on the thread's
+// stream_id (fetchEvents + useRoomConn().onEvent); chat from `chat` events; the main board stays
+// visible through the acetate; Back to class -> api.closeThread -> CatchUpCard.
+import { useRoom } from '../../room/store';
 
-export function ThreadDrawer({ threadId }: { threadId: string }) {
+export function ThreadLeaf({ threadId }: { threadId: string }) {
   const thread = useRoom((s) => s.threads[threadId]);
   return (
-    <aside className="rightbar thread-drawer">
-      <div className="row" style={{ padding: 10 }}>
-        <b className="grow">Thread: {thread?.topic ?? '…'}</b>
+    <section className="thread-leaf acetate punched hinge-in" aria-label="Thread">
+      <div className="row" style={{ padding: '12px 14px 12px 34px' }}>
+        <h2 className="grow">{thread?.topic ?? 'Thread'}</h2>
         <button className="btn small" onClick={() => useRoom.setState({ openThreadId: null })}>Back to class</button>
       </div>
-      <p className="empty">Threads are not built yet.</p>
-    </aside>
+    </section>
   );
 }

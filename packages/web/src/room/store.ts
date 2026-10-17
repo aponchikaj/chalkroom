@@ -33,6 +33,8 @@ export interface RoomStore {
   answered: Record<string, true>;
   /** thread drawer: the thread this device has open, if any */
   openThreadId: string | null;
+  /** shape ids selected on the main board (Ask about this, reactions) */
+  selection: string[];
 
   applyRow: (c: RowChange) => void;
   applyMainEvent: (ev: StreamEvent) => void;
@@ -41,7 +43,7 @@ export interface RoomStore {
 
 const initial = {
   conn: 'connecting' as ConnState, error: null, room: null, members: {}, presence: {}, questions: {}, clusters: {},
-  threads: {}, readyVotes: [], reactions: [], notes: {}, mainEvents: [], check: null, closedChecks: {}, answered: {}, openThreadId: null,
+  threads: {}, readyVotes: [], reactions: [], notes: {}, mainEvents: [], check: null, closedChecks: {}, answered: {}, openThreadId: null, selection: [] as string[],
 };
 
 const put = <T>(map: Record<string, T>, key: string, row: T | null) => {

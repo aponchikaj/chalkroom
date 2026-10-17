@@ -1,35 +1,35 @@
+// The running head of the manual: product, the class title at display scale, where the class
+// is (phase in words), the gate timer and the voice switch.
 import { useEffect, useState } from 'react';
-import { useShallow } from 'zustand/react/shallow';
 import { Timer, Volume2, VolumeX } from 'lucide-react';
-import { mainPlayer, selectActiveMembers, useRoom } from '../room/store';
-import { usePlayer } from '../board/Board';
-import { navigate } from '../lib/router';
+import { mainPlayer, useRoom } from '../../room/store';
+import { usePlayer } from '../../board/Board';
+import { navigate } from '../../lib/router';
+import { Stamp } from '../../ui/Stamp';
 
-const PHASE_LABEL = { lobby: 'Lobby', teaching: 'Teaching', check: 'Check + ready', qa: 'Q&A', ended: 'Ended' } as const;
+const PHASE = { lobby: 'Lobby', teaching: 'Teaching', check: 'Check and ready', qa: 'Questions and answers', ended: 'Class ended' } as const;
 
-export function TopBar() {
+export function Masthead() {
   const room = useRoom((s) => s.room)!;
-  const members = useRoom(useShallow(selectActiveMembers));
-  const presence = useRoom((s) => s.presence);
-  const here = members.filter((m) => presence[m.user_id]).length;
-  const host = members.find((m) => m.user_id === room.host_id);
   usePlayer(mainPlayer);
   const muted = mainPlayer.speaker.settings.muted;
+  const seg = room.lesson_plan?.segments[room.segment];
 
   return (
-    <header className="topbar">
-      <button className="brand btn ghost" onClick={() => navigate('/')} aria-label="Home">Chalkroom Live</button>
-      <div className="crumbs"><b>{room.title}</b></div>
-      <span className="spacer" />
-      <span className="seats" aria-label={`${here} of ${room.seats} here`}>
-        {Array.from({ length: room.seats }, (_, i) => <i key={i} className={i < here ? 'on' : ''} />)}
-        <span>{here}/{room.seats} here</span>
-      </span>
-      {host && <span className="muted">host: {host.display_name}</span>}
-      <span className={`chip phase-${room.phase}`}>{PHASE_LABEL[room.phase]}</span>
-      <GateTimer deadline={room.gate_deadline} held={room.gate_held} />
-      <button className="btn ghost icon-btn" aria-pressed={muted} aria-label={muted ? 'Unmute tutor voice' : 'Mute tutor voice'}
-        onClick={() => mainPlayer.setMuted(!muted)}>{muted ? <VolumeX size={18} aria-hidden /> : <Volume2 size={18} aria-hidden />}</button>
+    <header className="masthead">
+      <button className="masthead-brand" onClick={() => navigate('/')} aria-label="Chalkroom Live home">Chalkroom Live</button>
+      <div className="masthead-title">
+        <h1>{room.title}</h1>
+        {seg && room.phase !== 'lobby' && room.phase !== 'ended' && (
+          <p className="masthead-sub">Segment {room.segment + 1} of {room.lesson_plan!.segments.length}: {seg.title}</p>
+        )}
+      </div>
+      <div className="masthead-state">
+        <Stamp tone={room.phase === 'ended' ? 'muted' : 'section'}>{PHASE[room.phase]}</Stamp>
+        <GateTimer deadline={room.gate_deadline} held={room.gate_held} />
+        <button className="btn ghost icon-btn" aria-pressed={muted} aria-label={muted ? 'Turn tutor voice on' : 'Turn tutor voice off'}
+          onClick={() => mainPlayer.setMuted(!muted)}>{muted ? <VolumeX size={18} aria-hidden /> : <Volume2 size={18} aria-hidden />}</button>
+      </div>
     </header>
   );
 }
@@ -41,8 +41,12 @@ function GateTimer({ deadline, held }: { deadline: string | null; held: boolean 
     const t = setInterval(() => tick((n) => n + 1), 500);
     return () => clearInterval(t);
   }, [deadline]);
-  if (held) return <span className="timer">gate on hold</span>;
+  if (held) return <Stamp tone="ink">Gate on hold</Stamp>;
   if (!deadline) return null;
   const s = Math.max(0, Math.ceil((new Date(deadline).getTime() - Date.now()) / 1000));
-  return <span className="timer" title="The class moves on when everyone is ready or the timer runs out"><Timer size={14} aria-hidden /> {s}s</span>;
+  return (
+    <span className="gate-timer mono" title="The class moves on when everyone is ready or this runs out">
+      <Timer size={14} aria-hidden /> {s}s
+    </span>
+  );
 }

@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
-import { selectIsHost, useRoom } from '../room/store';
+import { selectIsHost, useRoom } from '../../room/store';
 
-/** Lobby: invite link + QR code while people arrive. */
-export function LobbyOverlay() {
+// A7 (Dev A): the lobby leaf over the board while people arrive: invite link, QR code, who is
+// here. Starting point only; A7 owns the design (plus a share card for Discord / Telegram).
+export function LobbyLeaf() {
   const room = useRoom((s) => s.room)!;
   const isHost = useRoom(selectIsHost);
   const url = `${location.origin}/r/${room.invite_code}`;
@@ -12,7 +13,7 @@ export function LobbyOverlay() {
   useEffect(() => { QRCode.toDataURL(url, { margin: 1, width: 220 }).then(setQr).catch(() => setQr('')); }, [url]);
 
   return (
-    <div className="gate">
+    <div className="board-overlay"><div className="leaf col" style={{ alignItems: 'center', textAlign: 'center' }}>
       <h2>{room.title}</h2>
       <p className="muted">{isHost ? 'Share the link. Press Start class when everyone is here.' : 'Waiting for the host to start the class…'}</p>
       {qr && <img src={qr} alt={`QR code for ${url}`} width={180} height={180} className="qr" />}
@@ -20,18 +21,6 @@ export function LobbyOverlay() {
         <code className="invite">{room.invite_code}</code>
         <button className="btn small" onClick={() => navigator.clipboard.writeText(url).then(() => setCopied(true))}>{copied ? 'Copied' : 'Copy link'}</button>
       </div>
-      {/* TODO(frontend): share card for Discord / Telegram */}
-    </div>
-  );
-}
-
-/** After the class: recap entry point.
- *  TODO(frontend): Recap screen — shared notes, your questions + answers, cards, book next session. */
-export function EndedOverlay() {
-  return (
-    <div className="gate">
-      <h2>Class ended</h2>
-      <p className="muted">Shared notes and your flashcards will appear here.</p>
-    </div>
+    </div></div>
   );
 }
