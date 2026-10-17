@@ -8,6 +8,7 @@ import { ZodPipe } from '../core/zod.pipe';
 import { SupabaseService, must } from '../core/supabase.service';
 import { RoomsService } from '../rooms/rooms.service';
 import { TriageService } from '../triage/triage.service';
+import { RateLimit } from '../core/rate-limit';
 
 const recent = new Map<string, number[]>();
 function rateLimit(userId: string) {
@@ -24,6 +25,7 @@ export class QuestionsController {
   constructor(private supa: SupabaseService, private rooms: RoomsService, private triage: TriageService) {}
 
   @Post('rooms/:id/questions')
+  @RateLimit('ask', 20, 60000)
   async ask(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(Api.ask)) body: z.infer<typeof Api.ask>): Promise<QuestionRow> {
     const member = await this.rooms.requireMember(id, u.id);
     if (member.muted) throw new ForbiddenException('the host muted you in this room');
@@ -39,6 +41,7 @@ export class QuestionsController {
 
   /** Anonymous +1 (toggle). Only the count is visible to the room. */
   @Post('questions/:id/vote')
+  @RateLimit('vote', 60, 60000)
   @HttpCode(204)
   async vote(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
     const db = this.supa.db;

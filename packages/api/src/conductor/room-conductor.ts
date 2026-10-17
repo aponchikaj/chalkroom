@@ -51,6 +51,8 @@ export class RoomConductor {
   private lastCheck?: { prompt: string; spread: CheckSpread; answerText: string };
   /** the scribe's summary of the last finished segment; awaited before the next segment */
   private pendingSummary: Promise<void> = Promise.resolve();
+  /** the host pressed End: the segment being streamed stops at its next chunk */
+  private stopping = false;
   /** the next segment, written while the class is at the gate (pipelining) */
   private next: { segment: number; chunks: ChunkBuffer<TeachChunk> } | null = null;
 
@@ -67,7 +69,11 @@ export class RoomConductor {
   membersChanged() { return this.enqueue('gate', () => this.evaluateGate()); }
   /** heartbeat: votes that reached another instance still move the gate */
   tick() { return this.enqueue('gate', () => this.evaluateGate()); }
-  host(action: HostAction) { return this.enqueue(`host:${action}`, () => this.doHost(action)); }
+  host(action: HostAction) {
+    // End must not wait behind a 2-4 minute segment: stop the stream now, then end in order
+    if (action === 'end') { this.stopping = true; this.next?.chunks.cancel(); }
+    return this.enqueue(`host:${action}`, () => this.doHost(action));
+  }
   recover() { return this.enqueue('recover', () => this.doRecover()); }
 
   // -------------------------------------------------------------------------
@@ -127,6 +133,7 @@ export class RoomConductor {
     const known = await this.deps.retrieve.known(room);
     const run = async (source: AsyncIterable<TeachChunk>) => {
       for await (const chunk of source) {
+        if (this.stopping) return; // leaving the loop closes the model stream
         drawn++;
         if ('steps' in chunk) await this.deps.events.append(main, 'board', { steps: keepKnownCitations(chunk.steps, known) }, 'lead');
         else if ('check' in chunk) {
@@ -158,10 +165,12 @@ export class RoomConductor {
     // pipelining: write the next segment while the class answers the check and votes
     // the gate opens first; the next segment's retrieval and writing run behind it
     await this.deps.rooms.update(room.id, { phase: 'check' });
-    if (config.pipeline && segment + 1 < plan.segments.length) {
+    if (config.pipeline && segment + 1 < plan.segments.length && !this.stopping) {
       this.next = { segment: segment + 1, chunks: prefetch(this.deps.lead.teach(await this.teachContext(room, segment + 1, false))) };
     }
-    await this.evaluateGate();
+    // a separate job, not inline: a host command queued meanwhile (End, Hold) runs first, and a
+    // class whose learners are all in threads cannot run the whole lesson in one job
+    void this.enqueue('gate', () => this.evaluateGate());
   }
 
   private async teachContext(room: RoomRow, segment: number, slower: boolean) {
@@ -225,6 +234,7 @@ export class RoomConductor {
     const next = room.segment + 1;
     if (next >= (room.lesson_plan?.segments.length ?? 0)) return this.end(room);
     await this.pendingSummary; // the lead tutor sees the summary of the segment just finished
+    if (this.stopping) return; // End is queued: do not start another segment
     await this.teach(room, next);
   }
 
