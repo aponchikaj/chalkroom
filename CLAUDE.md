@@ -25,7 +25,10 @@ whiteboard (Hacktoberfest Georgia 2026). Two developers build it in parallel.
 - Agents call models only through `ModelPort`, answer with one validated tool call, and keep
   a working `mock` answer (demo insurance; `MODEL=mock` must always run a full class).
 - New SQL goes in a new migration file; never edit a migration that is already on `main`.
-- Default model for all agents: `claude-haiku-4-5` (design doc, "Model choice").
+- Model: Groq's free tier when `GROQ_API_KEY` is set (lead `openai/gpt-oss-120b`, thread
+  `qwen/qwen3.8-27b`, triage/scribe/planning `openai/gpt-oss-20b`), else Claude
+  `claude-haiku-4-5` with `ANTHROPIC_API_KEY`, else the mock (design doc, "Model choice").
+- Text only for people: no microphone or speech input; only the AI tutor speaks.
 
 ## Rules
 

@@ -27,14 +27,14 @@ Done = built and tested. Next = being built. Todo = planned.
 
 | Area | Done | Next / todo | Dev A | Dev B |
 |---|---|---|---|---|
-| **Platform** | Monorepo, CI, contracts, board engine, local Supabase (Postgres 17), env split local/prod, backend folder structure, sandbox console, e2e + pgTAP + smoke + bench | Deploy (todo) | | B0 done, B7 todo |
+| **Platform** | Monorepo, CI, contracts, board engine, local Supabase (Postgres 17), env split local/prod, backend folder structure, sandbox console, e2e + pgTAP + smoke + bench, room conductor leases, hosting prep (PORT, vercel.json, runtime deps) | Deploy to hosted Supabase, API host, Vercel (needs the hosted keys) | | B0 done, B7 prepared |
 | **Accounts and security** | Schema for profiles, settings, 2FA, moderation; signup trigger; `GET /me`; rooms use the profile; `PATCH /me`, settings, profile picture, public profiles, account deletion; 2FA: authenticator app enforcement and email codes (`/me/2fa`), gated in the API and in RLS; email users in every test; `REQUIRE_ACCOUNT` switch | Switch off anonymous sign-in with the web login (next) | A8 login, A9 profile and settings, A10 2FA (todo) | B9 done except the switch, B10 done, B11 done |
 | **Live class** | Rooms (max 5), join by code, gate (all ready / 60 s / skip), hold, resume, slower, end, checks with spread, reactions, Q&A beat, resume after restart; presence-aware gate (gone after 15 s, back on return), host handoff to the longest-present member; web: classroom in the Acetate Manual design, check card, gate, laser, confusion heat | | A4, A6, A7 done on fixtures | B5 done |
 | **Questions** | Ask, anonymous +1, rate limit 6/min; triage: clusters, the four routes, thread offers, every question routed within ~4.5 s; web: question rail and ask bar (text only) | Connect the rail to real statuses (Dev A) | A1, A2 done on fixtures | B2 done |
 | **Threads** | Open, accept an offer, message (tutor chat + mini board on the thread stream), close, share as an answered cluster; owners excused at the gate; catch-up from `segment_summary`; web: thread drawer, offer, catch-up | | A3 done on fixtures | B4 done |
 | **Notes and recap** | Segment summaries (`segment_summary`), notes at class end (segments, takeaways, class questions), `PUT /rooms/:id/notes/:blockId` with version check, course FAQ; web: notes and recap, one editor per block | | A5 done on fixtures | B3 done |
-| **AI tutor** | ModelPort, mock tutor, Claude adapter with fallback, all four agents wired in, usage metering per room, steps streamed as written, next segment pipelined | Run with a real key, measure caching, tune prompts (needs `ANTHROPIC_API_KEY`) | | B1 built |
-| **Knowledge (RAG)** | Schema: sources, chunks, hybrid search, resources bucket; `EmbeddingPort` | Ingest, retrieval, citations (todo) | A11 sources panel, citations | B12 todo |
+| **AI tutor** | Groq free tier (lead gpt-oss-120b, thread qwen3.8-27b, triage/scribe/planning/Q&A gpt-oss-20b) with per-model pacing and mock fallback; Claude adapter kept; usage metering per room; steps streamed as written; pipelining (off on the free tier); a full class runs end to end on Groq | Prompt tuning by watching real boards | | B1 done |
+| **Knowledge (RAG)** | Upload (PDF, PPTX, DOCX, text, Markdown) and links (SSRF-guarded), ingest worker, page-numbered chunks, keyword search (embeddings pluggable), passages for every tutor, citation check, syllabus/transcript/notes/FAQ indexed automatically | | A11 sources panel, citations (todo) | B12 done |
 | **Reliability** | Room token budget (`ROOM_TOKEN_BUDGET`, then the backup tutor with one notice), simple-mode retry for invalid Board Script, `POST /rooms/:id/moderate` (mute, unmute, kick), auto-mute after 3 flagged questions | | mute/kick buttons (todo) | B6 done |
 
 ## Numbers (measured 2026-10-17, local, mock tutor)
@@ -43,9 +43,9 @@ Done = built and tested. Next = being built. Todo = planned.
 
 | Layer | Command | Count | Covers |
 |---|---|---|---|
-| Unit | `npm test` | 40 tests, 9 files | pure modules: tool schemas, board, sync, mock tutor, username, settings mapping, email codes, the MFA rule, mail and embedding adapters |
-| API end to end | `npm run test:api` | 75 tests + 11 todo, 8 files | every route: happy path, 400/401/403/404/409/429, RLS, realtime, a full class, accounts, profiles, avatars, settings, 2FA (Mailpit codes, TOTP), mail |
-| Database | `npm run test:db` | 43 pgTAP checks, 4 files | signup trigger, usernames, RLS, 2FA rule and `mfa_facts()`, bans, settings, deletion cascade, hybrid search |
+| Unit | `npm test` | 103 tests, 24 files | pure modules: tool schemas, board, sync, mock tutor, username, settings mapping, email codes, the MFA rule, mail and embedding adapters |
+| API end to end | `npm run test:api` | 105 tests, 14 files | every route: happy path, 400/401/403/404/409/429, RLS, realtime, a full class, accounts, profiles, avatars, settings, 2FA (Mailpit codes, TOTP), mail |
+| Database | `npm run test:db` | 50 pgTAP checks, 5 files | signup trigger, usernames, RLS, 2FA rule and `mfa_facts()`, bans, settings, deletion cascade, hybrid search |
 | Smoke | `npm run smoke` | 1 two-user class | join, stream, check, gate, next segment, end |
 
 **Latency** (`npm run bench`; MacBook, local Docker; p50 / p95 / max in ms)
@@ -67,8 +67,13 @@ Done = built and tested. Next = being built. Todo = planned.
 | Last ready vote to next segment | 473 | | | includes triage of questions still pending (one mock call, 400 ms) and the Q&A beat; 76 ms with nothing pending |
 | Next segment start to its first board event | 5 | | | pipelined: written while the class was at the gate (was at least one tutor call) |
 
-With the real model (B1) the class timings depend on Claude; the target is the first board
-shape within about 2 s. Re-run `npm run bench` after each milestone and update this table.
+**Real model (Groq free tier, measured 2026-10-17):** lesson plan 0.7-1.4 s, teaching a segment
+2-6 s (about 5000 tokens in, 700-1200 out), triage 0.5-0.9 s, summaries 0.5-0.7 s, Q&A answer
+0.9-1.4 s, thread reply 2-4 s. Each free model allows 8000 tokens per minute and a teaching
+call uses about 6000, so when segments come faster than one a minute the lead tutor waits for
+quota (30-50 s seen in the compressed smoke run); at real pace (2-4 minute segments) it does
+not. A full two-person class (plan, 3 segments, triage, Q&A, thread, notes) passed the smoke
+test on Groq in 99-134 s. Re-run `npm run bench` after each milestone and update this table.
 
 **What it needs to run**
 
@@ -229,10 +234,10 @@ Detail: [`DEVB_TASKS.md`](DEVB_TASKS.md). Steps, code and tests: [`PLANS_DEVB.md
 | B4 Threads | done | open (or accept an offer), message with tutor replies, close, share |
 | B3 Scribe and notes | done | segment summaries, notes, edit route with version check, course FAQ |
 | B5 Presence and host handoff | done | gate counts present learners (15 s), host handoff on leave or drop |
-| B1 Real model | built, needs a key to verify | per-room usage metering, steps streamed as written, next segment pipelined; left: run with `ANTHROPIC_API_KEY`, measure caching, tune prompts |
-| B12 RAG | todo | ingest, retrieval, citations |
+| B1 Real model | done | Groq free tier across three models with pacing; metering, streaming steps, pipelining; full class verified on Groq |
+| B12 RAG | done | ingest (files, links), keyword retrieval, citations, automatic sources |
 | B6 Reliability | done | room token budget (backup tutor + notice), simple-mode retry, mute/unmute/kick, auto-mute after 3 flags |
-| B7 Deploy | todo | hosted Supabase, API host, Vercel |
+| B7 Deploy | prepared | code ready (PORT, runtime deps, vercel.json, SMOKE_ENV, leases); needs the hosted keys |
 
 ## Definition of done for the demo (P0)
 

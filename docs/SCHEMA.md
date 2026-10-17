@@ -13,6 +13,10 @@ map: what each table is for, who can read it, and how the pieces fit. Tests live
 | `20261017171342_member_moderation.sql` | `room_members.muted`, `room_members.banned`; banned members lose read access | B6 |
 | `20261017171345_security_2fa.sql` | `user_security`, `email_otp_codes`, `mfa_sessions`; `mfa_satisfied()`; `is_member()` requires a passed second factor | B11 |
 | `20261017171347_rag.sql` | pgvector; `sources`, `chunks`; `match_chunks()` hybrid search; `can_read_course()`; `resources` bucket | B12 |
+| `20261017173829_user_settings_and_deletion.sql` | `user_settings` (tutor voice, captions, motion, theme, language, notifications); hosted rooms cascade when their host deletes the account | B10 |
+| `20261017174833_mfa_facts.sql` | `mfa_facts()`: the API's one-query view of a user's second factors | B11 |
+| `20261017190004_rag_ingest_queue.sql` | `claim_source()`: workers take the oldest pending source (`skip locked`), stuck ones re-queued after 10 min | B12 |
+| `20261017190909_room_conductor_lease.sql` | `room_leases`, `resumable_rooms()`: one API instance drives a room; boot resumes only own or abandoned rooms | B7 |
 
 ### Commands
 
@@ -84,6 +88,13 @@ use it and drop `email_otp_codes`/`mfa_sessions` in a new migration.
 | `note_blocks` | shared end-of-class notes, versioned |
 | `faq`, `cards`, `card_reviews` | course FAQ, flashcards, spaced-repetition state |
 
+### Settings and leases
+
+| Table | Purpose | Read by |
+|---|---|---|
+| `user_settings` | per-user preferences; defaults (`DEFAULT_SETTINGS`) until first saved | the user |
+| `room_leases` | which API instance drives a live room, with a heartbeat | API only |
+
 ### Retrieval (RAG)
 
 | Table | Columns that matter | Read by |
@@ -124,8 +135,10 @@ Indexes: GIN on `tsv`, HNSW (cosine) on `embedding`, a partial queue index on pe
 - **Hybrid search.** Full-text search always works, even with no embedding provider and no
   network (demo insurance). Embeddings add meaning ("why can't it sign" finds
   "invoke_signed"). Reciprocal rank fusion merges the two lists without tuning weights.
-- **Embeddings.** Anthropic has no embeddings API; the plan is Voyage AI behind an
-  `EmbeddingPort`, with a mock for tests. The column is 1024-dimensional.
+- **Embeddings.** Neither Groq nor Anthropic has an embeddings API, so search runs on full text
+  today (the `NoEmbeddings` adapter). Questions become an OR of their keywords. A provider
+  (e.g. Voyage AI) plugs into `EmbeddingPort` without schema changes; the column is
+  1024-dimensional.
 - **Cost and cache.** Retrieved text goes after the cached prefix, so prompt caching is not
   disturbed; about 6 passages (2-3k tokens) per call.
 - **Safety.** Web pages and uploads are untrusted: the prompt marks them as reference material,
