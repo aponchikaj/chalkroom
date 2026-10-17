@@ -261,7 +261,8 @@ headers and falls back to the scripted tutor when quota is not back in time. All
 produced valid Board Script on the first try in testing. The free tier is for testing only.
 
 **Testing on Gemini's free tier (decision 2026-10-18).** Same OpenAI-compatible adapter as
-Groq: lead `gemini-3.8-flash`, thread `gemini-3.6-flash`, triage, the scribe, planning and Q&A
+Groq: lead `gemini-3.6-flash` (same lesson quality as 3.8-flash in the eval, 12 s instead of
+19 s per segment), thread `gemini-3.8-flash`, triage, the scribe, planning and Q&A
 `gemini-3.5-flash-lite`. The free tier limits requests per minute and per day per model (Google no
 longer publishes the numbers; about 10 per minute is reported), so calls are paced per model
 (`GEMINI_RPM`), a per-day 429 moves the agent to the next spare (`GEMINI_SPARES`) until the quota

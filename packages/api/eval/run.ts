@@ -70,7 +70,7 @@ async function run(kind: string, id: string, fn: () => Promise<Record<string, un
     try { out = await fn(); } catch (e) { out = { failed: (e as Error).message.slice(0, 200) }; }
     // out of daily budget is not a result: wait until Groq says the model is back, then redo the case
     if (!String(out.failed ?? '').includes('model can take this request now') || attempt >= 6) break;
-    const back = Math.min(...[...new Set([...spares, ...Object.values(config.agentModels)])].map((m) => groq.availableAt(m)).filter((t) => t > Date.now()));
+    const back = Math.min(...[...new Set([...(typeof spares === 'function' ? (['lead', 'thread', 'triage', 'scribe'] as const).flatMap((a) => spares(a)) : spares), ...Object.values(config.agentModels)])].map((m) => groq.availableAt(m)).filter((t) => t > Date.now()));
     const wait = Math.max(30_000, (Number.isFinite(back) ? back : Date.now()) - Date.now() + 5_000);
     console.log(`${kind}/${id}: daily budget used up, waiting ${Math.round(wait / 60_000)} min`);
     await new Promise((r) => setTimeout(r, wait));

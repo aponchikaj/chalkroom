@@ -35,7 +35,14 @@ export function toGroqBody(req: ModelRequest, model: string, maxTokens: number, 
   const messages: GroqMessage[] = [{ role: 'system', content: `${req.prefix}\n\n${req.system}` }];
   for (const m of req.messages) {
     const blocks = typeof m.content === 'string' ? null : (m.content as unknown as Block[]);
-    if (m.role === 'assistant' && blocks?.some((b) => b.type === 'tool_use')) {
+    // Gemini 3 rejects a replayed function call without the thought signature it was produced
+    // with: the repair turn goes as text (the earlier call, then the problems)
+    if (provider === 'gemini' && m.role === 'assistant' && blocks?.some((b) => b.type === 'tool_use')) {
+      const calls = blocks.filter((b) => b.type === 'tool_use').map((b) => `${b.name as string}(${JSON.stringify(b.input)})`).join('\n');
+      messages.push({ role: 'assistant', content: `My previous call was:\n${calls}` });
+    } else if (provider === 'gemini' && m.role === 'user' && blocks?.some((b) => b.type === 'tool_result')) {
+      messages.push({ role: 'user', content: blocks.filter((x) => x.type === 'tool_result').map((b) => text(b.content)).join('\n') });
+    } else if (m.role === 'assistant' && blocks?.some((b) => b.type === 'tool_use')) {
       messages.push({
         role: 'assistant', content: null,
         tool_calls: blocks.filter((b) => b.type === 'tool_use').map((b) => ({ id: b.id as string, type: 'function', function: { name: b.name as string, arguments: JSON.stringify(b.input) } })),
@@ -52,14 +59,38 @@ export function toGroqBody(req: ModelRequest, model: string, maxTokens: number, 
     stream: true,
     stream_options: { include_usage: true },
     messages,
-    tools: [{ type: 'function', function: { name: req.tool.name, description: req.tool.description, parameters: req.tool.input_schema } }],
+    tools: [{ type: 'function', function: { name: req.tool.name, description: req.tool.description, parameters: provider === 'gemini' ? itemLimitsAsWords(req.tool.input_schema) : req.tool.input_schema } }],
     // one tool: Gemini's documented way to force a call is "required"; Groq names the function
     tool_choice: provider === 'gemini' ? 'required' as const : { type: 'function' as const, function: { name: req.tool.name } },
     ...(effortFor(model, effort) ? { reasoning_effort: effortFor(model, effort) } : {}),
   };
 }
 
-interface Usage { prompt_tokens?: number; completion_tokens?: number; prompt_tokens_details?: { cached_tokens?: number } }
+interface Usage { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number; prompt_tokens_details?: { cached_tokens?: number } }
+
+/** Gemini's tool schemas reject minItems/maxItems with an unexplained 400 (found by bisecting):
+ *  they move into the description as words, so the model still sees them, and our Zod
+ *  validation still enforces them. Fixed-length tuples need no words (their prefixItems say it). */
+function itemLimitsAsWords(v: unknown): unknown {
+  if (Array.isArray(v)) return v.map(itemLimitsAsWords);
+  if (!v || typeof v !== 'object') return v;
+  const { minItems, maxItems, ...rest } = v as Record<string, unknown>;
+  const out = Object.fromEntries(Object.entries(rest).map(([k, x]) => [k, itemLimitsAsWords(x)]));
+  if ((minItems !== undefined || maxItems !== undefined) && !('prefixItems' in rest)) {
+    const words = minItems !== undefined && maxItems !== undefined ? `at least ${minItems} and at most ${maxItems} items`
+      : minItems !== undefined ? `at least ${minItems} items` : `at most ${maxItems} items`;
+    out.description = [rest.description, `${words[0].toUpperCase()}${words.slice(1)}.`].filter(Boolean).join(' ');
+  }
+  return out;
+}
+
+/** Output tokens, hidden reasoning included: Gemini leaves its thinking out of
+ *  completion_tokens and counts it only in total_tokens. */
+function outputTokens(u: Usage): number {
+  const listed = u.completion_tokens ?? 0;
+  const hidden = (u.total_tokens ?? 0) - (u.prompt_tokens ?? 0) - listed;
+  return listed + Math.max(0, hidden);
+}
 
 /** Reads Groq's server-sent events; yields tool_delta per argument fragment, then tool and done. */
 /** A tool call in the XML form qwen falls back to:
@@ -150,7 +181,7 @@ export class GroqStream {
     const cached = this.usage?.prompt_tokens_details?.cached_tokens ?? 0;
     out.push({
       type: 'done', stopReason: this.finish,
-      usage: this.usage ? { input: (this.usage.prompt_tokens ?? 0) - cached, output: this.usage.completion_tokens ?? 0, cacheRead: cached, cacheWrite: 0 } : undefined,
+      usage: this.usage ? { input: (this.usage.prompt_tokens ?? 0) - cached, output: outputTokens(this.usage), cacheRead: cached, cacheWrite: 0 } : undefined,
     });
     return out;
   }

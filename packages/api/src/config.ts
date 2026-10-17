@@ -17,7 +17,8 @@ function provider(): Provider {
 const freeTier = () => provider() === 'gemini' || provider() === 'groq';
 /** default model per agent on each free tier: each model has its own limits, so they are spread */
 const FREE_MODELS = {
-  gemini: { lead: 'gemini-3.8-flash', thread: 'gemini-3.6-flash', triage: 'gemini-3.5-flash-lite', scribe: 'gemini-3.5-flash-lite' },
+  // lead on 3.6-flash: the same lesson quality as 3.8-flash in the eval, 12 s instead of 19 s
+  gemini: { lead: 'gemini-3.6-flash', thread: 'gemini-3.8-flash', triage: 'gemini-3.5-flash-lite', scribe: 'gemini-3.5-flash-lite' },
   groq: { lead: 'openai/gpt-oss-120b', thread: 'qwen/qwen3.8-27b', triage: 'openai/gpt-oss-20b', scribe: 'openai/gpt-oss-20b' },
 };
 
@@ -70,8 +71,15 @@ export const config = {
    *  budget (TPD) or refuses a request's size. Not qwen3.8-27b: its 1000 output tokens per
    *  minute cannot hold a teaching segment. */
   groqSpares: (process.env.GROQ_SPARES ?? 'openai/gpt-oss-20b,openai/gpt-oss-120b').split(',').map((m) => m.trim()).filter(Boolean),
-  /** Gemini spares, in order, when a model's daily request quota is used up */
-  geminiSpares: (process.env.GEMINI_SPARES ?? 'gemini-3.5-flash-lite,gemini-3.1-flash-lite,gemini-3.6-flash,gemini-3.8-flash').split(',').map((m) => m.trim()).filter(Boolean),
+  /** Gemini spares, in order, when a model's daily request quota is used up (~20 requests a day
+   *  per Flash model on the free tier). The tutors try the other Flash model before Lite; triage
+   *  and the scribe stay on Lite models so they never use up the Flash quota. */
+  geminiSpares: (agent: 'lead' | 'thread' | 'triage' | 'scribe'): string[] => {
+    const list = (v: string | undefined, d: string) => (v ?? d).split(',').map((m) => m.trim()).filter(Boolean);
+    return agent === 'lead' || agent === 'thread'
+      ? list(process.env.GEMINI_SPARES_TUTOR, 'gemini-3.8-flash,gemini-3.6-flash,gemini-3.5-flash-lite,gemini-3.1-flash-lite')
+      : list(process.env.GEMINI_SPARES_LITE, 'gemini-3.5-flash-lite,gemini-3.1-flash-lite');
+  },
   /** Gemini free tier: requests per minute per model (not published; ~10 reported) */
   geminiRpm: Number(process.env.GEMINI_RPM ?? 10),
   /** RAG embeddings (B12): 'local' runs multilingual-e5-small in the API; 'none' is full-text search only. */

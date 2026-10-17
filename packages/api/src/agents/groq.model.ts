@@ -30,15 +30,22 @@ export class GroqModel extends ModelPort {
 
   constructor(private apiKey: string, private modelFor: (agent: AgentName, tool: string) => string,
     private effortFor: (agent: AgentName, tool: string) => ReasoningEffort | undefined = () => undefined,
-    /** models to try, in order, when an agent's own model has used its daily budget */
-    private spares: string[] = [],
+    /** models to try, in order, when an agent's own model has used its daily budget (or one
+     *  list per agent: the tutors keep to the stronger models, triage to the cheap ones) */
+    private spares: string[] | ((agent: AgentName) => string[]) = [],
     /** cap on waiting for per-minute quota; production uses the per-agent caps */
     private maxWaitFor: (agent: AgentName) => number = (a) => MAX_WAIT_MS[a],
     private provider: CompatProvider = 'groq',
     /** Gemini: requests per minute per model (the free tier's limit is not published) */
-    private rpm = 10) {
+    private rpm = 10,
+    /** pause before retrying an overloaded (5xx) model once */
+    private overloadBackoffMs: () => number = () => 3000) {
     super();
     this.name = provider;
+  }
+
+  private sparesFor(agent: AgentName): string[] {
+    return typeof this.spares === 'function' ? this.spares(agent) : this.spares;
   }
 
   private requestWindow(model: string) {
@@ -63,12 +70,19 @@ export class GroqModel extends ModelPort {
       method: 'POST',
       headers: { 'content-type': 'application/json', authorization: `Bearer ${this.apiKey}` },
       body: JSON.stringify(body),
-      signal: AbortSignal.timeout(60_000),
+      // Gemini sends a whole tool call at the end of a 20-30 s generation: a longer cap
+      signal: AbortSignal.timeout(this.provider === 'gemini' ? 150_000 : 60_000),
     });
     this.window(body.model).update({
       remaining: r.headers.get('x-ratelimit-remaining-tokens') === null ? null : Number(r.headers.get('x-ratelimit-remaining-tokens')),
       resetMs: parseDuration(r.headers.get('x-ratelimit-reset-tokens')),
     }, Date.now());
+    // overloaded ("high demand", 5xx): one retry after a pause, then the caller tries a spare
+    if (r.status >= 500 && !retried) {
+      this.log.log(`${body.model}: answered ${r.status}, retrying once`);
+      await sleep(this.overloadBackoffMs());
+      return this.post(body, maxWait, true);
+    }
     // daily budget or output cap: waiting a few seconds will not help, so no retry here
     if (r.status === 429 && !retried && !(await this.hopeless(r))) {
       const g = this.provider === 'gemini' ? geminiLimit(await r.clone().text()) : null;
@@ -93,7 +107,7 @@ export class GroqModel extends ModelPort {
     const now = Date.now();
     // a model out of daily budget is skipped until Groq says it is back; one that refused this
     // request's size is skipped for this request only
-    const model = [own, ...this.spares.filter((m) => m !== own)].find((m) => (this.exhausted.get(m) ?? 0) <= now && !refused.has(m));
+    const model = [own, ...this.sparesFor(req.agent).filter((m) => m !== own)].find((m) => (this.exhausted.get(m) ?? 0) <= now && !refused.has(m));
     if (!model) throw new Error(`${req.agent}: no ${this.provider} model can take this request now (daily budgets or output caps)`);
     const body = toGroqBody(req, model, req.maxTokens ?? 8000, this.effortFor(req.agent, req.tool.name), this.provider);
     const need = Math.ceil(JSON.stringify(body).length / 4) + OUTPUT_GUESS;
@@ -116,7 +130,7 @@ export class GroqModel extends ModelPort {
       const back = g ? (g.daily ? g.retryMs : null) : dailyLimit(text);
       if (back !== null) {
         this.exhausted.set(model, Date.now() + back);
-        this.log.warn(`${model}: daily token budget used up for ${Math.round(back / 60_000)} min; using the next model`);
+        this.log.warn(`${model}: daily ${this.provider === 'gemini' ? 'request quota' : 'token budget'} used up for ${Math.round(back / 60_000)} min; using the next model`);
         yield* this.stream(req, refused);
         return;
       }
@@ -126,6 +140,11 @@ export class GroqModel extends ModelPort {
         return;
       }
       throw new Error(`${req.agent}: ${this.provider} 429 ${text.slice(0, 300)}`);
+    }
+    if (r.status >= 500 && [own, ...this.sparesFor(req.agent)].some((m) => m !== model && !refused.has(m) && (this.exhausted.get(m) ?? 0) <= Date.now())) {
+      this.log.warn(`${model}: still ${r.status} after a retry; ${req.agent} moves to the next model`);
+      yield* this.stream(req, new Set([...refused, model]));
+      return;
     }
     if (!r.ok || !r.body) throw new Error(`${req.agent}: ${this.provider} ${r.status} ${(await r.text()).slice(0, 300)}`);
     const reader = r.body.getReader();
