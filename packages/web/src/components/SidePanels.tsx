@@ -1,4 +1,5 @@
 import { useShallow } from 'zustand/react/shallow';
+import { ArrowUpRight, Check, Circle, CircleDot } from 'lucide-react';
 import { selectActiveMembers, selectReadyIds, useRoom } from '../room/store';
 
 export function PeoplePanel() {
@@ -19,8 +20,8 @@ export function PeoplePanel() {
               <span className="avatar" style={{ background: m.color }} aria-hidden>{m.display_name.slice(0, 1).toUpperCase()}</span>
               <span className="grow">{m.display_name}{m.user_id === me && <span className="faint"> (you)</span>}</span>
               {m.user_id === room.host_id && <span className="badge" title="Host">H</span>}
-              {p?.threadId && <span title="In a thread">↗</span>}
-              {room.phase === 'check' && ready.includes(m.user_id) && <span className="ok" title="Ready">✓</span>}
+              {p?.threadId && <span title="In a thread"><ArrowUpRight size={14} aria-label="in a thread" /></span>}
+              {room.phase === 'check' && ready.includes(m.user_id) && <span className="ok" title="Ready"><Check size={14} aria-label="ready" /></span>}
             </li>
           );
         })}
@@ -41,7 +42,7 @@ export function PlanPanel() {
             const state = room.phase === 'ended' || i < room.segment ? 'done' : i === room.segment && room.phase !== 'lobby' ? 'now' : 'todo';
             return (
               <li key={i} className={state} title={s.objective}>
-                <span aria-hidden>{state === 'done' ? '✓' : state === 'now' ? '◐' : '○'}</span> {s.title}
+                {state === 'done' ? <Check size={14} aria-label="done" /> : state === 'now' ? <CircleDot size={14} aria-label="now" /> : <Circle size={14} aria-label="to do" />} {s.title}
               </li>
             );
           })}

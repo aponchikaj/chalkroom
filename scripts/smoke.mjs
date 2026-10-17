@@ -10,7 +10,7 @@ import { createClient } from '@supabase/supabase-js';
 const env = Object.fromEntries(readFileSync('.env', 'utf8').split(/\r?\n/).filter((l) => /^[A-Z_]+=/.test(l)).map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1)]));
 const API = env.VITE_API_URL ?? 'http://localhost:3001';
 const step = (m) => console.log(`• ${m}`);
-const fail = (m) => { console.error(`✗ ${m}`); process.exit(1); };
+const fail = (m) => { console.error(`FAILED: ${m}`); process.exit(1); };
 const timeout = (ms, what) => new Promise((_, rej) => setTimeout(() => rej(new Error(`timed out waiting for ${what}`)), ms));
 
 async function user(name, color) {
@@ -92,7 +92,7 @@ try {
   await waitFor(gio, (e) => e.kind === 'notice' && /ended/i.test(e.data.text), 'class end');
   step('host ended the class');
   await Promise.all([ana.sb.removeChannel(chA), gio.sb.removeChannel(chG)]);
-  console.log('✓ smoke test passed');
+  console.log('PASSED: smoke test');
   process.exit(0);
 } catch (e) {
   fail(e.message);

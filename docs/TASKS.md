@@ -48,7 +48,7 @@ Each milestone ends with both halves merged and the demo step working on two lap
 
 | # | Milestone | Dev A | Dev B | Demo step |
 |---|---|---|---|---|
-| M1 | Foundation ✅ | | | 1, 2 (join by QR, board draws in sync) |
+| M1 | Foundation (done) | | | 1, 2 (join by QR, board draws in sync) |
 | M2 | Questions | A1, A2 | B2 | 3 (`grouped · 2 asked`) |
 | M3 | Threads | A3 | B4 | 4, 7 (thread + catch-up) |
 | M4 | Checks, Q&A, wrap-up | A4, A5 | B3, B5 | 5, 6, 7 (gate passes, credited answer, notes) |
@@ -86,7 +86,7 @@ mock speaks the same contract.
 - The main board keeps playing as a live picture-in-picture in a corner (render `<Board>`
   of `mainPlayer` small).
 - Presence: `conn.track({ threadId })` on open, `null` on close. Others see
-  `Nika is in a thread on "bump seeds"` (People panel shows `↗` already).
+  `Nika is in a thread on "bump seeds"` (the People panel already shows a thread icon).
 - Thread offer: when a `threads` row for me appears with `status: 'offered'`, show
   "Want to dig into {topic} 1:1?" → `api.openThread(roomId, { threadId })`.
 - Back to class → `api.closeThread` → **catch-up card**: `segment_summary` events with
@@ -96,7 +96,7 @@ mock speaks the same contract.
 ### A4 Checks, gate and Q&A polish (P0)
 - `CheckCard`: bar per option from `spread.counts`, "you" marker, collapse to a chip so the
   board stays visible; free-text questions (`short`) show "the tutor will read these".
-- Ready bar: excused learners (`↗`) visibly don't block; gate countdown already in TopBar.
+- Ready bar: excused learners (thread icon) visibly don't block; gate countdown already in TopBar.
 - Q&A beat banner while `phase === 'qa'` ("Answering 2 class questions").
 - Notices (`notice` events) as toasts instead of lines in the rail.
 
@@ -108,7 +108,7 @@ mock speaks the same contract.
   their answers, proposed cards.
 
 ### A6 P1 features
-- Confusion heat: 🤔/👍 on a selected shape → `api.react`; render counts from `reactions` as
+- Confusion heat: "confused" / "got it" (lucide icons) on a selected shape → `api.react`; render counts from `reactions` as
   a glow on the board (`board/Board.tsx`, `PageView`).
 - Laser pointer: hold `L` → `conn.sendLaser` throttled to `LIVE.laserHz`; draw others'
   lasers from `conn.onLaser`.
@@ -187,11 +187,11 @@ mock speaks the same contract.
 
 ## Definition of done for the demo (P0)
 
-- [ ] Anonymous join by link/QR; 5 seats; presence avatars (M1 ✅)
-- [ ] Lead tutor streams Board Script to a shared board (M1 ✅ mock; B1 real)
-- [ ] Host + ready gates (M1 ✅ basic; A4, B5)
+- [ ] Anonymous join by link/QR; 5 seats; presence avatars (M1 done)
+- [ ] Lead tutor streams Board Script to a shared board (M1 done with mock; B1 real)
+- [ ] Host + ready gates (M1 done, basic; A4, B5)
 - [ ] Questions → triage → clusters + 4 routes (A1, A2, B2)
 - [ ] One thread per learner with catch-up (A3, B4, B3)
-- [ ] Class checks with answer spread (M1 ✅ basic; A4)
+- [ ] Class checks with answer spread (M1 done, basic; A4)
 - [ ] End-of-class notes (A5, B3)
 - [ ] `npm run smoke` green, and a rehearsal with `MODEL=mock`

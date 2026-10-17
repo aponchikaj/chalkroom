@@ -3,6 +3,7 @@
 // typing presence, the thread entry point (⋯ thread).
 import { useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
+import { ArrowUpRight, Check } from 'lucide-react';
 import { selectActiveMembers, selectIsHost, selectReadyIds, useRoom } from '../room/store';
 import { api } from '../lib/api';
 
@@ -30,10 +31,10 @@ export function ReadyBar() {
           {members.map((m) => {
             const inThread = !!presence[m.user_id]?.threadId;
             const ok = ready.includes(m.user_id);
-            return <span key={m.user_id} className={`chip ${ok ? 'ready' : ''}`}>{inThread ? '↗' : ok ? '✓' : '·'}{m.display_name}</span>;
+            return <span key={m.user_id} className={`chip ${ok ? 'ready' : ''}`}>{inThread ? <ArrowUpRight size={14} aria-label="in a thread" /> : ok ? <Check size={14} aria-label="ready" /> : null}{m.display_name}</span>;
           })}
           <button className="btn primary" disabled={ready.includes(me)} onClick={() => act(api.ready(room.id, { segment: room.segment }))}>
-            {ready.includes(me) ? 'Ready ✓' : "I'm ready"}
+            {ready.includes(me) ? <><Check size={16} aria-hidden /> Ready</> : "I'm ready"}
           </button>
         </div>
       )}

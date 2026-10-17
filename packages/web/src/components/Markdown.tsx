@@ -16,7 +16,7 @@ export function renderMarkdown(md: string): string {
   let src = md
     .replace(/\$\$([\s\S]+?)\$\$/g, (_m, tex) => keep(katex.renderToString(tex, { displayMode: true, throwOnError: false })))
     .replace(/(^|[^\\$])\$([^$\n]+?)\$/g, (_m, pre, tex) => pre + keep(katex.renderToString(tex, { throwOnError: false })))
-    .replace(CITE, (_m, id, page) => keep(`<button class="chip cite" data-res="${id}"${page ? ` data-page="${page}"` : ''}>📄 ${id}${page ? ` · p${page}` : ''}</button>`));
+    .replace(CITE, (_m, id, page) => keep(`<button class="chip cite" data-res="${id}"${page ? ` data-page="${page}"` : ''}>${id}${page ? ` · p${page}` : ''}</button>`));
   src = marked.parse(src, { async: false }) as string;
   src = src.replace(/\u0000(\d+)\u0000/g, (_m, i) => stash[Number(i)]);
   return DOMPurify.sanitize(src, { ADD_ATTR: ['data-res', 'data-page'], ADD_TAGS: ['semantics', 'annotation'] });
