@@ -1,0 +1,172 @@
+/* Classroom layout: an open manual. Four columns wide, two at tablet, one on a phone.
+   Only layout and regions live here; features style their own insides. */
+
+.live { display: flex; flex-direction: column; height: 100%; min-height: 0; background: var(--paper); }
+.live > * { flex: none; }
+.live > .live-body { flex: 1; }
+
+/* ---------- masthead: the running head ---------- */
+.masthead {
+  display: grid; grid-template-columns: auto 1fr auto; align-items: end; gap: 20px;
+  padding: 14px 20px 12px; border-bottom: 1.5px solid var(--ink);
+}
+.masthead-brand {
+  border: 0; background: none; padding: 0; cursor: pointer; align-self: center;
+  font-size: var(--t-sm); font-weight: 800; font-stretch: 75%; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink);
+}
+.masthead-brand:hover { text-decoration: underline; text-underline-offset: 4px; }
+.masthead-title { min-width: 0; }
+.masthead-title h1 { font-size: clamp(1.4rem, 2.4vw, 2.1rem); font-stretch: 78%; font-weight: 800; letter-spacing: -0.015em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.masthead-sub { font-size: var(--t-sm); color: var(--ink-2); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.masthead-state { display: flex; align-items: center; gap: 10px; align-self: center; }
+.gate-timer { display: inline-flex; align-items: center; gap: 4px; font-size: var(--t-sm); color: var(--ink); }
+.masthead-voice { min-height: 32px; padding: 0 10px; gap: 6px; }
+.masthead-people { display: none; }
+
+/* ---------- body ---------- */
+.live-body {
+  position: relative; min-height: 0;
+  display: grid; grid-template-columns: 76px minmax(0, 1fr) 360px 54px;
+}
+.live-binding { border-right: 1px solid var(--rule); min-height: 0; overflow: auto; }
+.live-rail { border-left: 1px solid var(--rule); background: var(--paper-2); min-height: 0; display: flex; }
+.live-tabs-v { min-height: 0; background: var(--paper-2); }
+.live-tabs-h { display: none; }
+
+/* binding edge: people as punched holes */
+.binding { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 18px 0; }
+.binding ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.binding li { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.binding-name { font-size: 10.5px; font-weight: 650; font-stretch: 80%; letter-spacing: 0.04em; color: var(--ink-2); max-width: 66px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.binding-ring { display: block; width: 34px; height: 34px; border-radius: 50%; border: 1.5px dashed var(--rule-2); }
+.binding-count { font-size: var(--t-xs); color: var(--ink-3); }
+.binding-horizontal { flex-direction: row; padding: 8px 12px; }
+.binding-horizontal ul { flex-direction: row; gap: 10px; }
+.binding-horizontal .binding-name { display: none; }
+
+/* stage: the Q&A strip above the leaf, the board leaf, captions, then the dock (check, thread slips) */
+.stage { min-width: 0; min-height: 0; display: flex; flex-direction: column; padding: 18px 22px 12px; gap: 10px; }
+.stage > * { flex: none; }
+.board-wrap { position: relative; flex: 1 1 0; min-height: 120px; display: flex; align-items: center; justify-content: center; container-type: size; }
+.stage-head { display: flex; justify-content: center; container-type: inline-size; }
+.stage-head:empty { display: none; }
+/* the board shrinks a little while a check is open; the dock scrolls past that */
+.stage-dock {
+  max-height: min(48%, 420px); overflow: auto; container-type: inline-size;
+  display: flex; flex-wrap: wrap; align-items: flex-start; gap: 10px; padding: 2px;
+}
+.stage-dock:not(:has(> :not(:empty))) { display: none; }
+.stage-dock > .check-card { flex: 1 1 520px; }
+.stage-dock > .check-chip { flex: none; }
+.stage-dock > .thread-slips { flex: 1 1 320px; }
+/* the leaf keeps the board's 12 x 8 grid proportions (1320 x 640) and fits the space */
+.board-wrap > .board-svg { width: min(100cqw, 100cqh * 2.0625); height: auto; aspect-ratio: 1320 / 640; }
+/* focus economy: a check or a thread puts the rest of the stage back to paper */
+.stage.in-focus-elsewhere .captions, .stage.in-focus-elsewhere .pagestrip { opacity: 0.5; }
+
+/* overlays over the board share one frame */
+.board-overlay { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; background: color-mix(in srgb, var(--paper) 55%, transparent); }
+
+.captions {
+  min-height: 44px; display: flex; align-items: center; justify-content: center; text-align: center;
+  padding: 6px 12px; font-family: var(--font-read); font-size: 1.1rem; line-height: 1.4; color: var(--ink);
+  border-top: 1px solid var(--rule);
+}
+.captions .faint { font-family: var(--font-ui); font-size: var(--t-sm); }
+
+/* the rail: questions and notes behind two small divider tabs */
+.rail { flex: 1; min-width: 0; display: flex; flex-direction: column; min-height: 0; }
+.rail-tabs { display: flex; gap: 4px; padding: 12px 14px 0; border-bottom: 1.5px solid var(--ink); }
+.rail-tab {
+  border: 1.5px solid var(--ink); border-bottom: 0; border-radius: 4px 4px 0 0; background: var(--paper-3);
+  padding: 7px 14px 6px; margin-bottom: -1.5px; cursor: pointer;
+  font-size: var(--t-xs); font-weight: 750; font-stretch: 80%; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-2);
+}
+.rail-tab[aria-selected='true'] { background: var(--leaf); color: var(--ink); padding-top: 10px; }
+.rail-body { flex: 1; background: var(--leaf); }
+
+/* the thread layer: an acetate leaf hinged over the right of the stage and the rail */
+.thread-layer { position: absolute; top: 0; bottom: 0; left: 38%; right: 54px; z-index: 20; display: flex; padding: 10px 0 10px 0; }
+.thread-layer > * { flex: 1; min-width: 0; }
+
+/* ---------- control bar ---------- */
+.controlbar {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  padding: 10px 20px; border-top: 1.5px solid var(--ink); background: var(--paper);
+}
+.controlbar > :last-child { flex: 1; min-width: 260px; }
+.ready-strip, .host-controls { display: flex; align-items: center; gap: 8px; }
+.host-controls { padding-left: 14px; border-left: 1px solid var(--rule); }
+.askbar { display: flex; gap: 8px; align-items: center; }
+.askbar .input { flex: 1; }
+
+/* ---------- tablet ---------- */
+@media (max-width: 1180px) {
+  .live-body { grid-template-columns: 64px minmax(0, 1fr) 280px 48px; }
+  .stage { padding: 14px 14px 10px; }
+  .thread-layer { left: 18%; right: 48px; }
+  .masthead { gap: 14px; padding: 12px 16px 10px; }
+  .masthead-voice-word { display: none; }
+  .binding-name { max-width: 56px; }
+  .controlbar { padding: 8px 14px; gap: 10px; }
+}
+
+/* ---------- phone: one column. Masthead with people across, lesson tabs across, the board
+   at full width, the rail as the bottom section, and the ask bar on its own row. ---------- */
+@media (max-width: 760px) {
+  .masthead { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'title state' 'people people'; padding: 8px 12px 6px; gap: 4px 10px; align-items: center; }
+  .masthead-brand { display: none; }
+  .masthead-title { grid-area: title; }
+  .masthead-title h1 { font-size: 1.3rem; }
+  .masthead-sub { font-size: var(--t-xs); margin-top: 0; }
+  .masthead-state { grid-area: state; gap: 6px; }
+  .masthead-voice { min-height: 32px; width: 32px; padding: 0; }
+  .masthead-people { grid-area: people; display: block; margin: 2px -12px 0; overflow-x: auto; }
+  .masthead-people .binding-horizontal { padding: 6px 12px 2px; gap: 10px; justify-content: flex-start; }
+  .masthead-people .binding-horizontal ul { gap: 12px; }
+  .masthead-people .binding-ring { width: 24px; height: 24px; }
+  .masthead-people .binding-count { font-size: var(--t-xs); white-space: nowrap; }
+
+  .live-tabs-h { display: block; padding: 0 8px; border-bottom: 1.5px solid var(--ink); }
+  .live-tabs-v, .live-binding { display: none; }
+
+  /* the body scrolls as one page: board first, then the rail */
+  .live-body { display: flex; flex-direction: column; overflow-y: auto; overscroll-behavior: contain; }
+  .stage { flex: none; padding: 8px 8px 4px; gap: 6px; }
+  .stage-dock { max-height: none; overflow: visible; padding: 0; }
+  .stage-dock > .check-card, .stage-dock > .thread-slips { flex-basis: 100%; }
+  .board-wrap { flex: none; width: 100%; min-height: 0; aspect-ratio: 1320 / 640; height: auto; }
+  .captions { min-height: 38px; font-size: 1rem; padding: 4px 6px; }
+  .pagestrip { padding-top: 4px; }
+  .live-rail { flex: 1 0 auto; min-height: 58vh; border-left: 0; border-top: 1.5px solid var(--ink); }
+  /* nothing to read in the rail before class starts: the invitation owns the page */
+  .phase-lobby .live-rail { display: none; }
+
+  /* overlays that need room (lobby, recap) take the board's place and grow with their content */
+  .board-wrap:has(> .board-overlay) { aspect-ratio: auto; container-type: normal; display: block; }
+  .board-wrap:has(> .board-overlay) > .board-svg { display: none; }
+  .board-wrap > .board-overlay { position: relative; inset: auto; padding: 0; background: none; }
+
+  .thread-layer { position: fixed; top: 0; left: 0; right: 0; bottom: 0; padding: 0; z-index: 40; }
+
+  .controlbar { padding: 6px 8px calc(6px + env(safe-area-inset-bottom)); gap: 6px 8px; }
+  .controlbar > .ready-strip, .controlbar > .host-controls { flex: 0 1 auto; }
+  .controlbar > .askbar { order: 3; flex: 1 1 100%; min-width: 0; }
+  .host-controls { padding-left: 0; border-left: 0; flex-wrap: wrap; }
+  .ready-strip { flex-wrap: wrap; }
+}
+
+/* phone, class over: the recap replaces the board in the page flow, so it never covers the captions */
+@media (max-width: 760px) {
+  /* the page scrolls as one: the full recap first, then the notes */
+  .live.phase-ended .live-body { display: block; overflow: auto; }
+  .live.phase-ended .stage { display: block; }
+  .live.phase-ended .live-rail { max-height: none; }
+  .live.phase-ended .board-wrap { container-type: normal; display: block; min-height: 0; aspect-ratio: auto; height: auto; }
+  .live.phase-ended .board-wrap > .board-svg { display: none; }
+  .live.phase-ended .recap { position: static; inset: auto; padding: 0; background: none; overflow: visible; }
+  .live.phase-ended .recap-leaf { max-height: none; }
+  .live.phase-ended .recap-grid { grid-template-columns: minmax(0, 1fr); }
+  .live.phase-ended .recap-sec { border-left: 0; padding-left: 0; }
+  .live.phase-ended .captions, .live.phase-ended .pagestrip { display: none; }
+}

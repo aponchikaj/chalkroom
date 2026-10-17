@@ -1,0 +1,55 @@
+/* A5 (Dev A): shared notes in the rail, and the recap leaf over the board when class ends. */
+
+/* ---------- notes ---------- */
+.notes { padding: 14px 16px 20px; display: flex; flex-direction: column; gap: 10px; }
+.notes-lead { font-size: var(--t-xs); color: var(--ink-3); }
+.notes-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.notes-list > li + li { border-top: 1px solid var(--rule); }
+.note-block { padding: 12px 0; display: flex; flex-direction: column; gap: 8px; }
+.note-md { font-family: var(--font-read); font-size: 1rem; line-height: 1.55; color: var(--ink); overflow-x: auto; }
+.note-md h1, .note-md h2, .note-md h3 { font-family: var(--font-ui); font-stretch: 82%; font-size: 1.08rem; margin: 0 0 6px; }
+.note-md .katex-display { margin: 8px 0; overflow-x: auto; overflow-y: hidden; }
+.note-block.is-locked .note-md { color: var(--ink-2); }
+.note-foot { display: flex; align-items: center; gap: 8px; min-height: 28px; font-size: var(--t-xs); }
+.note-foot .btn.ghost { color: var(--ink-2); }
+.note-foot .btn.ghost:hover:not(:disabled) { color: var(--ink); }
+.note-block.is-editing { padding: 12px 0; }
+.note-textarea { font-size: 0.95rem; line-height: 1.5; min-height: 120px; }
+.notes-empty { padding: 28px 18px; display: flex; flex-direction: column; gap: 6px; font-size: var(--t-sm); color: var(--ink); max-width: 34ch; }
+
+/* ---------- recap: the class is over ---------- */
+.recap {
+  position: absolute; inset: 0; z-index: 8; display: flex; justify-content: center; align-items: flex-start;
+  padding: 14px; background: color-mix(in srgb, var(--paper) 70%, transparent); overflow: auto;
+}
+.recap-leaf { width: min(900px, 100%); padding: 22px 26px 24px; display: flex; flex-direction: column; gap: 18px; }
+.recap-head { display: flex; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+.recap-head h2 { font-size: var(--t-xl); font-stretch: 78%; }
+.recap-sub { margin-top: 4px; font-size: var(--t-sm); color: var(--ink-2); }
+.recap-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; border-top: 1.5px solid var(--ink); }
+.recap-sec { padding: 14px 18px 4px 0; min-width: 0; }
+.recap-sec + .recap-sec { padding-left: 18px; border-left: 1px solid var(--rule); }
+.recap-sec h3 { font-size: var(--t-md); font-stretch: 82%; margin-bottom: 10px; }
+.recap-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.recap-list li { display: flex; flex-direction: column; gap: 3px; font-size: var(--t-sm); min-width: 0; }
+.recap-q { font-family: var(--font-read); font-size: 0.98rem; color: var(--ink); }
+.recap-a { color: var(--ink-2); font-family: var(--font-read); font-size: 0.92rem; }
+.recap-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.recap-check-title { font-weight: 650; color: var(--ink); }
+.recap-seg { display: inline-block; width: 8px; height: 8px; background: var(--seg); border-radius: 1px; flex: none; }
+.recap-empty { font-size: var(--t-sm); color: var(--ink-3); }
+.recap-note-h { font-family: var(--font-read); font-size: 0.98rem; color: var(--ink); }
+.recap-foot { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; border-top: 1px solid var(--rule); padding-top: 14px; }
+.recap-foot p { font-size: var(--t-sm); color: var(--ink-2); flex: 1; min-width: 200px; }
+
+@container (max-width: 760px) {
+  .recap-grid { grid-template-columns: 1fr; }
+  .recap-sec + .recap-sec { padding-left: 0; border-left: 0; border-top: 1px solid var(--rule); }
+  .recap-leaf { padding: 16px; gap: 14px; }
+}
+
+/* a short board (phones): the recap drops from the top of the board over what is below it */
+@container (max-height: 320px) {
+  .recap { inset: 0 0 auto 0; padding: 0; background: none; overflow: visible; }
+  .recap-leaf { max-height: 78vh; overflow: auto; }
+}

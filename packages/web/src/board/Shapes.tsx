@@ -1,4 +1,5 @@
-// One React component per Board Script shape kind, drawn with rough.js strokes.
+// One React component per Board Script shape kind. Geometry comes from rough.js with the
+// manual world's settings (rough.ts): clean single strokes and flat tint fills.
 import { memo, useEffect, useMemo, useState, type CSSProperties } from 'react';
 import katex from 'katex';
 import hljs from 'highlight.js/lib/common';
@@ -7,16 +8,16 @@ import { arrowGeometry, tableColumnWidths, gridToPx, type BoardPage, type ShapeS
 import { rect, ellipse, line, curve, linear, FILL, type RPath } from './rough';
 
 export const STROKE: Record<ShapeStyle, string> = {
-  default: 'var(--chalk)', accent: 'var(--chalk-accent)', muted: 'var(--chalk-muted)',
-  good: 'var(--chalk-good)', warn: 'var(--chalk-warn)', bad: 'var(--chalk-bad)',
+  default: 'var(--fig-ink)', accent: 'var(--fig-accent)', muted: 'var(--fig-muted)',
+  good: 'var(--fig-good)', warn: 'var(--fig-warn)', bad: 'var(--fig-bad)',
 };
 const colorOf = (s: ShapeState) => STROKE[s.style ?? 'default'] ?? STROKE.default;
 
-export function Paths({ paths, color, fill, width = 2.2, fillOpacity = 0.32 }: { paths: RPath[]; color: string; fill?: string; width?: number; fillOpacity?: number }) {
+export function Paths({ paths, color, fill, width = 2.2, fillOpacity = 0.32, solidOpacity = 0.16 }: { paths: RPath[]; color: string; fill?: string; width?: number; fillOpacity?: number; solidOpacity?: number }) {
   return (
     <>
       {paths.map((p, i) => p.kind === 'solid'
-        ? <path key={i} className="fillpath" d={p.d} style={{ fill: fill ?? color, stroke: 'none' }} />
+        ? <path key={i} className="fillpath" d={p.d} style={{ fill: fill ?? color, stroke: 'none', fillOpacity: solidOpacity }} />
         : <path key={i} className="stroke" d={p.d} pathLength={1}
             style={p.kind === 'sketch' ? { stroke: fill ?? color, strokeWidth: 1.1, opacity: fillOpacity } : { stroke: color, strokeWidth: width }} />)}
     </>
@@ -39,13 +40,13 @@ const filled = (s: ShapeState) => s.style && s.style !== 'default' && s.style !=
 function Box({ s }: { s: ShapeState }) {
   const c = colorOf(s);
   const p = useMemo(() => rect(s.id, s.x, s.y, s.w, s.h, filled(s) ? { fill: FILL, fillStyle: 'hachure', hachureGap: 9 } : {}), [s.id, s.x, s.y, s.w, s.h, s.style]);
-  return <><Paths paths={p} color={c} />{s.text && <Lines text={s.text} x={s.x + s.w / 2} y={s.y + s.h / 2} color="var(--chalk)" />}</>;
+  return <><Paths paths={p} color={c} />{s.text && <Lines text={s.text} x={s.x + s.w / 2} y={s.y + s.h / 2} color="var(--fig-ink)" />}</>;
 }
 
 function Circle({ s }: { s: ShapeState }) {
   const c = colorOf(s);
   const p = useMemo(() => ellipse(s.id, s.x + s.w / 2, s.y + s.h / 2, s.w, s.h, filled(s) ? { fill: FILL, fillStyle: 'hachure', hachureGap: 9 } : {}), [s.id, s.x, s.y, s.w, s.h, s.style]);
-  return <><Paths paths={p} color={c} />{s.text && <Lines text={s.text} x={s.x + s.w / 2} y={s.y + s.h / 2} color="var(--chalk)" />}</>;
+  return <><Paths paths={p} color={c} />{s.text && <Lines text={s.text} x={s.x + s.w / 2} y={s.y + s.h / 2} color="var(--fig-ink)" />}</>;
 }
 
 function Sticky({ s }: { s: ShapeState }) {
@@ -53,7 +54,7 @@ function Sticky({ s }: { s: ShapeState }) {
   const tilt = ((s.id.charCodeAt(0) % 5) - 2) * 0.7;
   return (
     <g transform={`rotate(${tilt} ${s.x + s.w / 2} ${s.y + s.h / 2})`}>
-      <Paths paths={p} color="var(--sticky)" fill="var(--sticky)" width={1.4} />
+      <Paths paths={p} color="var(--note-edge)" fill="var(--note)" width={1.2} solidOpacity={1} />
       <foreignObject x={s.x} y={s.y} width={s.w} height={s.h}><div className="fo-sticky">{s.text}</div></foreignObject>
     </g>
   );
@@ -61,7 +62,7 @@ function Sticky({ s }: { s: ShapeState }) {
 
 function Text({ s }: { s: ShapeState }) {
   const accent = s.style === 'accent';
-  return <Lines text={s.text ?? ''} x={s.x + s.w / 2} y={s.y + s.h / 2} size={accent ? 34 : 28} weight={accent ? 700 : 400} color={s.style ? colorOf(s) : 'var(--chalk)'} />;
+  return <Lines text={s.text ?? ''} x={s.x + s.w / 2} y={s.y + s.h / 2} size={accent ? 34 : 28} weight={accent ? 700 : 400} color={s.style ? colorOf(s) : 'var(--fig-ink)'} />;
 }
 
 function Formula({ s }: { s: ShapeState }) {
@@ -84,7 +85,7 @@ function Code({ s }: { s: ShapeState }) {
   const p = useMemo(() => rect(s.id, s.x, s.y, s.w, s.h, { roughness: 0.7, strokeWidth: 1.5 }), [s.id, s.x, s.y, s.w, s.h]);
   return (
     <>
-      <Paths paths={p} color="var(--chalk-muted)" width={1.5} />
+      <Paths paths={p} color="var(--fig-muted)" width={1.5} />
       <foreignObject x={s.x} y={s.y} width={s.w} height={s.h}><pre className="fo-code" dangerouslySetInnerHTML={{ __html: html }} /></foreignObject>
     </>
   );
@@ -111,7 +112,7 @@ function Table({ s }: { s: ShapeState }) {
         return row.map((cell, c) => {
           const cx = x + widths[c] / 2;
           x += widths[c];
-          return <Lines key={`${r}-${c}`} text={cell} x={cx} y={s.y + r * rh + rh / 2} size={22} weight={r === 0 ? 700 : 400} color={r === 0 ? 'var(--chalk-accent)' : 'var(--chalk)'} />;
+          return <Lines key={`${r}-${c}`} text={cell} x={cx} y={s.y + r * rh + rh / 2} size={22} weight={r === 0 ? 700 : 400} color={r === 0 ? 'var(--fig-accent)' : 'var(--fig-ink)'} />;
         });
       })}
     </>
@@ -136,20 +137,20 @@ function Chart({ s }: { s: ShapeState }) {
   const bw = data.length ? (iw / data.length) * 0.62 : 0;
   return (
     <>
-      <Paths paths={paths} color="var(--chalk)" />
+      <Paths paths={paths} color="var(--fig-ink)" />
       {spec?.type !== 'line' && data.map((d, i) => {
         const h = (d.y / max) * ih;
         const x = ox + (i + 0.19) * (iw / data.length);
-        return <Paths key={i} paths={rect(`${s.id}b${i}`, x, oy - h, bw, h, { fill: FILL, fillStyle: 'hachure', hachureGap: 6 })} color="var(--chalk-accent)" />;
+        return <Paths key={i} paths={rect(`${s.id}b${i}`, x, oy - h, bw, h, { fill: FILL, fillStyle: 'hachure', hachureGap: 6 })} color="var(--fig-accent)" />;
       })}
       {data.map((d, i) => {
         const x = spec?.type === 'line' ? ox + (data.length === 1 ? iw / 2 : (i / (data.length - 1)) * iw) : ox + (i + 0.5) * (iw / data.length);
-        return <text key={`x${i}`} className="label" x={x} y={oy + 18} textAnchor="middle" style={{ fontSize: 18, fill: 'var(--chalk-dim)' }}>{String(d.x)}</text>;
+        return <text key={`x${i}`} className="label" x={x} y={oy + 18} textAnchor="middle" style={{ fontSize: 18, fill: 'var(--fig-ink-2)' }}>{String(d.x)}</text>;
       })}
-      <text className="label" x={ox - 8} y={oy - ih} textAnchor="end" dominantBaseline="central" style={{ fontSize: 18, fill: 'var(--chalk-dim)' }}>{fmt(max)}</text>
-      <text className="label" x={ox - 8} y={oy} textAnchor="end" dominantBaseline="central" style={{ fontSize: 18, fill: 'var(--chalk-dim)' }}>0</text>
-      {spec?.yLabel && <text className="label" x={ox + 8} y={s.y + 2} style={{ fontSize: 18, fill: 'var(--chalk-dim)' }} dominantBaseline="hanging">{spec.yLabel}</text>}
-      {spec?.xLabel && <text className="label" x={ox + iw} y={s.y + s.h - 2} textAnchor="end" style={{ fontSize: 18, fill: 'var(--chalk-dim)' }}>{spec.xLabel}</text>}
+      <text className="label" x={ox - 8} y={oy - ih} textAnchor="end" dominantBaseline="central" style={{ fontSize: 18, fill: 'var(--fig-ink-2)' }}>{fmt(max)}</text>
+      <text className="label" x={ox - 8} y={oy} textAnchor="end" dominantBaseline="central" style={{ fontSize: 18, fill: 'var(--fig-ink-2)' }}>0</text>
+      {spec?.yLabel && <text className="label" x={ox + 8} y={s.y + 2} style={{ fontSize: 18, fill: 'var(--fig-ink-2)' }} dominantBaseline="hanging">{spec.yLabel}</text>}
+      {spec?.xLabel && <text className="label" x={ox + iw} y={s.y + s.h - 2} textAnchor="end" style={{ fontSize: 18, fill: 'var(--fig-ink-2)' }}>{spec.xLabel}</text>}
     </>
   );
 }
@@ -164,18 +165,18 @@ function Mermaid({ s }: { s: ShapeState }) {
     let alive = true;
     (async () => {
       const { default: mermaid } = await import('mermaid');
-      const dark = !document.documentElement.dataset.theme || document.documentElement.dataset.theme === 'contrast';
+      const dark = false; // the manual world is a light, printed page
       const cs = getComputedStyle(document.documentElement);
       mermaid.initialize({
         startOnLoad: false, securityLevel: 'strict', theme: 'base',
-        fontFamily: 'Kalam, cursive',
+        fontFamily: "'Archivo Variable', sans-serif",
         themeVariables: {
           darkMode: dark, background: 'transparent', fontSize: '18px',
-          primaryColor: cs.getPropertyValue('--board').trim(), primaryTextColor: cs.getPropertyValue('--chalk').trim(),
-          primaryBorderColor: cs.getPropertyValue('--chalk').trim(), lineColor: cs.getPropertyValue('--chalk-dim').trim(),
-          secondaryColor: cs.getPropertyValue('--board-edge').trim(), tertiaryColor: cs.getPropertyValue('--board').trim(),
-          actorBkg: cs.getPropertyValue('--board').trim(), actorBorder: cs.getPropertyValue('--chalk').trim(), actorTextColor: cs.getPropertyValue('--chalk').trim(),
-          signalColor: cs.getPropertyValue('--chalk').trim(), signalTextColor: cs.getPropertyValue('--chalk').trim(), noteBkgColor: cs.getPropertyValue('--sticky').trim(),
+          primaryColor: cs.getPropertyValue('--leaf').trim(), primaryTextColor: cs.getPropertyValue('--fig-ink').trim(),
+          primaryBorderColor: cs.getPropertyValue('--fig-ink').trim(), lineColor: cs.getPropertyValue('--fig-ink-2').trim(),
+          secondaryColor: cs.getPropertyValue('--leaf-edge').trim(), tertiaryColor: cs.getPropertyValue('--leaf').trim(),
+          actorBkg: cs.getPropertyValue('--leaf').trim(), actorBorder: cs.getPropertyValue('--fig-ink').trim(), actorTextColor: cs.getPropertyValue('--fig-ink').trim(),
+          signalColor: cs.getPropertyValue('--fig-ink').trim(), signalTextColor: cs.getPropertyValue('--fig-ink').trim(), noteBkgColor: cs.getPropertyValue('--note').trim(),
         },
       });
       try {
@@ -189,7 +190,7 @@ function Mermaid({ s }: { s: ShapeState }) {
   }, [s.code]);
   return (
     <foreignObject x={s.x} y={s.y} width={s.w} height={s.h}>
-      {err ? <pre className="fo-code" style={{ color: 'var(--chalk-bad)', whiteSpace: 'pre-wrap' }}>Diagram error: {err}</pre>
+      {err ? <pre className="fo-code" style={{ color: 'var(--fig-bad)', whiteSpace: 'pre-wrap' }}>Diagram error: {err}</pre>
         : <div className="fo-mermaid" dangerouslySetInnerHTML={{ __html: svg }} />}
     </foreignObject>
   );
@@ -204,8 +205,8 @@ function Image({ s }: { s: ShapeState }) {
   return (
     <>
       {href ? <image href={href} x={s.x} y={s.y} width={s.w} height={s.h} preserveAspectRatio="xMidYMid meet" className="label" />
-        : <Lines text={`image: ${src || '(missing src)'}`} x={s.x + s.w / 2} y={s.y + s.h / 2} size={15} color="var(--chalk-muted)" />}
-      <Paths paths={p} color="var(--chalk-muted)" width={1.2} />
+        : <Lines text={`image: ${src || '(missing src)'}`} x={s.x + s.w / 2} y={s.y + s.h / 2} size={15} color="var(--fig-muted)" />}
+      <Paths paths={p} color="var(--fig-muted)" width={1.2} />
     </>
   );
 }
@@ -220,8 +221,8 @@ function Frame({ s }: { s: ShapeState }) {
   const p = useMemo(() => rect(s.id, s.x, s.y, s.w, s.h, { roughness: 0.8, strokeWidth: 1.4, strokeLineDash: [10, 8] }), [s.id, s.x, s.y, s.w, s.h]);
   return (
     <>
-      <Paths paths={p} color="var(--chalk-muted)" width={1.4} />
-      {(s.title ?? s.text) && <text className="label" x={s.x + 10} y={s.y - 8} style={{ fontSize: 21, fill: 'var(--chalk-muted)' }}>{s.title ?? s.text}</text>}
+      <Paths paths={p} color="var(--fig-muted)" width={1.4} />
+      {(s.title ?? s.text) && <text className="label" x={s.x + 10} y={s.y - 8} style={{ fontSize: 21, fill: 'var(--fig-muted)' }}>{s.title ?? s.text}</text>}
     </>
   );
 }
@@ -245,8 +246,8 @@ function Arrow({ s, page }: { s: ShapeState; page: BoardPage }) {
       <Paths paths={paths} color={colorOf(s)} />
       {s.label && (
         <g className="label">
-          <rect x={mx - s.label.length * 5.2 - 8} y={my - 16} width={s.label.length * 10.4 + 16} height={30} rx={7} style={{ fill: 'var(--board)' }} />
-          <Lines text={s.label} x={mx} y={my - 1} size={20} color="var(--chalk-dim)" />
+          <rect x={mx - s.label.length * 5.2 - 8} y={my - 16} width={s.label.length * 10.4 + 16} height={30} rx={7} style={{ fill: 'var(--leaf)' }} />
+          <Lines text={s.label} x={mx} y={my - 1} size={20} color="var(--fig-ink-2)" />
         </g>
       )}
     </>
