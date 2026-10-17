@@ -18,10 +18,11 @@ export const PROMPTS = {
  * The cached prefix shared by every agent of a room. It must be byte-identical across calls
  * (no timestamps, no per-call ids), or prompt caching silently stops working.
  */
-export function roomPrefix(room: { title: string; goal?: string; syllabus?: string }, plan: LessonPlan | null): string {
+export function roomPrefix(room: { title: string; goal?: string; syllabus?: string }, plan: LessonPlan | null, opts: { board?: boolean } = {}): string {
   return [
     PROMPTS.classroom,
-    PROMPTS.boardScript,
+    // agents that never draw (triage, scribe) skip Board Script: about 2000 tokens less per call
+    opts.board === false ? '' : PROMPTS.boardScript,
     `# This class\n\nTopic: ${room.title}${room.goal ? `\nGoal: ${room.goal}` : ''}`,
     room.syllabus ? `## Course syllabus\n\n${room.syllabus}` : '',
     plan ? `## Lesson plan\n\n${plan.segments.map((s, i) => `${i}. ${s.title} — ${s.objective}`).join('\n')}` : '',

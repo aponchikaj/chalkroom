@@ -17,6 +17,7 @@ import type { ScribeAgent } from '../agents/scribe.agent';
 import { checkResults, segmentTranscript, summariesOf } from './narration';
 import { buildNotes } from '../notes/notes';
 import { prefetch, type ChunkBuffer } from './prefetch';
+import { config } from '../config';
 import type { TeachChunk } from '../agents/lead-tutor.agent';
 
 export interface ConductorDeps {
@@ -120,7 +121,7 @@ export class RoomConductor {
     // the summary runs beside the gate, never in front of it
     this.pendingSummary = this.summarize(room, segment, plan.segments[segment].title);
     // pipelining: write the next segment while the class answers the check and votes
-    if (segment + 1 < plan.segments.length) {
+    if (config.pipeline && segment + 1 < plan.segments.length) {
       this.next = { segment: segment + 1, chunks: prefetch(this.deps.lead.teach(await this.teachContext(room, segment + 1, false))) };
     }
     await this.deps.rooms.update(room.id, { phase: 'check' });
@@ -241,7 +242,7 @@ export class RoomConductor {
       const asked = await this.db.from('questions').select('text').eq('room_id', room.id).eq('segment', segment);
       const questions = (asked.data ?? []).map((q) => `- ${q.text as string}`).join('\n');
       const transcript = [segmentTranscript(events, segment), questions && `Learners asked:\n${questions}`].filter(Boolean).join('\n\n');
-      const summary = await this.deps.scribe.summarize(await this.prefix(room), title, transcript, room.id);
+      const summary = await this.deps.scribe.summarize(await this.deps.rooms.prefixOf(room, { board: false }), title, transcript, room.id);
       await this.deps.events.append(room.main_stream_id, 'segment_summary', { segment, title, summary }, 'scribe');
       this.summaries.push(summary);
     } catch (e) {

@@ -5,9 +5,11 @@ import { API, ROOT, env, sleep } from './helpers';
 
 let child: ChildProcess | null = null;
 
+const MOCK_PORT = 3101;
+
 async function health(): Promise<{ model: string } | null> {
   try {
-    const r = await fetch(`${API}/health`);
+    const r = await fetch(`${process.env.E2E_API_URL ?? API}/health`);
     return r.ok ? ((await r.json()) as { model: string }) : null;
   } catch {
     return null;
@@ -23,14 +25,16 @@ export async function setup() {
   }
 
   const running = await health();
+  if (running?.model === 'mock') return;
+  // a dev API on a real model: run the suite against our own mock instance (no model calls spent)
   if (running) {
-    if (running.model !== 'mock') throw new Error('The running API uses a real model. Restart it with MODEL=mock (or stop it and let the suite start one).');
-    return;
+    process.env.E2E_API_URL = `http://localhost:${MOCK_PORT}`;
+    if (await health()) return;
   }
 
   child = spawn('npm', ['run', 'start', '-w', '@chalk/api'], {
     cwd: ROOT,
-    env: { ...process.env, MODEL: 'mock', MOCK_DELAY_MS: '50' },
+    env: { ...process.env, MODEL: 'mock', MOCK_DELAY_MS: '50', ...(running ? { API_PORT: String(MOCK_PORT), RESUME_ROOMS: '0', SANDBOX: '0' } : {}) },
     stdio: ['ignore', 'ignore', 'inherit'],
     detached: true, // own process group, so teardown stops npm and node together
   });
@@ -38,7 +42,7 @@ export async function setup() {
     if (await health()) return;
     await sleep(500);
   }
-  throw new Error(`The API did not come up on ${API} within 30 s`);
+  throw new Error(`The API did not come up on ${process.env.E2E_API_URL ?? API} within 30 s`);
 }
 
 export async function teardown() {
