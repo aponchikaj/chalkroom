@@ -72,13 +72,14 @@ export function mockTeach(segment: number): TeachSegment {
   return PDA_SEGMENTS[segment % PDA_SEGMENTS.length];
 }
 
-export function mockClusterAnswer(title: string, askers: string[]): BoardStep[] {
+/** `source`: a citation (res:<id>#p<page>) from retrieved material, put on the answer box. */
+export function mockClusterAnswer(title: string, askers: string[], source?: string): BoardStep[] {
   const who = askers.length > 1 ? `${askers.slice(0, -1).join(', ')} and ${askers[askers.length - 1]}` : askers[0] ?? 'someone';
   return [
     { page: { title: `Q&A: ${title}` } },
     { add: { id: 'qa-q', kind: 'sticky', text: title, at: [2.5, 1.5] } },
     { say: `${who} asked: ${title}` },
-    { add: { id: 'qa-a', kind: 'box', text: 'No private key\n→ only the program\ncan sign (invoke_signed)', at: [8, 2] } },
+    { add: { id: 'qa-a', kind: 'box', text: 'No private key\n→ only the program\ncan sign (invoke_signed)', at: [8, 2], ...(source ? { source } : {}) } },
     { add: { id: 'qa-e', kind: 'arrow', from: 'qa-q', to: 'qa-a' } },
     { say: 'Short answer: a PDA is off the curve, so no key exists. The runtime lets the program sign for it by re-deriving the address from the seeds.' },
   ];

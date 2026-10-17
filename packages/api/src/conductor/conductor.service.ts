@@ -9,6 +9,8 @@ import { TriageService } from '../triage/triage.service';
 import { ScribeAgent } from '../agents/scribe.agent';
 import { PresenceService } from '../presence/presence.service';
 import { UsageMeter } from '../agents/metered.model';
+import { RetrieveService } from '../rag/retrieve.service';
+import { IngestWorker } from '../rag/ingest.worker';
 import { RoomConductor } from './room-conductor';
 import { config } from '../config';
 
@@ -26,6 +28,8 @@ export class ConductorService implements OnApplicationBootstrap {
     private scribe: ScribeAgent,
     private presence: PresenceService,
     meter: UsageMeter,
+    private retrieve: RetrieveService,
+    private ingest: IngestWorker,
   ) {
     this.presence.onMembersChanged((id) => void this.for(id).membersChanged());
     meter.onBudgetExceeded((roomId) => void this.roomsService.get(roomId)
@@ -36,7 +40,7 @@ export class ConductorService implements OnApplicationBootstrap {
   for(roomId: string): RoomConductor {
     let c = this.rooms.get(roomId);
     if (!c) {
-      c = new RoomConductor(roomId, { supa: this.supa, events: this.events, rooms: this.roomsService, lead: this.lead, triage: this.triage, scribe: this.scribe });
+      c = new RoomConductor(roomId, { supa: this.supa, events: this.events, rooms: this.roomsService, lead: this.lead, triage: this.triage, scribe: this.scribe, retrieve: this.retrieve, ingest: this.ingest });
       this.rooms.set(roomId, c);
     }
     // idempotent; re-watches a room after it emptied out and someone came back
