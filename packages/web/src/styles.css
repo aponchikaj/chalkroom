@@ -50,10 +50,10 @@
   --fig-accent: var(--section);
   --fig-good: #3f7f33;
   --fig-warn: #b45d12;
-  --fig-bad: #c4361a;
+  --fig-bad: #8f3a22;          /* brick, not the errata vermilion */
   --fig-blue: #2b4cbd;
   --fig-pink: #a83d7c;
-  --fig-highlight: color-mix(in srgb, var(--action) 45%, transparent);
+  --fig-highlight: color-mix(in srgb, var(--section) 22%, transparent); /* yellow stays for actions */
   --note: #f6e7a6;
   --note-edge: #d8c26a;
   --note-ink: #2e2a17;
@@ -296,7 +296,7 @@ p { margin: 0; }
 
 /* ---------- shell ---------- */
 .banner { display: flex; align-items: center; gap: 12px; padding: 7px 16px; font-size: var(--t-sm); border-bottom: 1px solid var(--rule); background: var(--paper-2); }
-.banner.warn { background: color-mix(in srgb, var(--action) 30%, var(--paper)); }
+.banner.warn { background: var(--paper-3); color: var(--ink); }
 .banner.error { background: var(--errata-tint); color: #6e1a09; }
 
 .toasts { position: fixed; right: 16px; bottom: 16px; display: flex; flex-direction: column; gap: 8px; z-index: 60; max-width: 360px; }
