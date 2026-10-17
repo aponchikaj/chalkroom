@@ -59,8 +59,6 @@ export const api = {
   avatarCommit: (b: In<'avatarCommit'>) => call<MeRes>('POST', '/me/avatar', b),
   avatarDelete: () => call<void>('DELETE', '/me/avatar'),
   twoFactor: () => call<TwoFactorState>('GET', '/me/2fa'),
-  emailCodeSend: (b: In<'emailCodeSend'>) => call<void>('POST', '/me/2fa/email/send', b),
-  emailCodeVerify: (b: In<'emailCodeVerify'>) => call<TwoFactorState>('POST', '/me/2fa/email/verify', b),
   // class materials (B12)
   sources: (roomId: string) => call<SourceRow[]>('GET', `/rooms/${roomId}/sources`),
   addSourceUrl: (roomId: string, b: In<'addSourceUrl'>) => call<SourceRow>('POST', `/rooms/${roomId}/sources/url`, b),

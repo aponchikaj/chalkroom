@@ -12,8 +12,6 @@ import { initAuth, useAuth } from './lib/auth';
 import { loadPreferences } from './lib/preferences';
 import { Login } from './screens/auth/Login';
 import { Signup } from './screens/auth/Signup';
-import { ResetRequest } from './screens/auth/ResetRequest';
-import { ResetNew } from './screens/auth/ResetNew';
 import { MfaStep } from './screens/auth/MfaStep';
 import { Account } from './screens/account/Account';
 import { CoursePage } from './screens/courses/CoursePage';
@@ -33,8 +31,6 @@ function App() {
 
   // public account pages
   if (path === '/signup') return <Signup />;
-  if (path === '/reset') return <ResetRequest />;
-  if (path === '/reset/new') return <ResetNew />;
   if (path === '/login') return <Login />;
 
   // the login gate: everything else needs an account (and a passed second factor)
