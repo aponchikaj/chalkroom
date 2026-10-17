@@ -14,6 +14,7 @@ export type ThreadReply = z.infer<typeof ThreadReply>;
 const replyTool = toolFrom('reply', 'Reply to the learner in the thread, optionally drawing on the mini board.', ThreadReply);
 
 export interface ThreadContext {
+  roomId?: string;
   /** the room's shared prefix: the same bytes the lead tutor uses, so the cache is shared */
   prefix: string;
   /** describeBoard() of the main board right now */
@@ -28,7 +29,7 @@ export class ThreadTutorAgent {
 
   reply(ctx: ThreadContext, text: string): Promise<ThreadReply> {
     return callValidated(this.model, {
-      agent: 'thread', prefix: ctx.prefix,
+      agent: 'thread', roomId: ctx.roomId, prefix: ctx.prefix,
       system: `${PROMPTS.thread}\n\nThread topic: ${ctx.topic}\nMain board now: ${JSON.stringify(ctx.mainBoard)}`,
       tool: replyTool, maxTokens: 3000,
       messages: [...ctx.history, { role: 'user', content: text }],

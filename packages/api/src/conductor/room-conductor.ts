@@ -72,7 +72,7 @@ export class RoomConductor {
   private async doStart() {
     let room = await this.deps.rooms.get(this.roomId);
     if (room.phase !== 'lobby') return;
-    const plan = await this.deps.lead.plan(await this.prefix(room), room.title);
+    const plan = await this.deps.lead.plan(await this.prefix(room), room.title, room.id);
     room = await this.deps.rooms.update(room.id, { lesson_plan: plan, started_at: new Date().toISOString() });
     await this.teach(room, 0);
   }
@@ -85,7 +85,7 @@ export class RoomConductor {
     const slower = this.slower;
     this.slower = false;
     try {
-      for await (const chunk of this.deps.lead.teach({ prefix: await this.prefix(room), plan, segment, slower, lastCheck: this.lastCheck, summaries: this.summaries })) {
+      for await (const chunk of this.deps.lead.teach({ roomId: room.id, prefix: await this.prefix(room), plan, segment, slower, lastCheck: this.lastCheck, summaries: this.summaries })) {
         if ('steps' in chunk) await this.deps.events.append(main, 'board', { steps: chunk.steps }, 'lead');
         else if ('check' in chunk) {
           const row = await this.db.from('checks').insert({ room_id: room.id, segment, question: chunk.check }).select('id').single();
@@ -178,7 +178,7 @@ export class RoomConductor {
       const qs = await this.db.from('questions').select('text, author_name').eq('cluster_id', c.id);
       const askers = [...new Set((qs.data ?? []).map((q) => q.author_name as string))];
       try {
-        const steps = await this.deps.lead.answerCluster(prefix, c.title, (qs.data ?? []).map((q) => q.text as string), askers);
+        const steps = await this.deps.lead.answerCluster(prefix, c.title, (qs.data ?? []).map((q) => q.text as string), askers, room.id);
         await this.deps.events.append(room.main_stream_id, 'answer_cluster', { clusterId: c.id, title: c.title, askers, steps }, 'lead');
         const said = steps.flatMap((s) => ('say' in s ? [s.say] : [])).join(' ');
         await this.db.from('clusters').update({ answered: true, answer: said || null }).eq('id', c.id);
@@ -205,7 +205,7 @@ export class RoomConductor {
       const asked = await this.db.from('questions').select('text').eq('room_id', room.id).eq('segment', segment);
       const questions = (asked.data ?? []).map((q) => `- ${q.text as string}`).join('\n');
       const transcript = [segmentTranscript(events, segment), questions && `Learners asked:\n${questions}`].filter(Boolean).join('\n\n');
-      const summary = await this.deps.scribe.summarize(await this.prefix(room), title, transcript);
+      const summary = await this.deps.scribe.summarize(await this.prefix(room), title, transcript, room.id);
       await this.deps.events.append(room.main_stream_id, 'segment_summary', { segment, title, summary }, 'scribe');
       this.summaries.push(summary);
     } catch (e) {

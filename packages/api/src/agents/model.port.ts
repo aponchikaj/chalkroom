@@ -11,8 +11,12 @@ export interface ModelTool {
   input_schema: Record<string, unknown>;
 }
 
+export interface Usage { input: number; output: number; cacheRead: number; cacheWrite: number }
+
 export interface ModelRequest {
   agent: AgentName;
+  /** room the call is for: usage metering and the per-room budget (B6) */
+  roomId?: string;
   /**
    * Stable text shared by every agent in a room (system rules + Board Script + lesson plan).
    * Sent first with cache_control so lead, thread and triage calls reuse one cached prefix.
@@ -33,7 +37,7 @@ export type ModelEvent =
   /** partial JSON of the tool input as the model writes it (for streaming board steps) */
   | { type: 'tool_delta'; partialJson: string }
   | { type: 'tool'; name: string; input: unknown }
-  | { type: 'done'; stopReason: string | null; usage?: { input: number; output: number; cacheRead: number } };
+  | { type: 'done'; stopReason: string | null; usage?: Usage };
 
 export abstract class ModelPort {
   abstract readonly name: string;
