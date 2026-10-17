@@ -5,6 +5,7 @@ import { AuthGuard, CurrentUser, type AuthUser } from '../core/auth.guard';
 import { ZodPipe } from '../core/zod.pipe';
 import { RoomsService } from './rooms.service';
 import { ConductorService } from '../conductor/conductor.service';
+import { RateLimit } from '../core/rate-limit';
 
 @Controller('rooms')
 export class RoomsController {
@@ -12,17 +13,20 @@ export class RoomsController {
 
   /** Pre-join screen: no membership (and no auth) needed. */
   @Get('code/:code')
+  @RateLimit('preview', 60, 60000)
   preview(@Param('code') code: string): Promise<RoomPreview> {
     return this.rooms.preview(code);
   }
 
   @Post()
+  @RateLimit('create-room', 20, 3600000)
   @UseGuards(AuthGuard)
   create(@CurrentUser() u: AuthUser, @Body(new ZodPipe(Api.createRoom)) body: z.infer<typeof Api.createRoom>): Promise<CreateRoomRes> {
     return this.rooms.create(u.id, body);
   }
 
   @Post('join')
+  @RateLimit('join', 20, 60000)
   @UseGuards(AuthGuard)
   async join(@CurrentUser() u: AuthUser, @Body(new ZodPipe(Api.joinRoom)) body: z.infer<typeof Api.joinRoom>): Promise<JoinRoomRes> {
     const res = await this.rooms.join(u.id, body);
@@ -84,6 +88,7 @@ export class RoomsController {
   }
 
   @Post(':id/reactions')
+  @RateLimit('react', 120, 60000)
   @HttpCode(204)
   @UseGuards(AuthGuard)
   react(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(Api.react)) body: z.infer<typeof Api.react>) {

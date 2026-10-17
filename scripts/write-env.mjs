@@ -22,6 +22,8 @@ const managed = {
   VITE_SUPABASE_URL: url,
   VITE_SUPABASE_ANON_KEY: anon,
   VITE_API_URL: 'http://localhost:3001',
+  // local only: the web signs in test accounts until the login screens exist (?as=<name>)
+  VITE_DEV_LOGIN: '1',
   // Mailpit SMTP (supabase/config.toml local_smtp.smtp_port); view mail at http://127.0.0.1:55424
   SMTP_URL: 'smtp://127.0.0.1:55425',
   // HMAC key for email 2FA codes; a fresh one each run is fine locally (codes live 10 minutes)

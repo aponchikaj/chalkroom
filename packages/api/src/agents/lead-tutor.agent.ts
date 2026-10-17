@@ -68,7 +68,7 @@ export class LeadTutorAgent {
       mock: () => mockTeach(ctx.segment),
     };
     try {
-      yield* streamTeach(this.model, req);
+      yield* streamTeach(this.model, { ...req, streamed: true });
     } catch (e) {
       if (!(e instanceof InvalidTeach)) throw e;
       const out = await callValidated(this.model, req, TeachSegment);

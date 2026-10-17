@@ -136,3 +136,25 @@ keyword weight 0.5, backfill of old chunks.
 
 Residual risks: the lead has ~6 classes/day on 120b before falling to 20b; one segment had 11
 shapes on a page; triage sends a learner's third deep question inline rather than as a thread.
+
+## Gemini free tier (2026-10-18)
+
+Groq replaced by Gemini for testing (production is Claude Sonnet 5.5). Found and fixed while
+connecting it, each with a test:
+
+- Board Script tools got an unexplained 400: Gemini rejects `minItems`/`maxItems` in tool
+  schemas (bisected). They move into the description as words; Zod still enforces them.
+  Dropping them silently also dropped "3-6 segments" for the planner (a two-segment class).
+- The repair pass got a 400: Gemini 3 rejects a replayed function call without its thought
+  signature. Repair turns go to Gemini as text.
+- Hidden thinking is only in `total_tokens`: metering now counts it as output.
+- 503 "high demand" is common: one retry after 3 s, then the next model.
+- ~20 requests a day per Flash model: the tutors fall back Flash to Flash before Lite; triage and
+  the scribe stay on Lite. Lessons take 12-20 s and arrive whole (no streaming of steps).
+
+| Run | Result |
+|---|---|
+| triage x9, scribe x2 (`gemini-3.5-flash-lite`) | 9/9 first try, grouping 100%, routes 83% (both deep dives offered a thread), scribe 2/2 |
+| lead x4, answer x1, thread x3 (after the fixes) | 8/8 first try, checks 4/4, Georgian taught in Georgian, 0 dangling refs, max 12 shapes/page |
+| lead on `gemini-3.6-flash` vs `3.8-flash` | same metrics, 12 s vs 19 s per segment: lead moved to 3.6-flash |
+| `npm run smoke` (two people, real model) | passed in 114 s |

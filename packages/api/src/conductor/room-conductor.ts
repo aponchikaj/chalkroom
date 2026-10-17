@@ -35,6 +35,10 @@ export interface ConductorDeps {
   scribe: ScribeAgent;
   retrieve: RetrieveService;
   ingest: IngestWorker;
+  /** this instance holds the room's lease (room_leases): only then may it move the room */
+  owns: (roomId: string) => Promise<boolean>;
+  /** the class ended: the service frees this conductor */
+  ended: (roomId: string) => void;
 }
 
 export type HostAction = 'skip' | 'hold' | 'resume' | 'slower' | 'end';
@@ -49,6 +53,8 @@ export class RoomConductor {
   private lastCheck?: { prompt: string; spread: CheckSpread; answerText: string };
   /** the scribe's summary of the last finished segment; awaited before the next segment */
   private pendingSummary: Promise<void> = Promise.resolve();
+  /** the host pressed End: the segment being streamed stops at its next chunk */
+  private stopping = false;
   /** the next segment, written while the class is at the gate (pipelining) */
   private next: { segment: number; chunks: ChunkBuffer<TeachChunk> } | null = null;
 
@@ -63,15 +69,42 @@ export class RoomConductor {
   start() { return this.enqueue('start', () => this.doStart()); }
   readyChanged() { return this.enqueue('gate', () => this.evaluateGate()); }
   membersChanged() { return this.enqueue('gate', () => this.evaluateGate()); }
-  host(action: HostAction) { return this.enqueue(`host:${action}`, () => this.doHost(action)); }
+  /** heartbeat: votes that reached another instance still move the gate */
+  tick() { return this.enqueue('gate', () => this.evaluateGate()); }
+  host(action: HostAction) {
+    // End must not wait behind a 2-4 minute segment: stop the stream now, then end in order
+    if (action === 'end') { this.stopping = true; this.next?.chunks.cancel(); }
+    return this.enqueue(`host:${action}`, () => this.doHost(action));
+  }
   recover() { return this.enqueue('recover', () => this.doRecover()); }
 
   // -------------------------------------------------------------------------
 
-  private enqueue<T>(what: string, fn: () => Promise<T>): Promise<T> {
-    const p = this.queue.then(fn);
-    this.queue = p.catch((e) => this.log.error(`${what} failed: ${(e as Error).stack ?? e}`));
+  private enqueue<T>(what: string, fn: () => Promise<T>): Promise<T | undefined> {
+    const p = this.queue.then(async () => {
+      // another instance drives this room: it reads the same rows and moves the room itself
+      if (!(await this.deps.owns(this.roomId))) return undefined;
+      return fn();
+    });
+    this.queue = p.catch(async (e) => {
+      this.log.error(`${what} failed: ${(e as Error).stack ?? e}`);
+      await this.rescue(what).catch((e2) => this.log.error(`rescue failed: ${(e2 as Error).message}`));
+    });
     return p;
+  }
+
+  /** A job threw (a database blip, an invalid event): never leave the class frozen. Teaching or
+   *  Q&A go back to the gate, where ready votes and Skip work again; a failed start stays in the
+   *  lobby so the host can press Start again. */
+  private async rescue(what: string) {
+    const room = await this.deps.rooms.get(this.roomId);
+    if (room.phase === 'lobby' && what === 'start') {
+      return this.notice(room, 'The class could not start. Press Start to try again.', 'warn');
+    }
+    if (room.phase === 'teaching' || room.phase === 'qa') {
+      await this.deps.rooms.update(room.id, { phase: 'check', gate_deadline: null });
+      await this.notice(room, 'The tutor hit a problem; vote ready to go on, or the host can skip.', 'warn');
+    }
   }
 
   private get db() { return this.deps.supa.db; }
@@ -102,6 +135,7 @@ export class RoomConductor {
     const known = await this.deps.retrieve.known(room);
     const run = async (source: AsyncIterable<TeachChunk>) => {
       for await (const chunk of source) {
+        if (this.stopping) return; // leaving the loop closes the model stream
         drawn++;
         if ('steps' in chunk) await this.deps.events.append(main, 'board', { steps: keepKnownCitations(chunk.steps, known) }, 'lead');
         else if ('check' in chunk) {
@@ -131,11 +165,14 @@ export class RoomConductor {
     // the summary runs beside the gate, never in front of it
     this.pendingSummary = this.summarize(room, segment, plan.segments[segment].title);
     // pipelining: write the next segment while the class answers the check and votes
-    if (config.pipeline && segment + 1 < plan.segments.length) {
+    // the gate opens first; the next segment's retrieval and writing run behind it
+    await this.deps.rooms.update(room.id, { phase: 'check' });
+    if (config.pipeline && segment + 1 < plan.segments.length && !this.stopping) {
       this.next = { segment: segment + 1, chunks: prefetch(this.deps.lead.teach(await this.teachContext(room, segment + 1, false))) };
     }
-    await this.deps.rooms.update(room.id, { phase: 'check' });
-    await this.evaluateGate();
+    // a separate job, not inline: a host command queued meanwhile (End, Hold) runs first, and a
+    // class whose learners are all in threads cannot run the whole lesson in one job
+    void this.enqueue('gate', () => this.evaluateGate());
   }
 
   private async teachContext(room: RoomRow, segment: number, slower: boolean) {
@@ -148,9 +185,12 @@ export class RoomConductor {
   private takePrefetch(segment: number, slower: boolean): ChunkBuffer<TeachChunk> | null {
     const p = this.next;
     this.next = null;
-    if (!p || p.segment !== segment || slower) return null;
+    if (!p) return null;
     const s = this.lastCheck?.spread;
-    if (s && s.total > 0 && s.correct / s.total < 0.5) return null;
+    if (p.segment !== segment || slower || (s && s.total > 0 && s.correct / s.total < 0.5)) {
+      p.chunks.cancel(); // re-taught differently: stop spending tokens on it
+      return null;
+    }
     return p.chunks;
   }
 
@@ -189,13 +229,15 @@ export class RoomConductor {
   private async passGate(room: RoomRow) {
     if (this.gateTimer) { clearTimeout(this.gateTimer); this.gateTimer = null; }
     await this.closeChecks(room);
-    room = await this.deps.rooms.update(room.id, { phase: 'qa', gate_deadline: null });
+    // a Hold ends with the gate it held: the next gate starts free
+    room = await this.deps.rooms.update(room.id, { phase: 'qa', gate_deadline: null, gate_held: false });
     // everything asked during the check is routed before the Q&A beat reads class clusters
     await this.deps.triage.runNow(room.id);
     await this.qaBeat(room);
     const next = room.segment + 1;
     if (next >= (room.lesson_plan?.segments.length ?? 0)) return this.end(room);
     await this.pendingSummary; // the lead tutor sees the summary of the segment just finished
+    if (this.stopping) return; // End is queued: do not start another segment
     await this.teach(room, next);
   }
 
@@ -225,10 +267,12 @@ export class RoomConductor {
     if (!clusters.data?.length) return;
     const prefix = await this.prefix(room);
     const known = await this.deps.retrieve.known(room);
+    // every cluster's questions in one query
+    const all = await this.db.from('questions').select('cluster_id, text, author_name').eq('room_id', room.id).in('cluster_id', clusters.data.map((c) => c.id));
     for (const c of clusters.data) {
-      const qs = await this.db.from('questions').select('text, author_name').eq('cluster_id', c.id);
-      const askers = [...new Set((qs.data ?? []).map((q) => q.author_name as string))];
-      const texts = (qs.data ?? []).map((q) => q.text as string);
+      const qs = (all.data ?? []).filter((q) => q.cluster_id === c.id);
+      const askers = [...new Set(qs.map((q) => q.author_name as string))];
+      const texts = qs.map((q) => q.text as string);
       try {
         const found = await this.deps.retrieve.context(room, [c.title, ...texts].join(' '));
         const top = found.passages[0];
@@ -252,6 +296,9 @@ export class RoomConductor {
     await this.pendingSummary;
     await this.writeNotes(room);
     await this.writeDeck(room);
+    this.next?.chunks.cancel();
+    this.next = null;
+    this.deps.ended(room.id);
   }
 
   /** B12: a course's syllabus is searchable once per course. Never rejects. */
@@ -278,7 +325,8 @@ export class RoomConductor {
       this.summaries.push(summary);
       // B12: the class transcript becomes searchable for threads and the Q&A beat
       const narration = segmentTranscript(events, segment);
-      if (narration) await this.deps.ingest.indexNow({ room_id: room.id }, 'transcript', `Segment ${segment}: ${title}`, [{ page: null, text: `${narration}\n\nSummary: ${summary}`, heading: title }]);
+      // in the background: the next segment waits for the summary, not for indexing (never rejects)
+      if (narration) void this.deps.ingest.indexNow({ room_id: room.id }, 'transcript', `Segment ${segment}: ${title}`, [{ page: null, text: `${narration}\n\nSummary: ${summary}`, heading: title }]);
     } catch (e) {
       this.log.warn(`summary ${segment}: ${(e as Error).message}`);
     }

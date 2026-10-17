@@ -54,3 +54,21 @@ describe('extract', () => {
     await expect(extract(Buffer.from('x'), 'image/png')).rejects.toThrow(/unsupported/);
   });
 });
+
+describe('extract limits', () => {
+  it('refuses an Office file that inflates past the cap (zip bomb)', async () => {
+    const zip = new JSZip();
+    zip.file('word/document.xml', `<w:document><w:body>${'<w:p><w:r><w:t>a</w:t></w:r></w:p>'.repeat(1)}${' '.repeat(60 * 1024 * 1024)}</w:body></w:document>`);
+    const buf = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
+    expect(buf.length).toBeLessThan(1024 * 1024);
+    await expect(extract(buf, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')).rejects.toThrow(/too large/);
+  });
+
+  it('reads unclosed paragraph tags in linear time', async () => {
+    const { paragraphs } = await import('../src/rag/extract/xml');
+    const xml = '<w:p>'.repeat(200_000);
+    const t0 = Date.now();
+    paragraphs(xml, 'w:p', 'w:t');
+    expect(Date.now() - t0).toBeLessThan(500);
+  });
+});

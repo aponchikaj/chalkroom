@@ -12,6 +12,7 @@ import { TriageAgent } from '../agents/triage.agent';
 import { RetrieveService } from '../rag/retrieve.service';
 import { planTriage, type ClusterWrite } from '../triage/triage-plan';
 import { oldClusterAfter, unmergeRefusal, unmergedRoute, type UnmergeQuestion } from './unmerge-plan';
+import { RateLimit } from '../core/rate-limit';
 
 const recent = new Map<string, number[]>();
 function rateLimit(userId: string) {
@@ -30,6 +31,7 @@ export class QuestionsController {
   constructor(private supa: SupabaseService, private rooms: RoomsService, private triage: TriageService, private triageAgent: TriageAgent, private retrieve: RetrieveService) {}
 
   @Post('rooms/:id/questions')
+  @RateLimit('ask', 20, 60000)
   async ask(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(Api.ask)) body: z.infer<typeof Api.ask>): Promise<QuestionRow> {
     const member = await this.rooms.requireMember(id, u.id);
     if (member.muted) throw new ForbiddenException('the host muted you in this room');
@@ -45,6 +47,7 @@ export class QuestionsController {
 
   /** Anonymous +1 (toggle). Only the count is visible to the room. */
   @Post('questions/:id/vote')
+  @RateLimit('vote', 60, 60000)
   @HttpCode(204)
   async vote(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
     const db = this.supa.db;
@@ -53,10 +56,9 @@ export class QuestionsController {
     if (!found.data) throw new NotFoundException('question not found');
     const q = found.data as { room_id: string };
     await this.rooms.requireMember(q.room_id, u.id);
-    const del = await db.from('votes').delete().eq('question_id', id).eq('user_id', u.id).select('user_id');
-    if (!del.data?.length) await db.from('votes').insert({ question_id: id, user_id: u.id });
-    const count = await db.from('votes').select('user_id', { count: 'exact', head: true }).eq('question_id', id);
-    await db.from('questions').update({ votes: count.count ?? 0 }).eq('id', id);
+    // one statement: concurrent toggles cannot store a stale count
+    const r = await db.rpc('toggle_vote', { p_question: id, p_user: u.id });
+    if (r.error) throw new Error(r.error.message);
   }
 
   /**
