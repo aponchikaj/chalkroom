@@ -25,6 +25,12 @@ import { SourcesController } from './rag/sources.controller';
 import { IngestWorker } from './rag/ingest.worker';
 import { RetrieveService } from './rag/retrieve.service';
 import { MailModule } from './mail/mail.module';
+import { CoursesService } from './courses/courses.service';
+import { CoursesController } from './courses/courses.controller';
+import { ActivitiesService } from './activities/activities.service';
+import { ActivitiesController } from './activities/activities.controller';
+import { LibraryService } from './library/library.service';
+import { LibraryController } from './library/library.controller';
 import { EmbeddingPort } from './rag/embeddings/embedding.port';
 import { NoEmbeddings } from './rag/embeddings/no.embeddings';
 
@@ -39,10 +45,10 @@ class HealthController {
   // One module wires every feature: feature modules would import each other in a cycle
   // (threads -> conductor -> triage -> thread offers). Folders, not modules, carry the structure.
   providers: [
-    RoomsService, ConductorService, ProfilesService, AvatarsService, TwoFactorService, ThreadStore, TriageService, ThreadsService, PresenceService, SourcesService, IngestWorker, RetrieveService,
+    RoomsService, ConductorService, ProfilesService, AvatarsService, TwoFactorService, ThreadStore, TriageService, ThreadsService, PresenceService, SourcesService, IngestWorker, RetrieveService, CoursesService, ActivitiesService, LibraryService,
     // B12 swaps in the Voyage adapter when config.embeddings.provider is 'voyage'
     { provide: EmbeddingPort, useClass: NoEmbeddings },
   ],
-  controllers: [HealthController, MeController, TwoFactorController, UsersController, RoomsController, QuestionsController, ThreadsController, NotesController, SourcesController, CardsController, ...(config.sandbox ? [SandboxController] : [])],
+  controllers: [HealthController, MeController, TwoFactorController, UsersController, RoomsController, QuestionsController, ThreadsController, NotesController, SourcesController, CardsController, CoursesController, ActivitiesController, LibraryController, ...(config.sandbox ? [SandboxController] : [])],
 })
 export class AppModule {}
