@@ -1,0 +1,109 @@
+/* Classroom layout: an open manual. Four columns wide, two at tablet, one on a phone.
+   Only layout and regions live here; features style their own insides. */
+
+.live { display: flex; flex-direction: column; height: 100%; min-height: 0; background: var(--paper); }
+.live > * { flex: none; }
+.live > .live-body { flex: 1; }
+
+/* ---------- masthead: the running head ---------- */
+.masthead {
+  display: grid; grid-template-columns: auto 1fr auto; align-items: end; gap: 20px;
+  padding: 14px 20px 12px; border-bottom: 1.5px solid var(--ink);
+}
+.masthead-brand {
+  border: 0; background: none; padding: 0; cursor: pointer; align-self: center;
+  font-size: var(--t-sm); font-weight: 800; font-stretch: 75%; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink);
+}
+.masthead-brand:hover { text-decoration: underline; text-underline-offset: 4px; }
+.masthead-title { min-width: 0; }
+.masthead-title h1 { font-size: clamp(1.4rem, 2.4vw, 2.1rem); font-stretch: 78%; font-weight: 800; letter-spacing: -0.015em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.masthead-sub { font-size: var(--t-sm); color: var(--ink-2); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.masthead-state { display: flex; align-items: center; gap: 10px; align-self: center; }
+.gate-timer { display: inline-flex; align-items: center; gap: 4px; font-size: var(--t-sm); color: var(--ink); }
+
+/* ---------- body ---------- */
+.live-body {
+  position: relative; min-height: 0;
+  display: grid; grid-template-columns: 76px minmax(0, 1fr) 360px 54px;
+}
+.live-binding { border-right: 1px solid var(--rule); min-height: 0; overflow: auto; }
+.live-rail { border-left: 1px solid var(--rule); background: var(--paper-2); min-height: 0; display: flex; }
+.live-tabs-v { min-height: 0; background: var(--paper-2); }
+.live-tabs-h { display: none; }
+
+/* binding edge: people as punched holes */
+.binding { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 18px 0; }
+.binding ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.binding li { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.binding-name { font-size: 10.5px; font-weight: 650; font-stretch: 80%; letter-spacing: 0.04em; color: var(--ink-2); max-width: 66px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.binding-ring { display: block; width: 34px; height: 34px; border-radius: 50%; border: 1.5px dashed var(--rule-2); }
+.binding-count { font-size: var(--t-xs); color: var(--ink-3); }
+.binding-horizontal { flex-direction: row; padding: 8px 12px; }
+.binding-horizontal ul { flex-direction: row; gap: 10px; }
+.binding-horizontal .binding-name { display: none; }
+
+/* stage: the board leaf and what is laid over it */
+.stage { min-width: 0; min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr) auto auto; padding: 18px 22px 12px; gap: 10px; }
+.board-wrap { position: relative; min-height: 0; display: flex; align-items: center; justify-content: center; container-type: size; }
+/* the leaf keeps the board's 12 x 8 grid proportions (1320 x 640) and fits the space */
+.board-wrap > .board-svg { width: min(100cqw, 100cqh * 2.0625); height: auto; aspect-ratio: 1320 / 640; }
+/* focus economy: a check or a thread puts the rest of the stage back to paper */
+.stage.in-focus-elsewhere .captions, .stage.in-focus-elsewhere .pagestrip { opacity: 0.5; }
+
+/* overlays over the board share one frame */
+.board-overlay { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; background: color-mix(in srgb, var(--paper) 55%, transparent); }
+
+.captions {
+  min-height: 44px; display: flex; align-items: center; justify-content: center; text-align: center;
+  padding: 6px 12px; font-family: var(--font-read); font-size: 1.1rem; line-height: 1.4; color: var(--ink);
+  border-top: 1px solid var(--rule);
+}
+.captions .faint { font-family: var(--font-ui); font-size: var(--t-sm); }
+
+/* the rail: questions and notes behind two small divider tabs */
+.rail { flex: 1; min-width: 0; display: flex; flex-direction: column; min-height: 0; }
+.rail-tabs { display: flex; gap: 4px; padding: 12px 14px 0; border-bottom: 1.5px solid var(--ink); }
+.rail-tab {
+  border: 1.5px solid var(--ink); border-bottom: 0; border-radius: 4px 4px 0 0; background: var(--paper-3);
+  padding: 7px 14px 6px; margin-bottom: -1.5px; cursor: pointer;
+  font-size: var(--t-xs); font-weight: 750; font-stretch: 80%; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-2);
+}
+.rail-tab[aria-selected='true'] { background: var(--leaf); color: var(--ink); padding-top: 10px; }
+.rail-body { flex: 1; background: var(--leaf); }
+
+/* the thread layer: an acetate leaf hinged over the right of the stage and the rail */
+.thread-layer { position: absolute; top: 0; bottom: 0; left: 38%; right: 54px; z-index: 20; display: flex; padding: 10px 0 10px 0; }
+.thread-layer > * { flex: 1; min-width: 0; }
+
+/* ---------- control bar ---------- */
+.controlbar {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  padding: 10px 20px; border-top: 1.5px solid var(--ink); background: var(--paper);
+}
+.controlbar > :last-child { flex: 1; min-width: 260px; }
+.ready-strip, .host-controls { display: flex; align-items: center; gap: 8px; }
+.host-controls { padding-left: 14px; border-left: 1px solid var(--rule); }
+.askbar { display: flex; gap: 8px; align-items: center; }
+.askbar .input { flex: 1; }
+
+/* ---------- tablet ---------- */
+@media (max-width: 1180px) {
+  .live-body { grid-template-columns: 64px minmax(0, 1fr) 300px 40px; }
+  .stage { padding: 14px 14px 10px; }
+  .thread-layer { left: 18%; right: 40px; }
+}
+
+/* ---------- phone: one column; the lesson tabs go across the top ---------- */
+@media (max-width: 760px) {
+  .masthead { grid-template-columns: 1fr; padding: 10px 14px 8px; gap: 6px; }
+  .masthead-brand { display: none; }
+  .masthead-state { justify-content: flex-start; flex-wrap: wrap; }
+  .live-tabs-h { display: block; padding: 0 10px; border-bottom: 1.5px solid var(--ink); }
+  .live-tabs-v, .live-binding { display: none; }
+  .live-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+  .stage { padding: 10px 10px 6px; }
+  .live-rail { border-left: 0; border-top: 1.5px solid var(--ink); max-height: 42vh; }
+  .thread-layer { left: 0; right: 0; padding: 0; }
+  .controlbar { padding: 8px 10px; gap: 8px; }
+  .host-controls { padding-left: 0; border-left: 0; }
+}

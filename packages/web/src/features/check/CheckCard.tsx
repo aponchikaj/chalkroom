@@ -1,14 +1,14 @@
-// The end-of-segment check over the board. Shows once narration finishes; after the gate the
+// A4 (Dev A): the end-of-segment check over the board. Shows once narration finishes; after the gate the
 // class sees the answer spread ("3/4 got it") and the correct answer.
 // TODO(frontend): richer spread (bar per option), "you" marker, collapse to a chip.
 import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import type { Question } from '@chalk/schema';
-import { mainPlayer, useRoom } from '../room/store';
-import { usePlayer } from '../board/Board';
-import { api } from '../lib/api';
-import { QuestionInput } from './QuestionInput';
-import { Markdown } from './Markdown';
+import { mainPlayer, useRoom } from '../../room/store';
+import { usePlayer } from '../../board/Board';
+import { api } from '../../lib/api';
+import { QuestionInput } from '../../components/QuestionInput';
+import { Markdown } from '../../components/Markdown';
 
 export function CheckCard() {
   usePlayer(mainPlayer);
