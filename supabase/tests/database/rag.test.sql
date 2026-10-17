@@ -1,7 +1,7 @@
 -- Retrieval: source rules, hybrid search, scope and access.
 -- Run: npm run test:db
 begin;
-select plan(10);
+select plan(13);
 
 insert into auth.users (id, email) values
   ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'host@example.com'),
@@ -71,6 +71,15 @@ select is((select count(*)::int from public.chunks where source_id = '10000000-0
 set local request.jwt.claims = '{"sub": "ffffffff-ffff-4fff-8fff-ffffffffffff", "role": "authenticated"}';
 select is((select count(*)::int from public.sources where room_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'), 0, 'strangers see no room sources');
 select throws_ok($$ select * from public.match_chunks('x', null, null, null, 1) $$, '42501', null, 'clients cannot call match_chunks');
+reset role;
+
+-- claim_source(): the oldest pending source, once
+insert into public.sources (id, room_id, kind, title, uri, status, created_at) values
+  ('10000000-0000-4000-8000-000000000009', 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', 'file', 'Old', 'room/old.pdf', 'pending', now() - interval '1 hour');
+select is((select id from public.claim_source()), '10000000-0000-4000-8000-000000000009'::uuid, 'claims the oldest pending source');
+select is((select status from public.sources where id = '10000000-0000-4000-8000-000000000009'), 'processing', 'and marks it processing');
+set local role authenticated;
+select throws_ok($$ select * from public.claim_source() $$, '42501', null, 'clients cannot claim sources');
 reset role;
 
 select * from finish();
