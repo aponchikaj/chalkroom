@@ -5,6 +5,7 @@ import { BoardStep, LessonPlan, TeachSegment, type CheckSpread } from '@chalk/sc
 import { mockClusterAnswer, mockPlan, mockTeach } from '@chalk/mock-tutor';
 import { ModelPort } from './model.port';
 import { callValidated, toolFrom } from './agent-utils';
+import { InvalidTeach, bySay, streamTeach, type TeachChunk } from './teach-stream';
 import { PROMPTS } from './prompts';
 
 const planTool = toolFrom('plan_lesson', 'Plan the live lesson as 3–6 segments of 2–4 minutes.', LessonPlan);
@@ -25,7 +26,7 @@ export interface TeachContext {
   summaries: string[];
 }
 
-export type TeachChunk = { title: string } | { steps: BoardStep[] } | { check: NonNullable<TeachSegment['check']> };
+export type { TeachChunk } from './teach-stream';
 
 @Injectable()
 export class LeadTutorAgent {
@@ -40,10 +41,8 @@ export class LeadTutorAgent {
   }
 
   /**
-   * One segment. Today this waits for the whole tool call and then yields it in chunks that
-   * end at `say` steps, so the board still fills progressively.
-   * TODO(backend): stream steps as the model writes them (parse ModelEvent.tool_delta) so
-   * the first shape appears in ~1–2 s (design doc, UX rule 6).
+   * One segment, streamed: each complete step is drawn as soon as the model writes it
+   * (UX rule 6). If nothing valid arrives, the repair pass runs as before.
    */
   async *teach(ctx: TeachContext): AsyncGenerator<TeachChunk> {
     const seg = ctx.plan.segments[ctx.segment];
@@ -53,19 +52,19 @@ export class LeadTutorAgent {
       ctx.lastCheck ? `Last check "${ctx.lastCheck.prompt}": ${ctx.lastCheck.spread.correct}/${ctx.lastCheck.spread.total} correct (answer: ${ctx.lastCheck.answerText}).` : '',
       ctx.summaries.length ? `So far:\n${ctx.summaries.join('\n')}` : '',
     ].filter(Boolean).join('\n');
-    const out = await callValidated(this.model, {
-      agent: 'lead', roomId: ctx.roomId, prefix: ctx.prefix, system: PROMPTS.lead, tool: teachTool,
-      messages: [{ role: 'user', content: `${notes}\n\nCall teach_segment.` }],
+    const req = {
+      agent: 'lead' as const, roomId: ctx.roomId, prefix: ctx.prefix, system: PROMPTS.lead, tool: teachTool,
+      messages: [{ role: 'user' as const, content: `${notes}\n\nCall teach_segment.` }],
       mock: () => mockTeach(ctx.segment),
-    }, TeachSegment);
-    yield { title: out.title };
-    let chunk: BoardStep[] = [];
-    for (const step of out.steps) {
-      chunk.push(step);
-      if ('say' in step) { yield { steps: chunk }; chunk = []; }
+    };
+    try {
+      yield* streamTeach(this.model, req);
+    } catch (e) {
+      if (!(e instanceof InvalidTeach)) throw e;
+      const out = await callValidated(this.model, req, TeachSegment);
+      for (const steps of bySay(out.steps)) yield { steps };
+      if (out.check) yield { check: out.check };
     }
-    if (chunk.length) yield { steps: chunk };
-    if (out.check) yield { check: out.check };
   }
 
   async answerCluster(prefix: string, title: string, questions: string[], askers: string[], roomId?: string): Promise<BoardStep[]> {
