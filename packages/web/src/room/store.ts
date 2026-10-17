@@ -105,6 +105,10 @@ export const useRoom = create<RoomStore>((set) => ({
 
 /** The main board player for this device. Thread drawers create their own (silent) players. */
 export const mainPlayer = new Player();
+// Chrome can keep speaking after the page goes away (reload, a plain link): stop the voice first
+window.addEventListener('pagehide', () => mainPlayer.reset());
+// dev only: a hot reload makes a new player; the old one must not keep talking unseen
+if (import.meta.hot) import.meta.hot.dispose(() => mainPlayer.reset());
 
 // ---- selectors ---------------------------------------------------------------
 

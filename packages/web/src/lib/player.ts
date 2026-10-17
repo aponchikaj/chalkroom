@@ -112,6 +112,15 @@ export class Player {
     this.emit();
   }
 
+  /** Silence the voice while the person is elsewhere (their side thread, the recap); the board
+   *  keeps playing at reading pace. Separate from setMuted, which is their own preference. */
+  setSilenced(on: boolean) {
+    if (this.speaker.silenced === on) return;
+    this.speaker.silenced = on;
+    if (on) this.speaker.stop();
+    this.emit();
+  }
+
   setViewPage(i: number | null) { this.viewPage = i; this.emit(); }
 
   private applyInstant(it: Item) {
