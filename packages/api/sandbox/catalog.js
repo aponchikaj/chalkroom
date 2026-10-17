@@ -54,12 +54,12 @@ export const ENDPOINTS = [
   { group: 'Questions', name: 'Vote +1 (toggle)', method: 'POST', path: '/questions/:questionId/vote', body: () => ({}) },
 
   { group: 'Threads', name: 'Open thread', method: 'POST', path: '/rooms/:roomId/threads', learn: 'thread',
-    body: () => ({ topic: 'bump seeds' }), built: false, task: 'B4',
+    body: () => ({ topic: 'bump seeds' }),
     note: 'Or accept an offer with { "threadId": "..." }, or { "questionId": "..." }.' },
   { group: 'Threads', name: 'Message thread tutor', method: 'POST', path: '/threads/:threadId/messages',
-    body: () => ({ text: 'Why does it start at 255?' }), built: false, task: 'B4' },
-  { group: 'Threads', name: 'Close thread', method: 'POST', path: '/threads/:threadId/close', body: () => ({}), built: false, task: 'B4' },
-  { group: 'Threads', name: 'Share to class', method: 'POST', path: '/threads/:threadId/share', body: () => ({}), built: false, task: 'B4' },
+    body: () => ({ text: 'Why does it start at 255?' }) },
+  { group: 'Threads', name: 'Close thread', method: 'POST', path: '/threads/:threadId/close', body: () => ({}) },
+  { group: 'Threads', name: 'Share to class', method: 'POST', path: '/threads/:threadId/share', body: () => ({}) },
 
   { group: 'Notes', name: 'Edit note block', method: 'PUT', path: '/rooms/:roomId/notes/:blockId',
     body: (u, c) => ({ markdown: 'Edited in the sandbox', version: Number(c.blockVersion) }), built: false, task: 'B3',

@@ -1,8 +1,10 @@
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { defineConfig } from 'vitest/config';
 
-// cacheDir outside node_modules: writes under node_modules restart the API's `node --watch`
+// cacheDir outside the repo: Vitest's cache writes inside it restart the dev API's `node --watch`
 export default defineConfig({
-  cacheDir: '.cache/vite',
+  cacheDir: join(tmpdir(), 'chalkroom-vite'),
   test: {
     include: ['packages/*/test/**/*.test.ts'],
     testTimeout: 30000,

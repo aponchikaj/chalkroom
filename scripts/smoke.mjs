@@ -94,6 +94,17 @@ try {
   await waitFor(ana, (e) => e.kind === 'segment_start' && e.data.segment === 1, 'segment 1');
   step('segment 1 started');
 
+  const thread = await gio.call('POST', `/rooms/${room.id}/threads`, { topic: 'bump seeds' });
+  await gio.call('POST', `/threads/${thread.id}/messages`, { text: 'Why does it start at 255?' });
+  await waitFor(gio, (e) => e.stream_id === thread.stream_id && e.kind === 'chat' && e.data.role === 'tutor' && e.seq >= 3, 'the thread tutor reply');
+  step('thread opened; the thread tutor replied');
+  const check2 = await waitFor(ana, (e) => e.kind === 'check' && e.data.segment === 1, 'the second check');
+  await waitRow(ana, (r) => r.table === 'rooms' && r.row.phase === 'check' && r.row.segment === 1, 'the gate of segment 1');
+  await ana.call('POST', `/rooms/${room.id}/ready`, { segment: 1 });
+  await waitFor(ana, (e) => e.kind === 'check_closed' && e.data.checkId === check2.data.checkId, 'gate 2 without the thread owner');
+  step('gate passed while Gio was in a thread');
+  await gio.call('POST', `/threads/${thread.id}/close`, {});
+
   const tables = new Set(ana.rows.map((r) => r.table));
   for (const t of ['rooms', 'ready_votes', 'questions', 'check_answers']) if (!tables.has(t)) fail(`no "${t}" row broadcast received`);
   if (ana.rows.some((r) => r.table === 'check_answers' && 'answer' in r.row)) fail('check_answers broadcast leaked an answer');

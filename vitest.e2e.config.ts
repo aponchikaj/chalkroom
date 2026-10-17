@@ -1,10 +1,12 @@
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { defineConfig } from 'vitest/config';
 
 // API end-to-end suite: real local Supabase + API (mock tutor). Run with `npm run test:api`.
 // Kept out of `npm test` because CI has no Supabase.
 export default defineConfig({
-  // outside node_modules: writes there restart the dev API's `node --watch` mid-run
-  cacheDir: '.cache/vite',
+  // outside the repo: cache writes inside it restart the dev API's `node --watch` mid-run
+  cacheDir: join(tmpdir(), 'chalkroom-vite'),
   test: {
     include: ['packages/api/e2e/**/*.e2e.test.ts'],
     globalSetup: ['packages/api/e2e/global-setup.ts'],
