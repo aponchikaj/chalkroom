@@ -268,6 +268,10 @@ export type ReactionKind = z.infer<typeof ReactionKind>;
 
 export const DisplayName = z.string().trim().min(1).max(32);
 export const Color = z.string().regex(/^#[0-9a-fA-F]{6}$/);
+/** What an emailed 2FA code is for. */
+export const OtpPurpose = z.enum(['login', 'enable', 'disable']);
+export type OtpPurpose = z.infer<typeof OtpPurpose>;
+
 /** Profile picture types; the `avatars` bucket also enforces these and a 2 MiB limit. */
 export const AvatarType = z.enum(['image/png', 'image/jpeg', 'image/webp']);
 /** Same rule as the profiles_username_format check; unique ignoring case. */
@@ -341,6 +345,10 @@ export const Api = {
   }).refine((b) => Object.values(b).some((v) => v !== undefined), 'nothing to update'),
   /** PATCH /me/settings -> UserSettings (any subset of fields) */
   updateSettings: UserSettings.partial().refine((b) => Object.keys(b).length > 0, 'nothing to update'),
+  /** POST /me/2fa/email/send (202): email a 6-digit code. login: unlock this session; enable/disable: toggle email 2FA. */
+  emailCodeSend: z.object({ purpose: OtpPurpose }),
+  /** POST /me/2fa/email/verify -> TwoFactorState */
+  emailCodeVerify: z.object({ purpose: OtpPurpose, code: z.string().regex(/^\d{6}$/, 'a 6-digit code') }),
   /** POST /me/avatar/upload-url -> AvatarUploadRes. Then upload the file to Storage with uploadToSignedUrl. */
   avatarUploadUrl: z.object({ contentType: AvatarType }),
   /** POST /me/avatar -> MeRes. Makes the uploaded file the profile picture (and removes the old one). */
@@ -401,7 +409,8 @@ export interface AvatarUploadRes {
   signedUrl: string;
 }
 
-/** Second-factor state of the caller and this session (2FA lands in B11). */
+/** Second-factor state of the caller and this session. When `mfaPassed` is false the API
+ *  answers 401 { code: "mfa_required" } on every route except GET /me and /me/2fa/*. */
 export interface TwoFactorState {
   /** an authenticator app (TOTP) is verified */
   totp: boolean;
