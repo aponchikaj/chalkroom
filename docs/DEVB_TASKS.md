@@ -8,21 +8,40 @@ Read first: `docs/design.md` (product), `docs/TASKS.md` (lanes and milestones), 
 (architecture rules). Dev B owns `packages/api/**`, `supabase/**`, `packages/mock-tutor/**`.
 `packages/schema/**` is shared: change it first, in its own small PR, reviewed by Dev A.
 
+## Decisions (2026-10-17)
+
+| Topic | Decision | Effect on the backend |
+|---|---|---|
+| Frontend and design | Dev A (Kote) owns the web app and the design system | Backend work never waits for design; contracts and the sandbox are how we test |
+| Accounts | **Required.** Email + password (Supabase Auth): registration, login, email confirmation, password reset | Anonymous join goes away (B9). The demo joins by QR, then a quick login |
+| Profiles | Username, display name, color, bio, profile picture | B10: profile API, avatars bucket |
+| 2FA | Authenticator app (TOTP) **and** email codes | B11: Supabase MFA for TOTP, our own email-code flow |
+| RAG | Uploaded files, web pages, syllabus + past notes and FAQ, live class transcript | B12 replaces the old B8 (PDF only) |
+| Room size | **5 users maximum** per room | Already enforced: `rooms.seats` check, `LIVE.maxSeats`, join returns 409; tested in e2e and pgTAP |
+
+The anonymous-join demo in `docs/design.md` ("join by QR, the avatars pop in") now means
+"scan, log in, join". `docs/design.md` should be updated to match (product owner: Lazare).
+
 ## Order and milestones
 
 | Order | Task | Priority | Milestone | Unblocks Dev A | Size |
 |---|---|---|---|---|---|
+| 0 | B0 Foundation: sandbox, schema, folder structure | done | | testing every route | |
 | 1 | B2 Triage wiring | P0 | M2 Questions | A1 question rail statuses | M |
-| 2 | B4 Threads | P0 | M3 Threads | A3 thread drawer | M |
-| 3 | B3 Scribe and notes | P0 | M4 Wrap-up | A3 catch-up card, A5 notes | M |
-| 4 | B5 Presence gate and host handoff | P0 | M4 Wrap-up | A4 ready bar | M |
-| 5 | B1 Real model | P0 | M5 Polish | nothing (mock speaks the same contract) | M |
-| 6 | B6 Reliability | P1 | M5 Polish | host mute/kick buttons | M |
-| 7 | B7 Deploy | P1 | M5, before rehearsal | the demo itself | S |
-| 8 | B8 Shared PDF | P1 extra | after the demo works | citations UI | L |
+| 2 | B9 Accounts (email + password, accounts required) | P0 | M2 | login, register, reset screens | M |
+| 3 | B4 Threads | P0 | M3 Threads | A3 thread drawer | M |
+| 4 | B3 Scribe and notes | P0 | M4 Wrap-up | A3 catch-up card, A5 notes | M |
+| 5 | B5 Presence gate and host handoff | P0 | M4 Wrap-up | A4 ready bar | M |
+| 6 | B10 Profiles and avatars | P1 | M4 | profile page, avatar picker | M |
+| 7 | B1 Real model | P0 | M5 Polish | nothing (mock speaks the same contract) | M |
+| 8 | B11 Two-factor authentication | P1 | M5 | 2FA settings and login step | M |
+| 9 | B12 RAG | P1 | M5 | sources panel, citations | L |
+| 10 | B6 Reliability | P1 | M5 Polish | host mute/kick buttons | M |
+| 11 | B7 Deploy | P1 | M5, before rehearsal | the demo itself | S |
 
-B1 can start any time once an `ANTHROPIC_API_KEY` exists; it is listed fifth because the mock
-already covers the demo and B2 to B5 unblock Dev A.
+B1 can start any time once an `ANTHROPIC_API_KEY` exists. B9 comes early because "accounts
+required" changes how every test and the web sign in; ship it together with Dev A's login
+screens.
 
 ## Working rules for every task
 
@@ -30,16 +49,37 @@ already covers the demo and B2 to B5 unblock Dev A.
   (CI green). Ask before every push (CLAUDE.md rule 2).
 - **Local stack:** `npm run db:start`, `npm run env`, `npm run dev`. Local Supabase runs
   Postgres 17 in Docker; production is the hosted project (`.env.production.local`).
-- **Gate before each commit:** `npm run typecheck`, `npm test`, and with the API running,
-  `npm run smoke` (mock tutor, two users, full class).
+- **Gate before each commit:** `npm run typecheck`, `npm test`, `npm run test:api` (e2e
+  against the local stack), `npm run test:db` (pgTAP) when SQL changed, and with the API
+  running, `npm run smoke` (mock tutor, two users, full class).
+- **Try it by hand:** http://localhost:3001/sandbox/ (dev console) or
+  `packages/api/sandbox/api.http`. Add every new route to both (see `packages/api/README.md`).
 - **Mock first:** every agent keeps a working `mock` answer; `MODEL=mock` must always run a full
   class.
 - **One writer:** stream events only through `EventsService.append`; rows only from the API.
-- **Contract:** never send a shape not in `packages/schema/src/live.ts`. Only B6 (moderation)
-  and B8 (resources) need contract changes.
+- **Contract:** never send a shape not in `packages/schema/src/live.ts`. B6 (moderation), B9 and
+  B10 (profiles), B11 (2FA) and B12 (sources) need contract changes; each goes first, in its
+  own PR. The database is already ahead of the contract (see `docs/SCHEMA.md`).
+- **Schema:** the migrations for B6, B9-B12 exist and are tested
+  (`supabase/migrations/20261017171339..171347`). A task that needs more SQL adds a new
+  migration; never edit one already on `main`.
 - **Pure core, thin services:** put decision logic in pure functions (no DB, no `config`
   import) so Vitest can test them; services only read, call the pure function, and write.
   Importing `packages/api/src/config.ts` in a test throws (it requires env vars).
+
+---
+
+## B0 Foundation (done)
+
+- **Sandbox:** dev console at http://localhost:3001/sandbox/ (several users, every route, live
+  room feed), `npm run test:api` (e2e, 42 tests), `packages/api/sandbox/api.http` with
+  `npm run sandbox:tokens`.
+- **Schema:** accounts and profiles, moderation, 2FA, RAG migrations plus pgTAP tests
+  (`npm run test:db`, 32 tests). Map: `docs/SCHEMA.md`.
+- **Folder structure:** feature folders in `packages/api/src`, each planned one with a
+  `README.md` naming its files; `MailPort` (SMTP to Mailpit locally, console fallback) and
+  `EmbeddingPort` (no-embeddings default) built; the `REQUIRE_ACCOUNT` switch in `AuthGuard`.
+  Map: `packages/api/README.md`.
 
 ---
 
@@ -299,9 +339,9 @@ segment.
   budget, `MeteredModel` answers from the mock and posts one `notice`.
 - Invalid Board Script after the repair pass: retry the segment once in "simple" mode (only
   `page`, `text`, `box`, `sticky`, `say`); if that also fails, post the existing warning notice.
-- Host moderation: **contract PR first** (`Api.moderate`, `MemberRow.muted`, `MemberRow.banned`),
-  then a migration (columns plus `is_member` ignoring banned members), then
-  `POST /rooms/:id/moderate` (mute, unmute, kick). Muted members cannot ask; banned members
+- Host moderation: **contract PR first** (`Api.moderate`, `MemberRow.muted`, `MemberRow.banned`).
+  The migration is done (`20261017171342_member_moderation.sql`: columns, `is_member` ignores
+  banned members). Then `POST /rooms/:id/moderate` (mute, unmute, kick). Muted members cannot ask; banned members
   cannot rejoin or read the room.
 - Abuse: a learner with 3 flagged questions in a room is muted automatically.
 
@@ -317,12 +357,15 @@ learner gets 403 on rejoin and stops receiving broadcasts; a muted learner gets 
 **Goal:** the demo runs on the hosted Supabase project, a hosted API and a hosted web app.
 
 **Build:**
-- Hosted Supabase: turn on anonymous sign-ins; put the service-role key in
+- Hosted Supabase: email signup with **confirmations on**, anonymous sign-ins **off**, TOTP MFA
+  on, Site URL and redirect URLs set to the web domain (confirmation and reset links), SMTP for
+  auth emails; put the service-role key in
   `.env.production.local`; `npm run db:push:prod -- --dry-run`, then `npm run db:push:prod`;
   load the seed course.
 - API: one instance (the conductor lives in memory) on Railway or Render; `npm ci`, start
   `npm start -w @chalk/api`; env `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
-  `ANTHROPIC_API_KEY`, `WEB_URL`. Make the port read `PORT`. `@swc-node/register` is a
+  `ANTHROPIC_API_KEY`, `WEB_URL`, `REQUIRE_ACCOUNT=1`, `SMTP_URL`, `MAIL_FROM`, `OTP_SECRET`,
+  `VOYAGE_API_KEY`. Make the port read `PORT`. `@swc-node/register` is a
   devDependency but is needed at runtime: install dev dependencies on the host or move it.
 - Web: Vercel from the repo root, build `npm run build -w @chalk/web`, output
   `packages/web/dist`, the three `VITE_*` env vars, and a SPA rewrite so `/r/:code` loads.
@@ -333,17 +376,154 @@ deployed API; two phones join by QR on the deployed site.
 
 ---
 
-## B8 Shared PDF with citations (P1 extra)
+## B9 Accounts: registration and login (P0)
 
-**Goal:** a host uploads a PDF; the tutor cites pages on the board (`source: "res:<id>#p12"`,
-already in Board Script).
+**Goal:** everyone has an account (email + password) before joining or hosting a room.
 
-**Build:** contract PR (resources, upload endpoint), Storage bucket, page-level text extraction,
-Postgres full-text search, top pages injected into the lead tutor's request after the cached
-prefix, citations validated against existing resources. Port `packages/ingest` from the v1 repo
-(`github.com/kotebibo/chalkroom`) once its code is checked.
+**Today:** anonymous sign-in everywhere (web, smoke, e2e, sandbox). The schema is ready: the
+`on_auth_user_created` trigger creates a profile (username from signup metadata or the email,
+collisions get a suffix). `AuthGuard` has the `REQUIRE_ACCOUNT=1` switch, off by default.
 
-**Only start after M4 is merged and the demo runs end to end.**
+**Build:**
+1. **Contract PR:** `Username`, `ProfileRow`, `MeRes`; `Api.createRoom` and `Api.joinRoom` make
+   `displayName` and `color` optional (default: the profile's).
+2. **Client flows are Supabase Auth, not our API:** `signUp({ email, password, options: { data:
+   { username, display_name, color } } })`, `signInWithPassword`, `resetPasswordForEmail` +
+   `updateUser({ password })`, `signOut`. Email confirmation: off locally (Mailpit still shows
+   the mails), on in production with redirect URLs to the web app.
+3. **API:** `GET /me` (profile, avatar URL, email, 2FA state); rooms use the profile name and
+   color when the body omits them; `AuthGuard` refuses anonymous sessions when
+   `REQUIRE_ACCOUNT=1` (403 "an account is required").
+4. **Switch the tests to accounts:** e2e helpers, smoke and the sandbox create email users
+   (`signUp` with a random `@example.com` address; local confirmations are off).
+5. **Flip it** in one coordinated change with Dev A's login screens:
+   `enable_anonymous_sign_ins = false` in `supabase/config.toml`, `REQUIRE_ACCOUNT=1` in `.env`
+   and production.
+
+**Decisions and traps:**
+- Password rules: Supabase `minimum_password_length` (raise from 6 to 10) and
+  `password_requirements = "lower_upper_letters_digits"`; the API never sees passwords.
+- Existing anonymous users can be left to expire; nothing references them after the flip.
+- `rooms.host_id` references `auth.users` without `on delete`, so deleting a user who hosted a
+  room fails. Decide in B10 (account deletion): cascade the rooms, or hand them to a
+  placeholder.
+
+**Acceptance criteria:** with the flag on, an anonymous token gets 403 on every guarded route;
+a registered user creates and joins rooms without sending a display name; smoke and e2e pass
+with email users.
+
+**Coordinate with Dev A:** register, login, reset and confirm screens; join by QR goes through
+login and back to the room.
+
+---
+
+## B10 Profiles and profile pictures (P1)
+
+**Goal:** people edit their profile (username, display name, color, bio) and change their
+profile picture; others see public profiles.
+
+**Today:** `profiles` has the columns and checks (`username` unique ignoring case,
+`[A-Za-z0-9_]{3,24}`; bio max 280; `avatar_path` format), readable by any signed-in user. The
+`avatars` bucket is public, 2 MiB, png/jpeg/webp.
+
+**Build (`packages/api/src/accounts`):**
+- `PATCH /me` (`Api.updateProfile`): username, displayName, color, bio. 409 when the username is
+  taken.
+- Avatar in two steps, so files never pass through the API:
+  1. `POST /me/avatar/upload-url` (`contentType`) returns a signed upload URL for
+     `avatars/<user id>/<uuid>.<ext>`;
+  2. the client uploads straight to Storage; the bucket enforces type and size;
+  3. `POST /me/avatar` (`path`) checks the object exists under the caller's folder, sets
+     `avatar_path`, and removes the previous file.
+  `DELETE /me/avatar` clears it.
+- `GET /users/:username`: public profile (no email).
+- `DELETE /me`: delete the account (`auth.admin.deleteUser`), its avatar files; resolve the
+  `rooms.host_id` question from B9 first (new migration).
+
+**Acceptance criteria:** a user changes username and avatar and every other member sees the new
+picture; a second user cannot take the same username in another case; uploading a 3 MB file or
+a GIF fails at Storage.
+
+**Coordinate with Dev A:** profile page, avatar crop and upload; show avatars in the People
+panel (public URL `<SUPABASE_URL>/storage/v1/object/public/avatars/<avatar_path>`).
+
+---
+
+## B11 Two-factor authentication (P1)
+
+**Goal:** users can protect their account with an authenticator app (TOTP) or email codes.
+Once on, a session must pass the second factor before it can use rooms.
+
+**Today:** TOTP MFA is on in `supabase/config.toml`. The schema has `user_security`
+(`email_2fa_enabled`), `email_otp_codes` (HMAC only), `mfa_sessions`, and `mfa_satisfied()`,
+which `is_member()` requires, so RLS reads and realtime are gated too.
+
+**Build (`packages/api/src/security`):**
+1. **Spike first:** check whether the installed Supabase Auth offers email as a native MFA
+   factor. If yes, use it, and drop our email tables in a new migration.
+2. **TOTP:** client-side Supabase MFA (`enroll` shows a QR, `challenge` + `verify`). The API
+   enforces it: `AuthGuard` reads the verified JWT's `aal` and `session_id` claims and answers
+   401 `{ code: "mfa_required" }` when `mfa_satisfied()` would be false.
+3. **Email codes:** `POST /me/2fa/email/send` (`purpose`), `POST /me/2fa/email/verify`
+   (`code`, `purpose`); enable and disable require a verified code. Codes: 6 digits, HMAC-SHA256
+   with `OTP_SECRET`, 10 minutes, 5 attempts, single use, at most 5 sends per hour. Mail goes
+   through `MailPort` (Mailpit locally).
+4. `GET /me/2fa`: which factors are on and whether this session passed.
+
+**Decisions and traps:**
+- Recovery codes were not chosen; without them a user who loses both factors needs support.
+- Compare HMACs in constant time; never log codes.
+- After disabling the last factor, delete that user's `mfa_sessions`.
+
+**Acceptance criteria:** with email 2FA on, a fresh login gets 401 `mfa_required` and an empty
+room read; the emailed code (read from Mailpit in e2e) unlocks that session only; a TOTP code
+generated in the test upgrades to `aal2` and unlocks.
+
+**Coordinate with Dev A:** 2FA settings page (QR for TOTP, email toggle) and the second login
+step.
+
+---
+
+## B12 RAG: retrieval for the tutors (P1)
+
+**Goal:** the tutors answer from the class's material and cite it on the board. Sources:
+uploaded files (PDF, PPTX, DOCX, TXT, MD), web pages, the course syllabus plus past notes and
+FAQ, and the live class transcript. How it works: `docs/SCHEMA.md`, "How RAG works".
+
+**Today:** `sources`, `chunks` (full-text `tsv`, `embedding vector(1024)`), `match_chunks()`
+(hybrid full text + vector, reciprocal rank fusion), the private `resources` bucket, and
+`EmbeddingPort` with the no-embeddings adapter.
+
+**Build (`packages/api/src/rag`):**
+1. **Contract PR:** `SourceRow`, `Api.addSourceUrl`, `Api.sourceUploadUrl`, `Api.addSourceFile`;
+   the citation format `res:<source id>#p<page>` documented.
+2. **Ingest:** a worker takes pending sources (`for update skip locked`), extracts text per
+   page, chunks it (pure `chunk.ts`: about 500 tokens, 15% overlap, page kept), embeds,
+   stores, and marks the source `ready` or `failed`.
+3. **Sources API:** upload URL + commit for files, add a URL (server-side fetch with an SSRF
+   guard: http(s) only, no private addresses, 5 MB cap, HTML only), list, delete.
+4. **Automatic sources:** the course syllabus when a class starts; each finished segment's
+   narration (transcript, room scope); notes and FAQ when a class ends (course scope).
+5. **Retrieval:** `RetrieveService` builds the query, embeds it, calls `match_chunks()`, and
+   formats the top 6 passages; the lead tutor, thread tutor, triage inline answers and the Q&A
+   beat get them after the cached prefix; `citations.ts` drops citations that point at
+   missing sources or pages.
+6. **Embeddings:** Voyage adapter (`VOYAGE_API_KEY`, `voyage-3.5`, 1024 dimensions); without a
+   key everything still works on full text.
+
+**Decisions and traps:**
+- Retrieved text is untrusted (web pages, uploads): wrap it as reference material, never
+  instructions.
+- Keep passages out of the cached prefix, or caching breaks.
+- Extraction libraries to evaluate when building: `unpdf` (PDF per page), `mammoth` (DOCX),
+  `jszip` (PPTX slide XML), `linkedom` + `@mozilla/readability` (HTML).
+
+**Acceptance criteria:** upload a PDF, ask about page 3, and the tutor's board cites
+`res:<id>#p3`; with no embedding key, the same question still finds the page by keywords; a URL
+pointing at `127.0.0.1` is refused.
+
+**Coordinate with Dev A:** sources panel (upload, add link, status), citation chips on board
+shapes.
 
 ---
 
@@ -354,4 +534,8 @@ prefix, citations validated against existing resources. Port `packages/ingest` f
 - [ ] Host and ready gates count only present learners; host handoff (B5)
 - [ ] End-of-class notes (B3)
 - [ ] Lead tutor streams Board Script with the real model (B1)
+- [ ] Accounts required: register, log in, reset password; tests use email users (B9)
+- [ ] Profiles and profile pictures (B10)
+- [ ] Two-factor authentication: authenticator app and email codes (B11)
+- [ ] Tutors cite uploaded material, web pages, past notes and the class transcript (B12)
 - [ ] `npm run smoke` green, and a rehearsal with `MODEL=mock`

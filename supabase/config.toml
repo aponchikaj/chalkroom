@@ -108,7 +108,8 @@ enabled = true
 # Port to use for the email testing server web interface.
 port = 55424
 # Uncomment to expose additional ports for testing user applications that send emails.
-# smtp_port = 54325
+# the API sends 2FA codes here locally (SMTP_URL=smtp://127.0.0.1:55425)
+smtp_port = 55425
 # pop3_port = 54326
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
