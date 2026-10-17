@@ -1,0 +1,103 @@
+/* AM: class materials: ruled entries on the leaf, a dashed drop zone (open, not yet filled),
+   a link form with the one yellow action. Shared by the class page and the classroom rail. */
+
+.mat { display: flex; flex-direction: column; gap: 14px; padding-top: 16px; }
+.mat-compact { padding: 14px; gap: 12px; }
+
+.mat-lede { font-family: var(--font-read); font-size: 1.05rem; line-height: 1.45; color: var(--ink-2); max-width: 46ch; }
+.mat-compact .mat-lede { font-size: 0.95rem; }
+
+.mat-label {
+  display: block; margin-bottom: 6px; padding: 0;
+  font-size: var(--t-xs); font-weight: 700; font-stretch: 78%; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-2);
+}
+
+/* ---------- add area ---------- */
+.mat-add { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 14px 22px; align-items: stretch; }
+.mat-compact .mat-add { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+
+.mat-scope { grid-column: 1 / -1; margin: 0; padding: 0; border: 0; min-width: 0; }
+.mat-scope-opts { display: flex; flex-wrap: wrap; gap: 6px; }
+.mat-scope-opt { position: relative; display: inline-flex; }
+.mat-scope-opt input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.mat-scope-opt span {
+  display: inline-flex; align-items: center; min-height: 28px; padding: 0 10px;
+  border: 1.5px solid var(--ink); border-radius: var(--r); background: var(--leaf); color: var(--ink);
+  font-size: var(--t-xs); font-weight: 650; font-stretch: 88%; letter-spacing: 0.06em; text-transform: uppercase;
+  transition: background var(--step) steps(2);
+}
+.mat-scope-opt:hover input:not(:checked) + span { background: var(--paper-2); }
+.mat-scope-opt input:active + span { background: var(--ink-2); color: var(--paper); }
+.mat-scope-opt input:checked + span { background: var(--ink); color: var(--paper); }
+.mat-scope-opt input:focus-visible + span { outline: 2px solid var(--ink); outline-offset: 2px; }
+.mat-scope-opt input:disabled + span { border-color: var(--rule-2); color: var(--ink-3); }
+
+.mat-drop {
+  display: flex; align-items: flex-start; gap: 12px; padding: 16px;
+  border: 1.5px dashed var(--rule-2); border-radius: var(--r); background: var(--leaf); color: var(--ink);
+  cursor: pointer; transition: background var(--step) steps(2), border-color var(--step) steps(2);
+}
+.mat-drop .lucide { flex: none; margin-top: 1px; }
+.mat-drop:hover { border-color: var(--ink); background: var(--paper-2); }
+.mat-drop:active { background: var(--paper-3); }
+.mat-drop:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-color: var(--ink); }
+.mat-drop.is-over { border-style: solid; border-color: var(--ink); background: var(--paper-2); }
+.mat-drop[aria-disabled='true'] { cursor: default; color: var(--ink-3); background: transparent; }
+.mat-drop-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.mat-drop-head { font-size: var(--t-md); font-weight: 700; font-stretch: 84%; text-transform: uppercase; letter-spacing: 0.04em; }
+.mat-drop-hint { font-size: var(--t-sm); color: var(--ink-2); line-height: 1.4; }
+
+.mat-link { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.mat-field { display: block; min-width: 0; }
+.mat-link-row { display: flex; align-items: flex-end; gap: 10px; }
+.mat-link-row .btn { flex: none; min-height: 38px; }
+.mat-compact .mat-link-row { flex-wrap: wrap; }
+.mat-compact .mat-link-row .mat-field { flex-basis: 100%; }
+
+/* ---------- messages ---------- */
+.mat-errors { display: flex; flex-direction: column; gap: 6px; }
+.mat .errata { align-items: center; }
+.mat-errata-icon { flex: none; color: var(--errata); }
+.mat-dismiss { color: inherit; margin: -4px -6px -4px 0; }
+.mat-dismiss:hover:not(:disabled) { background: color-mix(in srgb, var(--errata) 14%, var(--errata-tint)); }
+.mat-notice { font-size: var(--t-sm); color: var(--ink-2); padding: 8px 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
+.mat-empty { font-family: var(--font-read); font-size: 1rem; color: var(--ink-2); padding: 8px 0; max-width: 46ch; }
+
+/* ---------- the list ---------- */
+.mat-list { list-style: none; margin: 0; padding: 0; border-top: 1.5px solid var(--ink); }
+.mat-item {
+  display: flex; align-items: flex-start; gap: 14px; padding: 12px 6px;
+  border-bottom: 1px solid var(--rule); scroll-margin: 12px;
+}
+.mat-item:focus { outline: none; }
+.mat-item:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+.mat-item.is-focus { background: var(--paper-2); box-shadow: inset 3px 0 0 var(--ink); animation: step-in var(--step) steps(2) both; }
+.mat-item-upload .mat-title { color: var(--ink-2); }
+.mat-title { font-size: var(--t-md); font-weight: 680; font-stretch: 86%; line-height: 1.28; overflow-wrap: anywhere; }
+.mat-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 12px; margin-top: 5px; font-size: var(--t-sm); color: var(--ink-2); }
+.mat-cited { margin-top: 5px; font-size: var(--t-sm); color: var(--ink); font-weight: 600; }
+.mat-failed { margin-top: 5px; overflow-wrap: anywhere; }
+.mat-actions { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 6px; flex: none; }
+.mat-confirm { font-size: var(--t-sm); font-weight: 650; color: var(--ink); }
+
+.mat-compact .mat-item { flex-wrap: wrap; gap: 8px; padding: 10px 2px; }
+.mat-compact .mat-actions { flex-basis: 100%; justify-content: flex-start; }
+.mat-compact .mat-actions:empty { display: none; }
+.mat-compact .mat-meta { gap: 4px 10px; font-size: var(--t-xs); }
+
+@media (max-width: 760px) {
+  .mat-add { grid-template-columns: minmax(0, 1fr); }
+  .mat-item { flex-wrap: wrap; gap: 8px; }
+  .mat-actions { flex-basis: 100%; justify-content: flex-start; }
+  .mat-actions:empty { display: none; }
+  .mat-link-row { flex-wrap: wrap; }
+  .mat-link-row .mat-field { flex-basis: 100%; }
+}
+
+/* citation chips in the tutor's markdown (components/Markdown.tsx) */
+.chip.cite { cursor: pointer; max-width: 100%; vertical-align: baseline; transition: background var(--step) steps(2); }
+.chip.cite:hover { background: var(--paper-2); border-color: var(--ink); color: var(--ink); }
+.chip.cite:active { background: var(--ink); color: var(--paper); }
+.chip.cite .cite-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 26ch; }
+.chip.cite .cite-page { color: inherit; }
+.mat-nowrap { white-space: nowrap; }

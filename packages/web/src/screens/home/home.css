@@ -117,3 +117,11 @@
   .class-row { grid-template-columns: minmax(0, 1fr); }
   .class-actions { justify-content: flex-start; }
 }
+
+/* AU: the running head carries who is signed in at its right */
+.home-manual .manual-head { justify-content: flex-start; }
+.home-meta { margin-left: auto; }
+@media (max-width: 760px) {
+  .home-meta { display: none; }
+  .home-manual .manual-head .acct { margin-left: auto; }
+}

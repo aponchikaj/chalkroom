@@ -156,7 +156,7 @@ function Shelf({ lib, tab, setTab, onReviewed, onNoteSaved }: {
           {tab === 'notes' && <ShelfNotes roomId={room.id} notes={lib.notes} members={members} me={me} onSaved={onNoteSaved} />}
           {tab === 'cards' && <Flashcards cards={lib.cards} reviews={lib.reviews} onReviewed={onReviewed} />}
           {tab === 'questions' && <ShelfQuestions questions={lib.questions} clusters={lib.clusters} me={me} />}
-          {tab === 'materials' && <Materials sources={lib.sources} events={lib.events} />}
+          {tab === 'materials' && <Materials sources={lib.sources} events={lib.events} roomId={lib.room.id} room={lib.room} members={lib.members} me={lib.me} />}
           {tab === 'checks' && <Checks events={lib.events} plan={room.lesson_plan} />}
         </section>
       </article>

@@ -71,14 +71,12 @@
 .prejoin-problem .errata { margin-top: 24px; font-size: var(--t-md); max-width: 60ch; }
 .problem-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 20px 0 14px; }
 
-/* mic test: a stepped level meter */
-.mictest-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
-.meter { display: inline-flex; gap: 3px; height: 18px; opacity: 0.55; }
-.meter.on { opacity: 1; }
-.meter i { width: 7px; height: 100%; background: var(--paper-3); border-radius: 1px; }
-.meter i.lit { background: var(--ok); }
-.meter i.lit:nth-child(n + 10) { background: var(--warn); }
-.mictest-status { font-size: var(--t-sm); color: var(--ink-2); }
+/* AU: who you join as (your account's punch and name) */
+.joining-as { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-top: 1.5px solid var(--ink); border-bottom: 1px solid var(--rule); }
+.joining-as p { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.joining-label { font-size: var(--t-xs); font-weight: 700; font-stretch: 78%; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-2); }
+.joining-name { font-size: 1.5rem; font-weight: 800; font-stretch: 80%; letter-spacing: -0.01em; line-height: 1.1; overflow-wrap: anywhere; }
+.manual-head .prejoin-meta { margin-left: auto; }
 
 .entry-foot { max-width: 1180px; margin: 16px auto 0; font-size: var(--t-xs); color: var(--ink-3); }
 

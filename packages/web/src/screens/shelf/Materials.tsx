@@ -1,62 +1,37 @@
-// W2: the class's materials: its sources (and its course's), and the scribe's summary of each
-// segment, which are this class's own material today.
-import { ExternalLink } from 'lucide-react';
-import type { SourceRow, StreamEvent } from '@chalk/schema';
+// W2: the class's materials: its sources (and its course's), with adding and deleting through
+// the shared MaterialsPanel, and the scribe's summary of each segment.
+// AM: room, members and me are optional so ClassShelf's current call still works; when absent
+// they are read here (room id from the /c/:roomId path).
+import { useEffect, useState } from 'react';
+import type { MemberRow, RoomRow, SourceRow, StreamEvent } from '@chalk/schema';
+import { supabase } from '../../lib/supabase';
+import { usePath } from '../../lib/router';
+import { MaterialsPanel } from '../../features/materials/MaterialsPanel';
 import { sectionHue, sectionInk } from '../../ui/section';
-import { Stamp, type StampTone } from '../../ui/Stamp';
-import { count } from './words';
 
-const KIND: Record<SourceRow['kind'], string> = {
-  file: 'Document', url: 'Link', syllabus: 'Syllabus', notes: 'Notes', faq: 'Questions and answers', transcript: 'Transcript',
-};
-const STATUS: Record<SourceRow['status'], { word: string; tone: StampTone }> = {
-  pending: { word: 'Processing', tone: 'pending' },
-  processing: { word: 'Processing', tone: 'pending' },
-  ready: { word: 'Ready', tone: 'ok' },
-  failed: { word: 'Failed', tone: 'errata' },
-};
-const safeUrl = (u: string | null) => (u && /^https?:\/\//i.test(u) ? u : null);
+interface Facts { room: Pick<RoomRow, 'id' | 'host_id' | 'course_id'>; members: MemberRow[]; me: string | null }
 
-export function Materials({ sources, events }: { sources: SourceRow[]; events: StreamEvent[] }) {
+export function Materials({ sources, events, roomId, room, members, me }: {
+  sources: SourceRow[]; events: StreamEvent[];
+  roomId?: string; room?: Pick<RoomRow, 'id' | 'host_id' | 'course_id'>; members?: MemberRow[]; me?: string;
+}) {
+  const path = usePath();
+  const id = roomId ?? room?.id ?? /^\/c\/([^/?#]+)/.exec(path)?.[1] ?? sources[0]?.room_id ?? null;
+  const given = room && members && me !== undefined ? { room, members, me } : null;
+  const facts = useFacts(given ? null : id) ?? given;
+
   const summaries = events.filter((e) => e.kind === 'segment_summary').map((e) => (e as StreamEvent<'segment_summary'>).data);
   // the scribe may revise a summary; keep the latest per segment
   const bySeg = [...new Map(summaries.map((s) => [s.segment, s])).values()].sort((a, b) => a.segment - b.segment);
 
   return (
     <>
-      <div className="shelf-sec-head">
-        <h2>Materials</h2>
-        {sources.length > 0 && <p className="shelf-sec-sub">{count(sources.length, 'source')} for this class</p>}
-      </div>
+      <div className="shelf-sec-head"><h2>Materials</h2></div>
 
-      {sources.length === 0 ? (
-        <p className="shelf-empty">Documents and links for this class appear here. Uploading PDFs arrives with document search.</p>
+      {id ? (
+        <MaterialsPanel roomId={id} room={facts?.room ?? null} me={facts?.me ?? null} members={facts?.members ?? []} initial={sources} />
       ) : (
-        <ol className="shelf-sources">
-          {sources.map((s) => {
-            const st = STATUS[s.status];
-            const href = s.kind === 'url' ? safeUrl(s.uri) : null;
-            return (
-              <li key={s.id} className="shelf-source">
-                <div className="grow">
-                  <p className="shelf-source-title">{s.title}</p>
-                  <p className="shelf-source-meta">
-                    <span>{KIND[s.kind]}{!s.room_id && s.course_id ? ', from the course' : ''}</span>
-                    <Stamp tone={st.tone}>{st.word}</Stamp>
-                    {s.page_count != null && s.page_count > 0 && <span>{count(s.page_count, 'page')}</span>}
-                    {s.chunk_count > 0 && <span>{count(s.chunk_count, 'passage')} indexed</span>}
-                  </p>
-                  {s.status === 'failed' && s.error && <p className="error-text">{s.error}</p>}
-                </div>
-                {href && (
-                  <a className="btn small" href={href} target="_blank" rel="noopener noreferrer">
-                    Open link<ExternalLink size={14} strokeWidth={2} aria-hidden /><span className="sr-only">(opens in a new tab)</span>
-                  </a>
-                )}
-              </li>
-            );
-          })}
-        </ol>
+        <p className="shelf-empty">This class's materials could not be found.</p>
       )}
 
       <section aria-labelledby="mat-summaries" className="shelf-group">
@@ -77,4 +52,23 @@ export function Materials({ sources, events }: { sources: SourceRow[]; events: S
       </section>
     </>
   );
+}
+
+/** Room, members and me for the panel's permissions; null until read (the panel still lists). */
+function useFacts(roomId: string | null): Facts | null {
+  const [facts, setFacts] = useState<Facts | null>(null);
+  useEffect(() => {
+    if (!roomId) return;
+    let live = true;
+    Promise.all([
+      supabase.auth.getSession(),
+      supabase.from('rooms').select('id, host_id, course_id').eq('id', roomId).maybeSingle(),
+      supabase.from('room_members').select('*').eq('room_id', roomId),
+    ]).then(([s, r, m]) => {
+      if (!live || !r.data) return;
+      setFacts({ room: r.data as Facts['room'], members: (m.data ?? []) as MemberRow[], me: s.data.session?.user.id ?? null });
+    }).catch(() => { /* the panel works without them: no delete, no course choice */ });
+    return () => { live = false; };
+  }, [roomId]);
+  return facts;
 }
