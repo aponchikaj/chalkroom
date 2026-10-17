@@ -30,7 +30,7 @@ The anonymous-join demo in `docs/design.md` ("join by QR, the avatars pop in") n
 |---|---|---|---|---|---|
 | 0 | B0 Foundation: sandbox, schema, folder structure | done | | testing every route | |
 | 1 | B2 Triage wiring | P0, **done** | M2 Questions | A1 question rail statuses | M |
-| 2 | B9 Accounts (email + password, accounts required) | P0, **done** (anonymous switch-off waits for A8) | M2 | login, register, reset screens | M |
+| 2 | B9 Accounts (email + password, accounts required) | P0, **done** (anonymous sign-in off) | M2 | login, register, reset screens | M |
 | 3 | B4 Threads | P0, **done** | M3 Threads | A3 thread drawer | M |
 | 4 | B3 Scribe and notes | P0, **done** | M4 Wrap-up | A3 catch-up card, A5 notes | M |
 | 5 | B5 Presence gate and host handoff | P0, **done** | M4 Wrap-up | A4 ready bar | M |
@@ -40,6 +40,7 @@ The anonymous-join demo in `docs/design.md` ("join by QR, the avatars pop in") n
 | 9 | B12 RAG | P1, **done** | M5 | sources panel, citations | L |
 | 10 | B6 Reliability | P1, **done** | M5 Polish | host mute/kick buttons | M |
 | 11 | B7 Deploy | P1, **prepared** (needs hosted keys) | M5, before rehearsal | the demo itself | S |
+| 12 | Class deck: scribe `propose_cards` at end of class, `POST /cards/:id/review` (FSRS via ts-fsrs) | P1, **done** | M4 Wrap-up | deck and review screens | S |
 
 B1 can start any time once an `ANTHROPIC_API_KEY` exists. B9 comes early because "accounts
 required" changes how every test and the web sign in; ship it together with Dev A's login

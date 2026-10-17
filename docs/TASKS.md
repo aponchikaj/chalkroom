@@ -28,7 +28,7 @@ Done = built and tested. Next = being built. Todo = planned.
 | Area | Done | Next / todo | Dev A | Dev B |
 |---|---|---|---|---|
 | **Platform** | Monorepo, CI, contracts, board engine, local Supabase (Postgres 17), env split local/prod, backend folder structure, sandbox console, e2e + pgTAP + smoke + bench, room conductor leases, hosting prep (PORT, vercel.json, runtime deps) | Deploy to hosted Supabase, API host, Vercel (needs the hosted keys) | | B0 done, B7 prepared |
-| **Accounts and security** | Schema for profiles, settings, 2FA, moderation; signup trigger; `GET /me`; rooms use the profile; `PATCH /me`, settings, profile picture, public profiles, account deletion; 2FA: authenticator app enforcement and email codes (`/me/2fa`), gated in the API and in RLS; email users in every test; `REQUIRE_ACCOUNT` switch | Switch off anonymous sign-in with the web login (next) | A8 login, A9 profile and settings, A10 2FA (todo) | B9 done except the switch, B10 done, B11 done |
+| **Accounts and security** | Schema for profiles, settings, 2FA, moderation; signup trigger; `GET /me`; rooms use the profile; `PATCH /me`, settings, profile picture, public profiles, account deletion; 2FA: authenticator app enforcement and email codes (`/me/2fa`), gated in the API and in RLS; email users in every test; `REQUIRE_ACCOUNT` switch | Web login screens: until A8 ships, the web cannot sign anyone in (anonymous sign-in is off) | A8 login (blocking), A9 profile and settings, A10 2FA (todo) | B9, B10, B11 done |
 | **Live class** | Rooms (max 5), join by code, gate (all ready / 60 s / skip), hold, resume, slower, end, checks with spread, reactions, Q&A beat, resume after restart; presence-aware gate (gone after 15 s, back on return), host handoff to the longest-present member; web: classroom in the Acetate Manual design, check card, gate, laser, confusion heat | | A4, A6, A7 done on fixtures | B5 done |
 | **Questions** | Ask, anonymous +1, rate limit 6/min; triage: clusters, the four routes, thread offers, every question routed within ~4.5 s; web: question rail and ask bar (text only) | Connect the rail to real statuses (Dev A) | A1, A2 done on fixtures | B2 done |
 | **Threads** | Open, accept an offer, message (tutor chat + mini board on the thread stream), close, share as an answered cluster; owners excused at the gate; catch-up from `segment_summary`; web: thread drawer, offer, catch-up | | A3 done on fixtures | B4 done |
@@ -192,13 +192,15 @@ gate (B5). Not done: notices as toasts (the rail shows the latest notices instea
 - Mobile layout (the phone in the demo), empty and error states, the design pass on Home and
   the lobby, a share card for Discord/Telegram.
 
-### A8 Login, registration, password reset (P0) · API ready (B9)
+### A8 Login, registration, password reset (P0, blocking) · API ready (B9)
+
+Anonymous sign-in is **off** (2026-10-17): until this ships, `ensureSession()` in
+`lib/supabase.ts` fails and the web cannot sign anyone in. Passwords need 10+ characters with
+lowercase, uppercase and digits. The pre-join mic test was removed (text only).
 - Supabase Auth in the browser: `signUp({ email, password, options: { data: { username, display_name, color } } })`,
   `signInWithPassword`, `resetPasswordForEmail` + `updateUser({ password })`, `signOut`.
 - Join by link/QR goes through login and back to the room. Rooms take the name and color from
   the profile (send `displayName` only for a per-room nickname).
-- When this ships, Dev B turns anonymous sign-in off (`supabase/config.toml`) and sets
-  `REQUIRE_ACCOUNT=1`.
 
 ### A9 Profile and settings (P1) · API ready (B10)
 - `GET /me` (profile, avatar URL, email, settings, 2FA state), `PATCH /me`, `GET /users/:username`.
@@ -227,7 +229,7 @@ Detail: [`DEVB_TASKS.md`](DEVB_TASKS.md). Steps, code and tests: [`PLANS_DEVB.md
 | Task | Status | What |
 |---|---|---|
 | B0 Foundation | done | sandbox, schema for every planned feature, folder structure, mail and embedding ports |
-| B9 Accounts | done (switch pending A8) | `GET /me`, rooms use the profile, email users in tests, `REQUIRE_ACCOUNT` |
+| B9 Accounts | done | anonymous sign-in off, password rules, `REQUIRE_ACCOUNT` on, `GET /me`, rooms use the profile, email users in tests |
 | B10 Profiles and settings | done | `PATCH /me`, settings, profile picture, public profiles, account deletion |
 | B11 Two-factor authentication | done | TOTP enforcement (API + RLS), email codes via Mailpit/SMTP |
 | B2 Triage | done | clusters and the four routes, thread offers, at every gate |

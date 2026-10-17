@@ -1,7 +1,7 @@
 // A5 (Dev A): the recap over the board when phase === 'ended': check results per part, my
 // questions and what became of them, and the shared notes (read and edited in the Notes tab).
 import { useMemo, useState } from 'react';
-import { House } from 'lucide-react';
+import { BookOpen, House } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import type { ClusterRow, QuestionRow, StreamEvent } from '@chalk/schema';
 import { useRoom } from '../../room/store';
@@ -69,9 +69,15 @@ export function Recap() {
               <span className="mono">{checks.length}</span> check{checks.length === 1 ? '' : 's'}, <span className="mono">{learners}</span> in class
             </p>
           </div>
-          <button type="button" className="btn primary" onClick={leave} disabled={leaving}>
-            <House size={16} strokeWidth={2} aria-hidden />{leaving ? 'Leaving' : 'Back home'}
-          </button>
+          <div className="row">
+            {/* the class page keeps this class's notes, deck, questions and results */}
+            <button type="button" className="btn primary" onClick={() => navigate(`/c/${room.id}`)}>
+              <BookOpen size={16} strokeWidth={2} aria-hidden />Open class page
+            </button>
+            <button type="button" className="btn" onClick={leave} disabled={leaving}>
+              <House size={16} strokeWidth={2} aria-hidden />{leaving ? 'Leaving' : 'Back home'}
+            </button>
+          </div>
         </header>
 
         <div className="recap-grid">

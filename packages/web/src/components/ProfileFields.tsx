@@ -1,16 +1,17 @@
-// A7 (Dev A): name and colour for joining a class. The colour is the ring of your punch on the
-// binding, so the preview shows exactly how the class will see you.
+// A7 (Dev A), AU: display name and colour of an account (sign-up). The colour is the ring of your
+// punch on the binding, so the preview shows exactly how the class will see you.
 import { useRef } from 'react';
 import { MEMBER_COLORS } from '@chalk/schema';
-import type { Profile } from '../lib/profile';
 import { Punch } from '../ui/Punch';
 
 const COLOR_NAMES: Record<string, string> = {
   '#f2d16b': 'Straw', '#8fc7e8': 'Sky', '#a8dc9f': 'Mint', '#f4a6c8': 'Rose', '#f6b26b': 'Apricot', '#c3a6f4': 'Lilac',
 };
 
-export function ProfileFields({ value, onChange, autoFocus = true, idPrefix = 'pf' }: {
-  value: Profile; onChange: (p: Profile) => void; autoFocus?: boolean; idPrefix?: string;
+export interface Profile { name: string; color: string }
+
+export function ProfileFields({ value, onChange, autoFocus = true, idPrefix = 'pf', nameLabel = 'Your name', invalid }: {
+  value: Profile; onChange: (p: Profile) => void; autoFocus?: boolean; idPrefix?: string; nameLabel?: string; invalid?: boolean;
 }) {
   const group = useRef<HTMLDivElement>(null);
   const pick = (i: number) => {
@@ -23,11 +24,11 @@ export function ProfileFields({ value, onChange, autoFocus = true, idPrefix = 'p
   return (
     <div className="profile">
       <div className="field">
-        <label className="field-label" htmlFor={`${idPrefix}-name`}>Your name</label>
+        <label className="field-label" htmlFor={`${idPrefix}-name`}>{nameLabel}</label>
         <div className="profile-name">
           <Punch name={value.name.trim() || '?'} color={value.color} />
           <input id={`${idPrefix}-name`} className="input" maxLength={32} value={value.name} autoFocus={autoFocus} placeholder="What the class calls you"
-            autoComplete="nickname" onChange={(e) => onChange({ ...value, name: e.target.value })} />
+            autoComplete="nickname" required aria-invalid={invalid || undefined} onChange={(e) => onChange({ ...value, name: e.target.value })} />
         </div>
       </div>
       <div className="field">

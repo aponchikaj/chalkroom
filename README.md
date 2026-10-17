@@ -61,6 +61,7 @@ all agents on `claude-haiku-4-5`. Force the scripted tutor with `MODEL=mock`.
 | Command | What it does |
 |---|---|
 | `npm test` | Unit tests (Vitest) |
+| `npm run e2e:web` | A whole class in three real browsers (host, learner, phone): triage, thread, check, gate, moderation, notes. Needs the stack running; screenshots in `.impeccable/e2e/` |
 | `npm run test:api` | API end-to-end tests against the local stack (starts a mock API if none runs) |
 | `npm run test:db` | Database tests (pgTAP) |
 | `npm run bench` | Latency table in ms for every route and the key class moments (API must run) |

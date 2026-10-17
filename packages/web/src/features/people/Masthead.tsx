@@ -1,5 +1,6 @@
 // A7 (Dev A): the running head of the manual: product, the class title at display scale, where
-// the class is (phase in words), the gate timer and the voice switch. On phones it also carries
+// the class is (phase in words), the gate timer, the voice switch and who is signed in (account
+// menu: Account, Your classes, Log out). On phones it also carries
 // the people as a row of small punches (the binding column is hidden there).
 import { useEffect, useState } from 'react';
 import { Timer, Volume2, VolumeX } from 'lucide-react';
@@ -8,6 +9,7 @@ import { usePlayer } from '../../board/Board';
 import { navigate } from '../../lib/router';
 import { Stamp } from '../../ui/Stamp';
 import { Binding } from './Binding';
+import { AccountMenu } from '../../screens/auth/AccountMenu';
 
 const PHASE = { lobby: 'Lobby', teaching: 'Teaching', check: 'Check and ready', qa: 'Questions and answers', ended: 'Class ended' } as const;
 
@@ -34,6 +36,7 @@ export function Masthead() {
           {muted ? <VolumeX size={16} aria-hidden /> : <Volume2 size={16} aria-hidden />}
           <span className="masthead-voice-word">{muted ? 'Voice off' : 'Voice on'}</span>
         </button>
+        <AccountMenu />
       </div>
       <div className="masthead-people"><Binding orientation="horizontal" /></div>
     </header>

@@ -248,6 +248,7 @@ export class RoomConductor {
     await this.notice(room, 'Class ended. Thanks for learning together!');
     await this.pendingSummary;
     await this.writeNotes(room);
+    await this.writeDeck(room);
   }
 
   /** B12: a course's syllabus is searchable once per course. Never rejects. */
@@ -301,6 +302,26 @@ export class RoomConductor {
     if (room.course_id && faq.length) {
       const f = await this.db.from('faq').insert(faq.map((c) => ({ course_id: room.course_id, topic_id: room.topic_id, question: c.title, answer: c.answer, askers_total: c.askers })));
       if (f.error) this.log.warn(`faq: ${f.error.message}`);
+    }
+  }
+
+  /** The class deck from the notes (one scribe call). Never rejects: the class has already ended. */
+  private async writeDeck(room: RoomRow) {
+    if (!room.lesson_plan) return;
+    try {
+      const existing = await this.db.from('cards').select('id', { count: 'exact', head: true }).eq('room_id', room.id);
+      if (existing.error) throw new Error(existing.error.message);
+      if (existing.count) return;
+      const notes = await this.db.from('note_blocks').select('markdown').eq('room_id', room.id).order('idx');
+      const asked = await this.db.from('clusters').select('title').eq('room_id', room.id).eq('route', 'class');
+      const checks = checkResults(await this.deps.events.after(room.main_stream_id)).map((c) => `- ${c.prompt} Answer: ${c.answerText} (${c.correct}/${c.total} correct)`);
+      const questions = (asked.data ?? []).map((c) => `- Asked: ${c.title as string}`);
+      const cards = await this.deps.scribe.proposeCards(await this.prefix(room), room.lesson_plan,
+        (notes.data ?? []).map((b) => b.markdown as string).join('\n\n'), [...checks, ...questions].join('\n'), room.id);
+      const ins = await this.db.from('cards').insert(cards.map((c) => ({ room_id: room.id, course_id: room.course_id, front: c.front, back: c.back, status: 'active' })));
+      if (ins.error) throw new Error(ins.error.message);
+    } catch (e) {
+      this.log.error(`deck: ${(e as Error).message}`);
     }
   }
 

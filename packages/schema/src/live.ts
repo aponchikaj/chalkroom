@@ -1,7 +1,7 @@
 // Chalkroom Live contracts. This file is the seam between the two halves of the team:
 // the API writes these shapes, the web reads them. Change them here first, in one PR.
 import { z } from 'zod';
-import { BoardStep, Question } from './core';
+import { BoardStep, FsrsState, Question } from './core';
 
 // ---------------------------------------------------------------------------
 // Room phase (owned by the API's RoomConductor, stored in rooms.phase)
@@ -388,6 +388,8 @@ export const Api = {
   avatarUploadUrl: z.object({ contentType: AvatarType }),
   /** POST /me/avatar -> MeRes. Makes the uploaded file the profile picture (and removes the old one). */
   avatarCommit: z.object({ path: z.string().max(200) }),
+  /** POST /cards/:id/review -> CardReviewRow (the API schedules the next review with FSRS) */
+  reviewCard: z.object({ rating: z.enum(['again', 'hard', 'good', 'easy']) }),
   /** PUT /rooms/:id/notes/:blockId */
   editNote: z.object({ markdown: z.string().max(5000), version: z.number().int() }),
 } as const;
@@ -531,3 +533,30 @@ export const LIVE = {
 } as const;
 
 export const MEMBER_COLORS = ['#f2d16b', '#8fc7e8', '#a8dc9f', '#f4a6c8', '#f6b26b', '#c3a6f4'] as const;
+
+// ---------------------------------------------------------------------------
+// Class library: what each learner keeps from every class they joined
+// (read by members with RLS; reviews are written by the API)
+// ---------------------------------------------------------------------------
+
+export type CardRating = z.infer<typeof Api.reviewCard>['rating'];
+
+/** Row of `cards`: one flashcard of a class deck (written by the scribe at the end of class). */
+export interface CardRow {
+  id: string;
+  room_id: string | null;
+  course_id: string | null;
+  front: string;
+  back: string;
+  status: 'proposed' | 'active' | 'suspended';
+  created_at: string;
+}
+
+/** Row of `card_reviews`: one learner's own schedule for one card. */
+export interface CardReviewRow { card_id: string; user_id: string; fsrs: FsrsState; updated_at: string }
+
+/** Scribe tool output at the end of class: the class deck. */
+export const ProposedCards = z.object({
+  cards: z.array(z.object({ front: z.string().trim().min(1).max(300), back: z.string().trim().min(1).max(600) })).min(3).max(12),
+});
+export type ProposedCards = z.infer<typeof ProposedCards>;

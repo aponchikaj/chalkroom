@@ -1,0 +1,16 @@
+/* AS: global rules behind the account preferences. lib/preferences.ts imports this file and sets
+   the attributes on <html>, so the rules hold on every screen, not only the account page. */
+
+/* captions off: the tutor's lines are not printed under the board */
+html[data-captions='off'] .captions { display: none; }
+
+/* fewer animations: every step and plotter stroke lands at once */
+html[data-motion='reduced'] *,
+html[data-motion='reduced'] *::before,
+html[data-motion='reduced'] *::after {
+  animation-duration: 1ms !important;
+  animation-delay: 0ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 1ms !important;
+  transition-delay: 0ms !important;
+}

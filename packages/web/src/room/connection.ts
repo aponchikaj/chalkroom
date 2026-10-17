@@ -30,6 +30,8 @@ async function loadRows(roomId: string) {
     supabase.from('note_blocks').select('*').eq('room_id', roomId),
     supabase.from('check_answers').select('check_id').eq('room_id', roomId),
   ]);
+  // no row under RLS: not (or no longer) a member, e.g. removed by the host
+  if (room.error?.code === 'PGRST116') throw new Removed();
   if (room.error) throw new Error(`Could not load the room: ${room.error.message}`);
   const byKey = <T>(rows: T[] | null, key: (r: T) => string) => Object.fromEntries((rows ?? []).map((r) => [key(r), r]));
   useRoom.setState({
@@ -46,7 +48,6 @@ async function loadRows(roomId: string) {
 }
 
 export interface RoomConnection {
-  channel: RealtimeChannel;
   /** update this device's presence (e.g. entering a thread) */
   track: (patch: Partial<PresenceState>) => void;
   /** live stream events for any stream (thread drawers subscribe here) */
@@ -58,9 +59,15 @@ export interface RoomConnection {
   close: () => void;
 }
 
+/** The room is not readable any more: the host removed this learner. */
+export class Removed extends Error {
+  constructor() { super('removed from this class'); }
+}
+
 /** Thrown when a newer connectRoom() started before this one finished (e.g. StrictMode). */
 export class Superseded extends Error {}
 let generation = 0;
+const PRESENCE_GAP_MS = 1500;
 
 export async function connectRoom(roomId: string, me: { name: string; color: string }): Promise<RoomConnection> {
   const gen = ++generation;
@@ -86,55 +93,98 @@ export async function connectRoom(roomId: string, me: { name: string; color: str
   const laserListeners = new Set<(p: LaserPayload) => void>();
   let presence: PresenceState = { userId, name: me.name, color: me.color, threadId: null, typing: false, onlineAt: new Date().toISOString() };
   let started = false;
+  let closed = false;
+  let channel: RealtimeChannel;
+  let retries = 0;
+  let retryTimer = 0;
 
-  const channel = supabase.channel(roomTopic(roomId), { config: { private: true, presence: { key: userId } } });
-  channel
-    .on('broadcast', { event: RT.event }, ({ payload }) => {
-      const ev = payload as StreamEvent;
-      main.receive(ev);
-      for (const fn of eventListeners) fn(ev);
-    })
-    .on('broadcast', { event: RT.row }, ({ payload }) => useRoom.getState().applyRow(payload as RowChange))
-    .on('broadcast', { event: RT.laser }, ({ payload }) => { for (const fn of laserListeners) fn(payload as LaserPayload); })
-    .on('presence', { event: 'sync' }, () => {
-      const state = channel.presenceState<PresenceState>();
-      useRoom.setState({ presence: Object.fromEntries(Object.entries(state).map(([k, v]) => [k, v[0]])) });
-    })
-    .subscribe(async (status, err) => {
-      if (gen !== generation) return;
-      if (status === 'SUBSCRIBED') {
-        await channel.track(presence);
-        try {
-          if (!started) {
-            started = true;
-            await main.start();
-          } else {
-            // reconnect: rows may have changed and events may have been missed
-            await loadRows(roomId);
-            await main.resync();
+  // Presence is rate limited per client by Realtime (going over closes the channel), so
+  // updates are coalesced: at most one track every PRESENCE_GAP_MS, always the latest state.
+  let sent = '';
+  let lastTrack = 0;
+  let trackTimer = 0;
+  const flushPresence = () => {
+    trackTimer = 0;
+    const next = JSON.stringify(presence);
+    if (next === sent) return;
+    sent = next;
+    lastTrack = Date.now();
+    void channel.track(presence);
+  };
+  const schedulePresence = () => {
+    if (trackTimer) return;
+    trackTimer = window.setTimeout(flushPresence, Math.max(0, PRESENCE_GAP_MS - (Date.now() - lastTrack)));
+  };
+
+  /** Join (or rejoin) the room channel. Realtime closes a channel on some errors and does not
+   *  reopen it, so an unexpected close schedules a fresh join with backoff. */
+  const join = async () => {
+    // supabase-js hands back an existing channel with the same topic instead of a new one, so a
+    // channel left over from an earlier connection (still closing) must go first
+    for (const old of supabase.getChannels()) if (old.topic === `realtime:${roomTopic(roomId)}`) await supabase.removeChannel(old);
+    if (closed || gen !== generation) return;
+    const ch = supabase.channel(roomTopic(roomId), { config: { private: true, presence: { key: userId } } });
+    channel = ch;
+    ch
+      .on('broadcast', { event: RT.event }, ({ payload }) => {
+        const ev = payload as StreamEvent;
+        main.receive(ev);
+        for (const fn of eventListeners) fn(ev);
+      })
+      .on('broadcast', { event: RT.row }, ({ payload }) => useRoom.getState().applyRow(payload as RowChange))
+      .on('broadcast', { event: RT.laser }, ({ payload }) => { for (const fn of laserListeners) fn(payload as LaserPayload); })
+      .on('presence', { event: 'sync' }, () => {
+        const state = ch.presenceState<PresenceState>();
+        useRoom.setState({ presence: Object.fromEntries(Object.entries(state).map(([k, v]) => [k, v[0]])) });
+      })
+      .subscribe(async (status, err) => {
+        if (import.meta.env.DEV) console.info(`[room] channel ${status}${err ? ` ${err.message}` : ''}`);
+        if (gen !== generation || closed || ch !== channel || useRoom.getState().conn === 'removed') return;
+        if (status === 'SUBSCRIBED') {
+          retries = 0;
+          sent = '';
+          flushPresence();
+          try {
+            if (!started) {
+              started = true;
+              await main.start();
+            } else {
+              // back after a drop: rows may have changed and events may have been missed
+              await loadRows(roomId);
+              await main.resync();
+            }
+            useRoom.setState({ conn: 'live', error: null });
+          } catch (e) {
+            if (e instanceof Removed) { closed = true; void supabase.removeChannel(ch); useRoom.setState({ conn: 'removed' }); return; }
+            useRoom.setState({ conn: 'error', error: (e as Error).message });
           }
-          useRoom.setState({ conn: 'live', error: null });
-        } catch (e) {
-          useRoom.setState({ conn: 'error', error: (e as Error).message });
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          useRoom.setState({ conn: 'reconnecting', error: err?.message ?? status });
+          if (retryTimer) return;
+          const wait = Math.min(15_000, 1000 * 2 ** retries++);
+          retryTimer = window.setTimeout(() => {
+            retryTimer = 0;
+            if (closed || gen !== generation) return;
+            void join();
+          }, wait);
         }
-      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-        useRoom.setState({ conn: 'reconnecting', error: err?.message ?? status });
-      } else if (status === 'CLOSED') {
-        useRoom.setState({ conn: 'reconnecting' });
-      }
-    });
+      });
+  };
+  await join();
 
   // keep the realtime token fresh when supabase-js refreshes the session
   const { data: authSub } = supabase.auth.onAuthStateChange((_e, s) => { if (s) void supabase.realtime.setAuth(s.access_token); });
 
   return {
-    channel,
-    track: (patch) => { presence = { ...presence, ...patch }; void channel.track(presence); },
+    track: (patch) => { presence = { ...presence, ...patch }; schedulePresence(); },
     onEvent: (fn) => { eventListeners.add(fn); return () => eventListeners.delete(fn); },
     fetchEvents,
     onLaser: (fn) => { laserListeners.add(fn); return () => laserListeners.delete(fn); },
     sendLaser: (p) => { void channel.send({ type: 'broadcast', event: RT.laser, payload: p }); },
     close: () => {
+      closed = true;
+      window.clearTimeout(retryTimer);
+      window.clearTimeout(trackTimer);
       authSub.subscription.unsubscribe();
       void supabase.removeChannel(channel);
       if (gen === generation) mainPlayer.reset();

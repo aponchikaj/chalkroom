@@ -114,7 +114,7 @@ p { margin: 0; }
   border: 1.5px solid var(--ink); border-radius: var(--r);
   background: var(--leaf); color: var(--ink);
   font-size: var(--t-sm); font-weight: 650; font-stretch: 88%; letter-spacing: 0.06em; text-transform: uppercase;
-  cursor: pointer; white-space: nowrap;
+  cursor: pointer; white-space: nowrap; text-decoration: none;
   transition: background var(--step) steps(2), transform var(--step) steps(2);
 }
 .btn:hover:not(:disabled) { background: var(--paper-2); }
