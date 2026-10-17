@@ -13,6 +13,8 @@ import type { EventsService } from '../core/events.service';
 import type { RoomsService } from '../rooms/rooms.service';
 import type { LeadTutorAgent } from '../agents/lead-tutor.agent';
 import type { TriageService } from '../triage/triage.service';
+import { FALLBACK_ANSWER } from '../triage/triage-plan';
+import { FAQ_REASON } from '../triage/faq-match';
 import type { ScribeAgent } from '../agents/scribe.agent';
 import type { RetrieveService } from '../rag/retrieve.service';
 import type { IngestWorker } from '../rag/ingest.worker';
@@ -158,10 +160,11 @@ export class RoomConductor {
     const [members, votes, threads] = await Promise.all([
       this.deps.rooms.activeMembers(room.id),
       this.db.from('ready_votes').select('user_id').eq('room_id', room.id).eq('segment', room.segment),
-      this.db.from('threads').select('owner_id').eq('room_id', room.id).eq('status', 'open'),
+      this.db.from('threads').select('owner_id, members').eq('room_id', room.id).eq('status', 'open'),
     ]);
     const ready = new Set((votes.data ?? []).map((v) => v.user_id as string));
-    const excused = new Set((threads.data ?? []).map((t) => t.owner_id as string));
+    // thread owners and classmates who joined their threads are excused from the gate
+    const excused = new Set((threads.data ?? []).flatMap((t) => [t.owner_id as string, ...((t.members as string[] | null) ?? [])]));
     // activeMembers is presence-aware: PresenceService sets left_at after 15 s of absence
     const waitingFor = members.filter((m) => !excused.has(m.user_id) && !ready.has(m.user_id));
     // an empty room never passes on its own (no runaway lesson)
@@ -287,8 +290,8 @@ export class RoomConductor {
     const existing = await this.db.from('note_blocks').select('id', { count: 'exact', head: true }).eq('room_id', room.id);
     if (existing.count) return;
     const events = await this.deps.events.after(room.main_stream_id);
-    const rows = await this.db.from('clusters').select('title, answer, asker_count').eq('room_id', room.id).or('answered.eq.true,route.eq.inline');
-    const clusters = (rows.data ?? []).map((c) => ({ title: c.title as string, answer: c.answer as string | null, askers: c.asker_count as number }));
+    const rows = await this.db.from('clusters').select('title, answer, asker_count, reason').eq('room_id', room.id).or('answered.eq.true,route.eq.inline');
+    const clusters = (rows.data ?? []).map((c) => ({ title: c.title as string, answer: c.answer as string | null, askers: c.asker_count as number, reason: c.reason as string | null }));
     const blocks = buildNotes({ plan: room.lesson_plan, summaries: summariesOf(events), checks: checkResults(events), clusters });
     const ins = await this.db.from('note_blocks').insert(blocks.map((markdown, idx) => ({ room_id: room.id, idx, markdown })));
     if (ins.error) this.log.error(`notes: ${ins.error.message}`);
@@ -298,7 +301,8 @@ export class RoomConductor {
       const answered = clusters.filter((c) => c.answer);
       if (answered.length) await this.deps.ingest.indexNow({ course_id: room.course_id }, 'faq', `FAQ: ${room.title}`, answered.map((c) => ({ page: null, text: `Q: ${c.title}\nA: ${c.answer}`, heading: c.title })));
     }
-    const faq = clusters.filter((c) => c.answer);
+    // new answers only: skip ones reused from the FAQ and the triage fallback, or rows pile up
+    const faq = clusters.filter((c) => c.answer && c.answer !== FALLBACK_ANSWER && c.reason !== FAQ_REASON);
     if (room.course_id && faq.length) {
       const f = await this.db.from('faq').insert(faq.map((c) => ({ course_id: room.course_id, topic_id: room.topic_id, question: c.title, answer: c.answer, askers_total: c.askers })));
       if (f.error) this.log.warn(`faq: ${f.error.message}`);

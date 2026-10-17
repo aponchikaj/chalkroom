@@ -100,7 +100,7 @@ use it and drop `email_otp_codes`/`mfa_sessions` in a new migration.
 | Table | Columns that matter | Read by |
 |---|---|---|
 | `sources` | scope (`course_id` and/or `room_id`), `kind` (`file`, `url`, `syllabus`, `notes`, `faq`, `transcript`), `title`, `uri`, `checksum` (dedupe), `status` (`pending`, `processing`, `ready`, `failed`), counts | room members / course readers |
-| `chunks` | `source_id`, `idx`, `page`, `heading`, `content`, `token_count`, `embedding vector(1024)` (nullable), `tsv` (generated, `simple` config) | same as its source |
+| `chunks` | `source_id`, `idx`, `page`, `heading`, `content`, `token_count`, `embedding vector(384)` (nullable; multilingual-e5-small), `tsv` (generated, `simple` config) | same as its source |
 
 Indexes: GIN on `tsv`, HNSW (cosine) on `embedding`, a partial queue index on pending sources.
 
@@ -134,11 +134,17 @@ Indexes: GIN on `tsv`, HNSW (cosine) on `embedding`, a partial queue index on pe
   Q&A beat can quote earlier segments).
 - **Hybrid search.** Full-text search always works, even with no embedding provider and no
   network (demo insurance). Embeddings add meaning ("why can't it sign" finds
-  "invoke_signed"). Reciprocal rank fusion merges the two lists without tuning weights.
-- **Embeddings.** Neither Groq nor Anthropic has an embeddings API, so search runs on full text
-  today (the `NoEmbeddings` adapter). Questions become an OR of their keywords. A provider
-  (e.g. Voyage AI) plugs into `EmbeddingPort` without schema changes; the column is
-  1024-dimensional.
+  "invoke_signed"). Reciprocal rank fusion merges the two lists; keyword ranks count half,
+  because the OR query also matches common words (measured: `npm run eval:retrieval`).
+- **Embeddings.** Neither Groq nor Anthropic has an embeddings API, so the API runs
+  **multilingual-e5-small** itself (`LocalEmbeddings`, ONNX on the CPU through
+  `@huggingface/transformers`): 384 dimensions, English and Georgian, no key, no per-call cost.
+  The quantized model (~120 MB) downloads once to `~/.cache/chalkroom-models`
+  (`EMBEDDING_CACHE`), loads in about 1 s when cached (10 s on first download) and warms at
+  boot; a query embeds in 3-5 ms. `EMBEDDINGS=none` turns it off (full text only; questions
+  become an OR of their keywords).
+- **Measured** (21 labeled questions, 13 passages, `npm run eval:retrieval`): keyword-only
+  hit@1 76%, hit@3 90%, MRR 0.83; hybrid hit@1 95%, hit@3 100%, MRR 0.98.
 - **Cost and cache.** Retrieved text goes after the cached prefix, so prompt caching is not
   disturbed; about 6 passages (2-3k tokens) per call.
 - **Safety.** Web pages and uploads are untrusted: the prompt marks them as reference material,

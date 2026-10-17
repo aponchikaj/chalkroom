@@ -13,7 +13,17 @@ type GroqMessage =
 const text = (content: unknown) => (typeof content === 'string' ? content : (content as Block[]).filter((b) => b.type === 'text').map((b) => b.text as string).join('\n'));
 
 /** Our ModelRequest (Anthropic-shaped messages, one forced tool) as a Groq chat completion body. */
-export function toGroqBody(req: ModelRequest, model: string, maxTokens: number) {
+/** Groq reasoning effort: gpt-oss takes low | medium | high, Qwen takes none | default. */
+export type ReasoningEffort = 'low' | 'medium' | 'high' | 'none' | 'default';
+
+/** The effort if this model takes it, else undefined (the provider default). */
+function effortFor(model: string, effort?: ReasoningEffort): ReasoningEffort | undefined {
+  if (!effort) return undefined;
+  const takes: ReasoningEffort[] = model.startsWith('openai/gpt-oss') ? ['low', 'medium', 'high'] : model.startsWith('qwen/') ? ['none', 'default'] : [];
+  return takes.includes(effort) ? effort : undefined;
+}
+
+export function toGroqBody(req: ModelRequest, model: string, maxTokens: number, effort?: ReasoningEffort) {
   const messages: GroqMessage[] = [{ role: 'system', content: `${req.prefix}\n\n${req.system}` }];
   for (const m of req.messages) {
     const blocks = typeof m.content === 'string' ? null : (m.content as unknown as Block[]);
@@ -36,12 +46,36 @@ export function toGroqBody(req: ModelRequest, model: string, maxTokens: number) 
     messages,
     tools: [{ type: 'function', function: { name: req.tool.name, description: req.tool.description, parameters: req.tool.input_schema } }],
     tool_choice: { type: 'function', function: { name: req.tool.name } },
+    ...(effortFor(model, effort) ? { reasoning_effort: effortFor(model, effort) } : {}),
   };
 }
 
 interface Usage { prompt_tokens?: number; completion_tokens?: number; prompt_tokens_details?: { cached_tokens?: number } }
 
 /** Reads Groq's server-sent events; yields tool_delta per argument fragment, then tool and done. */
+/** A tool call in the XML form qwen falls back to:
+ *  <tool_call><function=NAME><parameter=KEY>VALUE</parameter>...</function></tool_call>.
+ *  Values that parse as JSON become that value; others stay text. */
+function xmlToolCall(text: string): { name: string; arguments: Record<string, unknown> } | null {
+  const name = /<function=([\w-]+)>/.exec(text)?.[1];
+  if (!name) return null;
+  const args: Record<string, unknown> = {};
+  for (const m of text.matchAll(/<parameter=([\w-]+)>\n?([\s\S]*?)\n?<\/parameter>/g)) {
+    try { args[m[1]] = JSON.parse(m[2]); } catch { args[m[1]] = m[2]; }
+  }
+  return { name, arguments: args };
+}
+
+/** Top-level fields a model sent as JSON text (`"steps": "[{...}]"`, seen from qwen3.8-27b)
+ *  become the array or object they spell; anything that does not parse stays a string. */
+function unwrapStrings(input: unknown): unknown {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) return input;
+  return Object.fromEntries(Object.entries(input).map(([k, v]) => {
+    if (typeof v !== 'string' || !/^\s*[[{]/.test(v)) return [k, v];
+    try { return [k, JSON.parse(v)]; } catch { return [k, v]; }
+  }));
+}
+
 export class GroqStream {
   private buf = '';
   private name = '';
@@ -67,11 +101,15 @@ export class GroqStream {
         if (ev.error) {
           // Groq validates tool calls itself; when it refuses one, the generation is still here:
           // hand it to our own Zod validation (and the repair pass) instead of losing it
-          const gen = ev.error.code === 'tool_use_failed' && ev.error.failed_generation ? safeJson(ev.error.failed_generation) as { name?: string; arguments?: unknown } | null : null;
+          const failed = ev.error.code === 'tool_use_failed' ? ev.error.failed_generation : undefined;
+          const gen = failed ? (safeJson(failed) as { name?: string; arguments?: unknown } | null) ?? xmlToolCall(failed) : null;
           if (gen?.name && gen.arguments !== undefined) {
             this.name = gen.name;
             this.args = typeof gen.arguments === 'string' ? gen.arguments : JSON.stringify(gen.arguments);
-          } else this.error = ev.error.message ?? 'stream error';
+          } else {
+            this.error = ev.error.message ?? 'stream error';
+            if (ev.error.failed_generation) this.error += `; generation: ${ev.error.failed_generation.slice(0, 160)}`;
+          }
           continue;
         }
         const choice = ev.choices?.[0];
@@ -98,7 +136,7 @@ export class GroqStream {
   end(): ModelEvent[] {
     const out: ModelEvent[] = [];
     if (this.name) {
-      try { out.push({ type: 'tool', name: this.name, input: JSON.parse(this.args || '{}') }); this.gotTool = true; } catch { /* incomplete JSON: no tool */ }
+      try { out.push({ type: 'tool', name: this.name, input: unwrapStrings(JSON.parse(this.args || '{}')) }); this.gotTool = true; } catch { /* incomplete JSON: no tool */ }
     }
     const cached = this.usage?.prompt_tokens_details?.cached_tokens ?? 0;
     out.push({
@@ -139,4 +177,19 @@ export class RateWindow {
   spend(tokens: number) {
     if (this.remaining !== null) this.remaining = Math.max(0, this.remaining - tokens);
   }
+}
+
+/** ms until a model's daily token budget (TPD) is back, from a 429 body; null for other errors. */
+export function dailyLimit(body: string): number | null {
+  let msg = '';
+  try { msg = (JSON.parse(body) as { error?: { message?: string } }).error?.message ?? ''; } catch { return null; }
+  if (!/tokens per day|\(TPD\)/i.test(msg)) return null;
+  const wait = /try again in ([0-9hms.]+)/i.exec(msg)?.[1];
+  return wait ? parseDuration(wait) : 3_600_000;
+}
+
+/** A 429 that waiting will not fix for this request: the expected output is above the model's
+ *  per-minute output cap (OTPM; qwen3.8-27b allows 1000 on the free tier). Try another model. */
+export function tooLarge(body: string): boolean {
+  try { return /request too large|\(OTPM\)/i.test((JSON.parse(body) as { error?: { message?: string } }).error?.message ?? ''); } catch { return false; }
 }
