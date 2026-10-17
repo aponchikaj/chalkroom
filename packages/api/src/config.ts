@@ -33,12 +33,12 @@ export const config = {
     .map((o) => (o.includes('*') ? new RegExp(`^${o.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '[a-z0-9-]*')}$`) : o)),
   supabaseUrl: need('SUPABASE_URL'),
   supabaseServiceKey: need('SUPABASE_SERVICE_ROLE_KEY'),
-  /** 'anthropic' (production: Claude Sonnet 5.5) needs ANTHROPIC_API_KEY; the free tiers for
+  /** 'anthropic' (production: Claude Haiku 5.5) needs ANTHROPIC_API_KEY; the free tiers for
    *  testing: 'gemini' (GEMINI_API_KEY) and 'groq' (GROQ_API_KEY); 'mock' runs the scripted
    *  lesson. Default: the first key set in that order, else mock. MODEL forces one. */
   model: provider(),
   /** model id of the lead tutor (logs and /health); every agent's id is in agentModels */
-  modelId: process.env.MODEL_ID ?? (provider() === 'gemini' || provider() === 'groq' ? FREE_MODELS[provider() as 'gemini' | 'groq'].lead : 'claude-sonnet-5-5'),
+  modelId: process.env.MODEL_ID ?? (provider() === 'gemini' || provider() === 'groq' ? FREE_MODELS[provider() as 'gemini' | 'groq'].lead : 'claude-haiku-5-5'),
   /** delay between scripted steps in mock mode, so the board still "streams" */
   mockDelayMs: Number(process.env.MOCK_DELAY_MS ?? 400),
   /** Model per agent. MODEL_ID sets all four; MODEL_ID_LEAD / _THREAD / _TRIAGE / _SCRIBE override one.
@@ -48,7 +48,7 @@ export const config = {
     const p = provider();
     const free = p === 'gemini' || p === 'groq' ? FREE_MODELS[p] : null;
     const all = process.env.MODEL_ID;
-    const pick = (agent: 'lead' | 'thread' | 'triage' | 'scribe') => process.env[`MODEL_ID_${agent.toUpperCase()}`] ?? all ?? free?.[agent] ?? 'claude-sonnet-5-5';
+    const pick = (agent: 'lead' | 'thread' | 'triage' | 'scribe') => process.env[`MODEL_ID_${agent.toUpperCase()}`] ?? all ?? free?.[agent] ?? 'claude-haiku-5-5';
     return { lead: pick('lead'), thread: pick('thread'), triage: pick('triage'), scribe: pick('scribe') };
   })(),
   /** B1 pipelining (write the next segment during the gate). Off by default on Groq's free tier:
