@@ -37,7 +37,9 @@ export const config = {
   /** B6: tokens (input + output) a room may spend before the backup tutor takes over */
   roomTokenBudget: Number(process.env.ROOM_TOKEN_BUDGET ?? 300_000),
   /** this instance's id for room leases; stable across its own restarts (host + port) */
-  instanceId: process.env.INSTANCE_ID ?? `${hostname()}:${process.env.PORT ?? process.env.API_PORT ?? 3001}`,
+  /** "<group>/<host:port>": instances take over abandoned rooms only within their group
+   *  (INSTANCE_GROUP; the e2e suite's API is "e2e", so the dev API never drives its rooms) */
+  instanceId: process.env.INSTANCE_ID ?? `${process.env.INSTANCE_GROUP ?? 'main'}/${hostname()}:${process.env.PORT ?? process.env.API_PORT ?? 3001}`,
   resumeRooms: process.env.RESUME_ROOMS !== '0',
   /** accounts required (B9): anonymous Supabase sessions are refused. REQUIRE_ACCOUNT=0 opts out. */
   requireAccount: process.env.REQUIRE_ACCOUNT !== '0',

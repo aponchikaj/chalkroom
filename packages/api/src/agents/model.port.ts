@@ -28,6 +28,9 @@ export interface ModelRequest {
   /** The agent must answer with exactly this tool. */
   tool: ModelTool;
   maxTokens?: number;
+  /** consumed live: partial output may already be on learners' screens, so a failure after it
+   *  must not be replaced by a whole fallback answer (the lead tutor's teaching stream) */
+  streamed?: boolean;
   /** Canned tool input for MockModel (demo insurance). Every agent provides one. */
   mock: () => unknown;
 }
