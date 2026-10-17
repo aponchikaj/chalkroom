@@ -27,6 +27,22 @@ Check the whole loop without a browser (API must be running):
 npm run smoke         # two users: join → board streams → check → ready gate → next segment
 ```
 
+### Local vs production
+
+Local dev runs everything against the **local Supabase stack** (Postgres 17 in Docker, plus auth
+and realtime); production uses the hosted Supabase project. Plain Postgres is not enough: the
+schema needs Supabase's `auth` and `realtime` schemas.
+
+| File | Committed | Used for |
+|---|---|---|
+| `.env` | no | Local Supabase, written by `npm run env` |
+| `.env.local` | no | Personal local secrets (`ANTHROPIC_API_KEY`); wins over `.env` |
+| `.env.production.local` | no | Hosted Supabase; read by `vite build` and `npm run db:push:prod` |
+| `*.example` | yes | Templates for the three files above |
+
+Apply migrations to production with `npm run db:push:prod` (add `-- --dry-run` to preview).
+Deployed API hosts get the production values as platform env vars.
+
 ### Claude instead of the scripted tutor
 
 Add `ANTHROPIC_API_KEY=sk-ant-…` to `.env` and restart the API. All four agents use

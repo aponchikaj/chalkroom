@@ -15,6 +15,7 @@ if (!url || !anon || !service) {
 }
 
 const managed = {
+  DATABASE_URL: status.DB_URL,
   SUPABASE_URL: url,
   SUPABASE_SERVICE_ROLE_KEY: service,
   VITE_SUPABASE_URL: url,
