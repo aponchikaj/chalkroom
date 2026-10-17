@@ -1,13 +1,12 @@
 // AU: /signup. Name and colour (how the class sees you), an optional username, email and a
-// password with its rule. With email confirmation on, a "check your email" leaf follows.
+// password with its rule. The account is signed in straight away (no confirmation email).
 import { useState } from 'react';
-import { AlertTriangle, ArrowRight, MailCheck, RotateCw } from 'lucide-react';
+import { AlertTriangle, ArrowRight } from 'lucide-react';
 import { MEMBER_COLORS } from '@chalk/schema';
 import { navigate } from '../../lib/router';
 import { signUp } from '../../lib/auth';
-import { supabase } from '../../lib/supabase';
 import { ProfileFields } from '../../components/ProfileFields';
-import { AuthLeaf, ICON, PasswordField, authProblem, goNext, inviteOf, passwordOk, pendingNext, queryNext, withNext } from './shared';
+import { AuthLeaf, ICON, PasswordField, authProblem, goNext, inviteOf, passwordOk, queryNext, withNext } from './shared';
 
 const USERNAME = /^[A-Za-z0-9_]{3,24}$/;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -23,7 +22,6 @@ export function Signup() {
   const [busy, setBusy] = useState(false);
   const [tried, setTried] = useState(false);
   const [error, setError] = useState('');
-  const [sentTo, setSentTo] = useState('');
 
   const user = username.trim();
   const userBad = !!user && !USERNAME.test(user);
@@ -38,16 +36,14 @@ export function Signup() {
     setBusy(true);
     try {
       const addr = email.trim();
-      const confirm = await signUp(addr, password, { username: user || undefined, display_name: profile.name.trim(), color: profile.color });
-      if (confirm) { pendingNext.set(next); setSentTo(addr); setBusy(false); }
-      else goNext(next);
+      await signUp(addr, password, { username: user || undefined, display_name: profile.name.trim(), color: profile.color });
+      goNext(next);
     } catch (err) {
       setError(authProblem(err));
       setBusy(false);
     }
   };
 
-  if (sentTo) return <CheckEmail email={sentTo} next={next} />;
 
   return (
     <AuthLeaf title={code ? <>Sign up to join the class <span className="mono">{code}</span></> : 'Make an account'}
@@ -75,30 +71,6 @@ export function Signup() {
         </button>
         <p className="form-note auth-switch">Already have an account? <button type="button" className="text-link" onClick={() => navigate(withNext('/login', next))}>Log in</button></p>
       </form>
-    </AuthLeaf>
-  );
-}
-
-function CheckEmail({ email, next }: { email: string; next: string }) {
-  const [state, setState] = useState<'idle' | 'sending' | 'sent'>('idle');
-  const [error, setError] = useState('');
-  const resend = async () => {
-    setState('sending'); setError('');
-    const r = await supabase.auth.resend({ type: 'signup', email });
-    if (r.error) { setError(authProblem(r.error)); setState('idle'); } else setState('sent');
-  };
-  return (
-    <AuthLeaf title="Check your email" lede={<>We sent a confirmation link to <strong className="auth-addr">{email}</strong>. Open it on this device and you are in.</>}>
-      <div className="entry-form">
-        <h2><MailCheck size={22} strokeWidth={2} aria-hidden className="auth-h-icon" /> One click left</h2>
-        <p className="form-note">The link can take a minute. Look in spam or promotions too.</p>
-        {error && <div className="errata" role="alert"><AlertTriangle {...ICON} aria-hidden /><span>{error}</span></div>}
-        <p className="form-note" role="status">{state === 'sent' ? 'A new link is on its way.' : ''}</p>
-        <button type="button" className="btn btn-lg" disabled={state === 'sending'} onClick={() => void resend()}>
-          <RotateCw {...ICON} aria-hidden /> {state === 'sending' ? 'Sending' : 'Send the link again'}
-        </button>
-        <p className="form-note auth-switch">Confirmed already? <button type="button" className="text-link" onClick={() => navigate(withNext('/login', next))}>Log in</button></p>
-      </div>
     </AuthLeaf>
   );
 }
