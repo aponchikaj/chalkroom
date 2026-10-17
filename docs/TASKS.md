@@ -83,7 +83,7 @@ test on Groq in 99-134 s. Re-run `npm run bench` after each milestone and update
 | Docker | local Supabase, about 3 GB of images on first start |
 | Ports | API 3001, web 5173, Supabase 55421 (API) / 55422 (Postgres) / 55423 (Studio) / 55424 (Mailpit) / 55425 (SMTP) |
 | Env | `.env` from `npm run env` (local); `.env.local` personal keys; `.env.production.local` hosted Supabase. See `.env.example` |
-| Keys (optional until their task) | `ANTHROPIC_API_KEY` (B1), `OTP_SECRET` (B11), `VOYAGE_API_KEY` (B12), hosted service-role key (B7) |
+| Keys (optional until their task) | `ANTHROPIC_API_KEY` (B1), `OTP_SECRET` (B11), hosted service-role key (B7) |
 | Production | hosted Supabase (email confirmations on, anonymous off, TOTP on, SMTP), one API instance (the conductor lives in memory), Vercel for the web |
 
 ## Lanes and ownership

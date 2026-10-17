@@ -41,7 +41,7 @@ mail, the embeddings port, sandbox.
 |---|---|---|
 | `ModelPort` (`agents/model.port.ts`) | `MockModel`, `AnthropicModel` (inside `FallbackModel`) | `MODEL`, `ANTHROPIC_API_KEY` |
 | `MailPort` (`mail/mail.port.ts`) | `SmtpMail`, `ConsoleMail` | `SMTP_URL` |
-| `EmbeddingPort` (`rag/embeddings/embedding.port.ts`) | `NoEmbeddings` (built), Voyage (B12) | `EMBEDDINGS`, `VOYAGE_API_KEY` |
+| `EmbeddingPort` (`rag/embeddings/embedding.port.ts`) | `LocalEmbeddings` (default), `NoEmbeddings` | `EMBEDDINGS`, `EMBEDDING_CACHE` |
 
 Every port has an adapter that needs no network, so `MODEL=mock` with no keys always runs a
 full class.

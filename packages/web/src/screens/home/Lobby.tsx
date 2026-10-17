@@ -39,7 +39,7 @@ export function Lobby({ onSwitch }: { onSwitch: (tab: 'start') => void }) {
           <RotateCw size={14} strokeWidth={2} aria-hidden /> Refresh
         </button>
       </div>
-      <p className="form-note">Public classes with free seats. Join one and the host starts it when the group is in.</p>
+      <p className="form-note">Public classes with free seats. Join one and the host starts it when the group is in. Missed one? <a href="/replays">Watch finished classes</a>.</p>
       {load.status === 'loading' && (
         <ol className="class-list" aria-busy="true" aria-label="Loading open classes">
           {[0, 1, 2].map((i) => (
