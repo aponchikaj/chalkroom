@@ -49,3 +49,11 @@ Apply this to follow-up prompts too, especially when the topic changes.
 - **Ask for the branch before every push.** Before running `git push`, ask the developer which
   branch to push to, and push only after they answer. Apply this to every push, including
   pushes to `main`.
+
+### 3. Plain text, no emoji
+
+Write everything in plain text: replies, code, comments, UI copy, commit messages, PR bodies
+and docs. Say status in words ("done", "failed", "warning"); use SVG icon components (e.g.
+`lucide-react`) when the UI needs a visual marker. Emoji (the iOS/Unicode pictograph
+characters: check marks, rockets, party poppers, warning signs, pointing hands and the rest)
+never appear in any output.
