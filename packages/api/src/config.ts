@@ -25,7 +25,12 @@ const FREE_MODELS = {
 export const config = {
   /** hosts (Render, Railway, Fly) set PORT; API_PORT locally */
   port: Number(process.env.PORT ?? process.env.API_PORT ?? 3001),
-  webUrl: process.env.WEB_URL ?? 'http://localhost:5173',
+  /** the web app's address (invite links); WEB_URL may list several, comma-separated, first wins */
+  webUrl: (process.env.WEB_URL ?? 'http://localhost:5173').split(',')[0].trim().replace(/\/+$/, ''),
+  /** origins allowed to call the API (CORS): every WEB_URL entry; `*` matches within one host label,
+   *  e.g. https://chalkroom-*.vercel.app for Vercel preview deployments */
+  webOrigins: (process.env.WEB_URL ?? 'http://localhost:5173').split(',').map((o) => o.trim().replace(/\/+$/, '')).filter(Boolean)
+    .map((o) => (o.includes('*') ? new RegExp(`^${o.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '[a-z0-9-]*')}$`) : o)),
   supabaseUrl: need('SUPABASE_URL'),
   supabaseServiceKey: need('SUPABASE_SERVICE_ROLE_KEY'),
   /** 'anthropic' (production: Claude Sonnet 5.5) needs ANTHROPIC_API_KEY; the free tiers for

@@ -34,20 +34,32 @@ local Docker is not needed. One machine only, never stopped (the conductors live
 A 1 GB shared machine is a few dollars a month on Fly (not free). The app `chalkroom-api` exists
 (org personal, region lhr, next to the database in eu-west-1).
 
-1. `fly launch --no-deploy --copy-config --name <free app name>` (writes the name into fly.toml).
+1. Done once: `fly apps create chalkroom-api` (org personal), then `fly ips allocate-v4 --shared`
+   and `fly ips allocate-v6` (the first deploy could not add them itself).
 2. Secrets (values never go in fly.toml):
    `fly secrets set SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... WEB_URL=https://<web domain> OTP_SECRET=<random> SMTP_URL=... MAIL_FROM=...`
-   plus `GROQ_API_KEY=...` for the real tutors (leave it out for the scripted tutor).
+   plus the model key: `ANTHROPIC_API_KEY=...` in production (Claude wins over the free tiers when
+   set; `MODEL_ID` overrides the model id), `GEMINI_API_KEY=...` for free testing, none for the
+   scripted tutor.
 3. `fly deploy --ha=false`, then `fly scale count 1` if a second machine was created.
 4. Check `https://<app>.fly.dev/health`. Use that URL as `VITE_API_URL` on Vercel.
 
 ## 3. Web on Vercel
 
-1. Import the repository; `vercel.json` sets the install, build and output and the SPA rewrite
-   (so `/r/<code>` links work).
-2. Env vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (the publishable key),
-   `VITE_API_URL` (the Render URL).
-3. Put the Vercel URL back into Supabase (Site URL, redirects) and Render (`WEB_URL`).
+The API is live at `https://chalkroom-api.fly.dev`. It accepts calls from
+`https://chalkroom.vercel.app` and every `https://chalkroom-*.vercel.app` preview (`WEB_URL` on
+Fly, comma-separated, `*` = one host label). A different project name needs `WEB_URL` updated:
+`fly secrets set -a chalkroom-api WEB_URL=https://<name>.vercel.app,https://<name>-*.vercel.app`.
+
+1. Import the repository, production branch `main`. `vercel.json` sets the install, build and
+   output and the SPA rewrite (so `/r/<code>` links work). Leave the root directory as the repo root.
+2. Env vars (Production and Preview):
+   - `VITE_API_URL=https://chalkroom-api.fly.dev`
+   - `VITE_SUPABASE_URL=https://rrtzjvznmvokznbfqive.supabase.co`
+   - `VITE_SUPABASE_ANON_KEY=` the publishable key (`sb_publishable_...`, Supabase > API Keys)
+   Never set `VITE_DEV_LOGIN` there.
+3. Supabase > Authentication > URL Configuration: Site URL = the Vercel URL; redirect URLs =
+   `https://<vercel domain>/**` (confirmation and reset links land on `/login` and `/reset/new`).
 
 ## 4. Check it
 
