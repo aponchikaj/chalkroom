@@ -10,14 +10,12 @@ import { useRoomConn } from '../../room/context';
 import { clientToBoard, frameStyle, toPct, useBoardFrame } from './boardFrame';
 import { useMainView } from './ReactionsLayer';
 import './layers.css';
+import { isTextEntry } from '../../lib/dom';
 
 const STALE_MS = 1500;
 const GAP_MS = 1000 / LIVE.laserHz;
 
 interface Dot { at: [number, number]; color: string; t: number }
-
-const typing = (el: Element | null) =>
-  !!el && (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement || (el as HTMLElement).isContentEditable);
 
 export function LaserLayer() {
   const ref = useRef<HTMLDivElement>(null);
@@ -70,7 +68,7 @@ export function LaserLayer() {
       send(null);
     };
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key.toLowerCase() !== 'l' || e.repeat || e.ctrlKey || e.metaKey || e.altKey || typing(document.activeElement)) return;
+      if (e.key.toLowerCase() !== 'l' || e.repeat || e.ctrlKey || e.metaKey || e.altKey || isTextEntry(document.activeElement)) return;
       down = true;
       setHolding(true);
       document.body.setAttribute('data-laser', 'on');

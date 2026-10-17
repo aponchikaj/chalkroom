@@ -3,11 +3,12 @@
 import { useState } from 'react';
 import { Check } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
-import { selectActiveMembers, selectReadyIds, useRoom } from '../../room/store';
+import { selectActiveMembers, selectPresentMembers, selectReadyIds, useRoom } from '../../room/store';
 import { api } from '../../lib/api';
 import { Punch } from '../../ui/Punch';
 import { Stamp } from '../../ui/Stamp';
 import './gate.css';
+import { nameFor } from '../../lib/text';
 
 export function ReadyStrip() {
   const room = useRoom((s) => s.room)!;
@@ -15,11 +16,11 @@ export function ReadyStrip() {
   const members = useRoom(useShallow(selectActiveMembers));
   const presence = useRoom((s) => s.presence);
   const ready = useRoom(useShallow((s) => [...selectReadyIds(s)]));
+  const here = useRoom(useShallow(selectPresentMembers));
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   if (room.phase !== 'check') return null;
 
-  const here = members.filter((m) => presence[m.user_id]);
   const excused = here.filter((m) => presence[m.user_id]?.threadId);
   const counted = here.filter((m) => !presence[m.user_id]?.threadId);
   const readyCount = counted.filter((m) => ready.includes(m.user_id)).length;
@@ -43,7 +44,7 @@ export function ReadyStrip() {
           return (
             <li key={m.user_id} className={`ready-person is-${state}`}>
               <Punch size="sm" name={m.display_name} color={m.color} present={!!p} ready={state === 'ready'} inThread={state === 'excused'} me={m.user_id === me} />
-              <span className="ready-name">{m.user_id === me ? 'You' : m.display_name}<span className="ready-state">{state === 'waiting' ? '' : ` ${state}`}</span></span>
+              <span className="ready-name">{nameFor(m.user_id, m.display_name, me)}<span className="ready-state">{state === 'waiting' ? '' : ` ${state}`}</span></span>
             </li>
           );
         })}

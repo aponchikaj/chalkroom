@@ -7,6 +7,7 @@ import { Stamp } from '../../ui/Stamp';
 import { useRoom } from '../../room/store';
 import { api } from '../../lib/api';
 import { creditLine, type RailCard } from './railModel';
+import { nameFor } from '../../lib/text';
 
 const ICON = { size: 12, strokeWidth: 2.5 } as const;
 
@@ -24,7 +25,7 @@ export function QuestionCard({ card, stale }: { card: RailCard; stale: boolean }
   const target = questions.find((q) => q.author_id !== me);
   const anchored = questions.find((q) => q.anchor)?.anchor?.shapeIds.length ?? 0;
   const settled = card.answeredInClass || status === 'answered' || card.threadDone;
-  const name = (n: string, id: string) => (id === me ? 'You' : n);
+  const name = (n: string, id: string) => nameFor(id, n, me);
 
   const vote = () => {
     if (!target) return;
@@ -86,7 +87,8 @@ export function QuestionCard({ card, stale }: { card: RailCard; stale: boolean }
 
       {status === 'thread' && card.mine && !card.threadDone && openThreadId !== card.myThread?.id && (
         <div className="qcard-actions">
-          <button type="button" className={`btn small${card.myThread ? '' : ' primary'}`} onClick={enterThread} disabled={busy}>
+          {/* secondary: the thread offer slip on the board carries the one yellow Open thread */}
+          <button type="button" className="btn small" onClick={enterThread} disabled={busy}>
             <ArrowUpRight size={14} strokeWidth={2.25} aria-hidden />{card.myThread ? 'Go to thread' : busy ? 'Opening' : 'Open thread'}
           </button>
         </div>

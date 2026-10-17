@@ -105,6 +105,7 @@ export const mainPlayer = new Player();
 // ---- selectors ---------------------------------------------------------------
 
 export const selectActiveMembers = (s: RoomStore) => Object.values(s.members).filter((m) => !m.left_at).sort((a, b) => a.joined_at.localeCompare(b.joined_at));
+export const selectPresentMembers = (s: RoomStore) => selectActiveMembers(s).filter((m) => s.presence[m.user_id]);
 export const selectIsHost = (s: RoomStore) => !!s.room && s.room.host_id === s.me;
 export const selectReadyIds = (s: RoomStore) => new Set(s.readyVotes.filter((v) => v.segment === s.room?.segment).map((v) => v.user_id));
 export const selectThreadOf = (s: RoomStore, userId: string) => Object.values(s.threads).find((t) => t.owner_id === userId && t.status === 'open');

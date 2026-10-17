@@ -1,5 +1,5 @@
-/* A3 (Dev A): the thread leaf (milk acetate hinged over the board) and the thread slips over the
-   main board (offer, catch-up, peek). */
+/* A3 (Dev A): the thread leaf (milk acetate hinged over the board) and the thread slips docked
+   under the main board (offer, catch-up, peek). */
 
 /* focus economy: while a thread leaf is open, the class behind it goes back to the page */
 .live-body.with-thread .stage .board-wrap > .board-svg { filter: saturate(0.35); opacity: 0.6; transition: opacity var(--step) steps(2); }
@@ -7,12 +7,10 @@
 /* ---------- the leaf ---------- */
 .thread-leaf {
   display: grid; grid-template-rows: auto minmax(120px, 0.9fr) minmax(0, 1fr) auto auto;
-  min-height: 0; height: 100%; padding: 14px 16px 14px 36px; gap: 12px; color: var(--ink);
+  min-height: 0; height: 100%; padding: 14px 16px; gap: 12px; color: var(--ink);
   /* milkier than a plain acetate so text behind never ghosts through the reading text */
-  background: color-mix(in srgb, var(--leaf) 97%, transparent);
+  background: color-mix(in srgb, var(--leaf) 99%, transparent);
 }
-.thread-leaf.punched::before { top: 18%; }
-.thread-leaf.punched::after { bottom: 18%; }
 
 .tl-head { display: flex; align-items: flex-start; gap: 14px; min-width: 0; }
 .tl-title { flex: 1; min-width: 0; }
@@ -65,16 +63,13 @@
 .tl-hint .kbd { font-size: 10px; }
 .tl-readonly { font-size: var(--t-sm); color: var(--ink-2); padding: 8px 0 2px; border-top: 1px solid var(--rule); }
 
-/* ---------- slips over the main board ---------- */
-.thread-slips {
-  position: absolute; top: 10px; right: 10px; z-index: 15;
-  width: min(360px, calc(100% - 20px)); display: flex; flex-direction: column; gap: 8px;
-  pointer-events: none;
-}
-.thread-slips > * { pointer-events: auto; }
+/* ---------- slips in the stage dock, under the captions ---------- */
+.thread-slips { min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.thread-slips:empty { display: none; }
 .slip { padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
-.slip-lead { display: flex; gap: 8px; align-items: baseline; font-size: var(--t-md); line-height: 1.4; }
-.slip-lead .lucide { flex: none; position: relative; top: 3px; }
+.slip-lead { display: flex; gap: 8px; align-items: flex-start; font-size: var(--t-md); line-height: 1.4; }
+.slip-lead .lucide { flex: none; margin-top: 3px; }
+.slip-lead > span { flex: 1; min-width: 0; }
 .slip-title { font-size: var(--t-lg); font-stretch: 82%; font-weight: 750; }
 .slip-actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
 
@@ -98,8 +93,7 @@
   .tl-pip { width: 132px; }
 }
 @media (max-width: 760px) {
-  .thread-leaf { padding: 10px 10px 10px 30px; gap: 8px; grid-template-rows: auto minmax(90px, 0.7fr) minmax(0, 1fr) auto auto; border-radius: 0; }
-  .thread-leaf.punched::before, .thread-leaf.punched::after { left: 8px; width: 10px; height: 10px; }
+  .thread-leaf { padding: 10px 12px; gap: 8px; grid-template-rows: auto minmax(90px, 0.7fr) minmax(0, 1fr) auto auto; border-radius: 0; background: var(--leaf); }
   .tl-head { flex-wrap: wrap; gap: 8px 10px; }
   .tl-title { flex-basis: 100%; }
   .tl-title h2 { font-size: var(--t-lg); }
@@ -109,6 +103,5 @@
   .tl-name, .tl-text, .tl-share { grid-column: 1; }
   .tl-hint { display: none; }
   .tl-composer .textarea { min-height: 44px; }
-  .thread-slips { top: 6px; right: 6px; width: calc(100% - 12px); }
   .slip { padding: 10px 12px; gap: 8px; }
 }

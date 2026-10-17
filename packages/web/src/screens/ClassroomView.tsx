@@ -43,6 +43,7 @@ export function ClassroomView() {
       <div className={`live-body ${openThreadId ? 'with-thread' : ''}`}>
         <div className="live-binding"><Binding /></div>
         <main className={`stage ${openThreadId || checkOpen ? 'in-focus-elsewhere' : ''}`}>
+          <div className="stage-head"><QABanner /></div>
           <div className="board-wrap">
             <Board player={mainPlayer} selection={selection} onSelect={(ids) => useRoom.setState({ selection: ids })}
               emptyHint={room.phase === 'lobby' ? '' : 'The tutor is preparing the first figure'} />
@@ -50,11 +51,10 @@ export function ClassroomView() {
             <LaserLayer />
             {room.phase === 'lobby' && <LobbyLeaf />}
             {room.phase === 'ended' && <Recap />}
-            <QABanner />
-            <CheckCard />
-            <CatchUpCard />
           </div>
           <Captions />
+          {/* the check and the thread slips dock under the captions, never over the figure */}
+          <div className="stage-dock"><CheckCard /><CatchUpCard /></div>
           <PageStrip player={mainPlayer} />
         </main>
         <div className="live-rail"><RailPanel /></div>

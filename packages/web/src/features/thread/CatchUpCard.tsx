@@ -1,4 +1,4 @@
-// A3 (Dev A): the thread slips over the main board, always mounted: the thread offer ("Want to
+// A3 (Dev A): the thread slips docked under the main board, always mounted: the thread offer ("Want to
 // dig into bump seeds 1:1?"), the catch-up card after a thread ("While you were away: segment 2"),
 // and other people's open threads with a Peek action.
 import { useEffect, useState } from 'react';
@@ -57,7 +57,7 @@ function ThreadOffer() {
 
   return (
     <section className="slip acetate step-in" role="dialog" aria-label="Thread offer">
-      <p className="slip-lead"><MessagesSquare {...ICON} /> Want to dig into <b>{offer.topic}</b> 1:1? The class keeps going.</p>
+      <p className="slip-lead"><MessagesSquare {...ICON} /><span>Want to dig into <b>{offer.topic}</b> 1:1? The class keeps going.</span></p>
       {error && <div className="errata" role="alert">{error}</div>}
       <div className="slip-actions">
         <button className="btn ghost small" onClick={() => dismiss(`offer:${offer.id}`)}>Not now</button>
@@ -88,7 +88,7 @@ function CatchUp() {
       setReplaying(false);
       if (thread) dismiss(`catchup:${thread.id}`);
     }
-  });
+  }, [replaying, mainPlayer.busy, thread, dismiss]);
 
   if (!thread || left == null || !missed.length) return null;
   const segs = missed.map((m) => m.data.segment + 1);
@@ -108,7 +108,7 @@ function CatchUp() {
   if (replaying) {
     return (
       <section className="slip acetate step-in" aria-label="Catch-up replay">
-        <p className="slip-lead" role="status"><FastForward {...ICON} /> Replaying what you missed at <span className="mono">2x</span></p>
+        <p className="slip-lead" role="status"><FastForward {...ICON} /><span>Replaying what you missed at <span className="mono">2x</span></span></p>
         <div className="slip-actions"><button className="btn small" onClick={skip}>Skip to now</button></div>
       </section>
     );
@@ -127,7 +127,7 @@ function CatchUp() {
       </ol>
       <div className="slip-actions">
         <button className="btn small" onClick={() => dismiss(`catchup:${thread.id}`)}>Got it</button>
-        <button className="btn primary small" onClick={replay}><FastForward {...ICON} />Replay at 2x</button>
+        <button className="btn small" onClick={replay}><FastForward {...ICON} />Replay at 2x</button>
       </div>
     </section>
   );

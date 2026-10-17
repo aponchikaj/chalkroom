@@ -1,4 +1,4 @@
-// A4 (Dev A): while phase === 'qa', a slim strip over the top of the board: how many class
+// A4 (Dev A): while phase === 'qa', a slim strip above the board leaf: how many class
 // questions the tutor is answering, each with who asked (class clusters + answer_cluster events).
 import { useMemo } from 'react';
 import { MessagesSquare } from 'lucide-react';
@@ -6,10 +6,10 @@ import { useShallow } from 'zustand/react/shallow';
 import type { StreamEvent } from '@chalk/schema';
 import { useRoom, type RoomStore } from '../../room/store';
 import './gate.css';
+import { joinNames } from '../../lib/text';
 
 interface Item { id: string; title: string; askers: string[]; status: 'now' | 'done' | 'next' }
 
-const list = (names: string[]) => names.length <= 2 ? names.join(' and ') : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`;
 
 type Beat = Pick<RoomStore, 'mainEvents' | 'questions' | 'clusters'> & { segment: number };
 
@@ -48,7 +48,7 @@ export function QABanner() {
           {items.map((it) => (
             <li key={it.id} className={`qa-item is-${it.status}`}>
               <span className="qa-title">{it.title}</span>
-              {it.askers.length > 0 && <span className="qa-askers">asked by {list(it.askers)}</span>}
+              {it.askers.length > 0 && <span className="qa-askers">asked by {joinNames(it.askers)}</span>}
               {it.status === 'now' && <span className="qa-status">on the board</span>}
               {it.status === 'done' && <span className="qa-status">answered</span>}
             </li>

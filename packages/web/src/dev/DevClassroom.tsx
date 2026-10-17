@@ -9,6 +9,7 @@ import { RoomConnContext } from '../room/context';
 import type { RoomConnection } from '../room/connection';
 import { api } from '../lib/api';
 import { ClassroomView } from '../screens/ClassroomView';
+import { rememberAnswer } from '../features/check/checkData';
 import { buildFixture, DEV_STATES, USERS, type DevState, type DevUser, ROOM_ID, THREAD_STREAM } from './fixtures';
 
 const later = (ms: number, fn: () => void) => setTimeout(fn, ms);
@@ -130,6 +131,8 @@ export function DevClassroom() {
       me: f.me, conn: 'live', room: f.room, members: f.members, presence: f.presence, questions: f.questions, clusters: f.clusters,
       threads: f.threads, readyVotes: f.readyVotes, reactions: f.reactions, notes: f.notes, answered: f.answered, openThreadId: f.openThreadId,
     });
+    // this device sent the right option, so the check shows what was sent and the spread marks "you"
+    if (f.answered['check-0']) rememberAnswer('check-0', 1);
     mainPlayer.reset();
     mainPlayer.setMuted(true);
     for (const ev of f.mainEvents) { useRoom.getState().applyMainEvent(ev); mainPlayer.push(ev, false); }

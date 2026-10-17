@@ -16,7 +16,7 @@ function App() {
   const path = usePath();
   if (DevClassroom && path.startsWith('/dev/classroom')) return <Suspense fallback={null}><DevClassroom /></Suspense>;
   const room = /^\/r\/([A-Za-z0-9]+)\/?$/.exec(path);
-  return room ? <RoomRoute code={room[1].toUpperCase()} /> : <Home />;
+  return room ? <RoomRoute key={room[1].toUpperCase()} code={room[1].toUpperCase()} /> : <Home />;
 }
 
 createRoot(document.getElementById('root')!).render(<StrictMode><App /></StrictMode>);

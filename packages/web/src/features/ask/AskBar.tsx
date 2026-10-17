@@ -8,11 +8,11 @@ import { useRoomConn } from '../../room/context';
 import { api, ApiError } from '../../lib/api';
 import { Listener, sttSupported } from '../../lib/stt';
 import './ask.css';
+import { ownsSpace } from '../../lib/dom';
 
 const MAX = 500;
 const TYPING_IDLE_MS = 2_000;
 /** Space starts talking only when focus is not on something Space already operates. */
-const SPACE_OWNERS = 'input, textarea, select, button, a[href], [contenteditable=""], [contenteditable="true"], [role="button"], [role="tab"], [role="checkbox"], [role="radio"], [role="switch"], [role="option"], [role="slider"], [role="textbox"], [role="menuitem"]';
 
 type Mode = 'space' | 'pointer';
 
@@ -113,7 +113,7 @@ export function AskBar() {
     const down = (e: KeyboardEvent) => {
       if (e.code !== 'Space' || e.ctrlKey || e.metaKey || e.altKey) return;
       const target = e.target instanceof Element ? e.target : null;
-      if (target?.closest(SPACE_OWNERS)) return;
+      if (ownsSpace(target)) return;
       e.preventDefault();
       if (e.repeat || voice.current.space) return;
       voice.current.space = true;
@@ -149,7 +149,7 @@ export function AskBar() {
   useEffect(() => { if (ended) listener.current?.stop(); }, [ended]);
 
   const shown = listening ? [voice.current.base.trim(), heard].filter(Boolean).join(' ') : text;
-  const placeholder = ended ? 'Class has ended. Questions are closed.'
+  const placeholder = ended ? 'Class has ended.'
     : listening ? 'Listening. Speak now.'
     : anchored ? 'Ask about the selected shapes'
     : sttSupported ? 'Ask anything. Hold Space to talk.' : 'Ask anything';
@@ -166,7 +166,7 @@ export function AskBar() {
       ) : error ? (
         <div className="ask-slip errata hinge-in" role="alert">
           <span className="grow">{error}</span>
-          <button type="button" className="ask-dismiss" onClick={() => setError('')} aria-label="Dismiss this message"><X size={14} strokeWidth={2.25} /></button>
+          <button type="button" className="btn ghost small icon-btn ask-dismiss" onClick={() => setError('')} aria-label="Dismiss this message"><X size={14} strokeWidth={2.25} /></button>
         </div>
       ) : null}
 
@@ -174,7 +174,7 @@ export function AskBar() {
         <span className="ask-anchor step-in">
           <Pin size={14} strokeWidth={2.25} aria-hidden />
           <span>Pinned to <span className="mono">{selection.length}</span> {selection.length === 1 ? 'shape' : 'shapes'}</span>
-          <button type="button" className="ask-dismiss" onClick={() => useRoom.setState({ selection: [] })}
+          <button type="button" className="btn ghost small icon-btn ask-dismiss" onClick={() => useRoom.setState({ selection: [] })}
             aria-label="Clear the selection and ask about the whole lesson" title="Clear the selection">
             <X size={14} strokeWidth={2.25} />
           </button>

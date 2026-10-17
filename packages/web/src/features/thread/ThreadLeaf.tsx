@@ -14,6 +14,7 @@ import { api } from '../../lib/api';
 import { Markdown } from '../../components/Markdown';
 import { Stamp } from '../../ui/Stamp';
 import './thread.css';
+import { nameFor } from '../../lib/text';
 
 type Chat = StreamEvent<'chat'>;
 const ICON = { size: 16, strokeWidth: 2, 'aria-hidden': true } as const;
@@ -68,10 +69,29 @@ export function ThreadLeaf({ threadId }: { threadId: string }) {
     (mine ? composerRef.current : backRef.current)?.focus();
   }, [mine]);
 
+  // keep the newest line in view: on open, on each message, and while replies and the leaf settle
+  // (markdown, maths and the share button change height after the first paint); scrolling up to
+  // reread lets go until the next message
+  const stick = useRef(true);
+  useEffect(() => { stick.current = true; }, [chat.length, pending]);
   useEffect(() => {
     const el = logRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [chat.length, pending]);
+    if (!el) return;
+    let at = el.scrollTop;
+    const toEnd = () => { if (stick.current) { el.scrollTop = el.scrollHeight; at = el.scrollTop; } };
+    // only a scroll back up lets go; growth below the fold must not
+    const onScroll = () => {
+      if (el.scrollTop < at - 4) stick.current = false;
+      else if (el.scrollHeight - el.scrollTop - el.clientHeight < 24) stick.current = true;
+      at = el.scrollTop;
+    };
+    const ro = new ResizeObserver(toEnd);
+    ro.observe(el);
+    for (const c of el.children) ro.observe(c);
+    toEnd();
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => { ro.disconnect(); el.removeEventListener('scroll', onScroll); };
+  }, [chat.length, pending, sharing]);
 
   useEffect(() => {
     if (!pending) return;
@@ -125,11 +145,11 @@ export function ThreadLeaf({ threadId }: { threadId: string }) {
     }
   };
 
-  const nameOf = (c: Chat) => (c.data.role === 'tutor' ? 'Tutor' : c.data.authorId === me ? 'You' : ownerName);
+  const nameOf = (c: Chat) => (c.data.role === 'tutor' ? 'Tutor' : nameFor(c.data.authorId, ownerName, me));
   const closed = thread?.status === 'closed';
 
   return (
-    <section className="thread-leaf acetate punched hinge-in" aria-label={thread ? `Thread: ${thread.topic}` : 'Thread'}
+    <section className="thread-leaf acetate hinge-in" aria-label={thread ? `Thread: ${thread.topic}` : 'Thread'}
       onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); void back(); } }}>
       <header className="tl-head">
         <div className="tl-title">
