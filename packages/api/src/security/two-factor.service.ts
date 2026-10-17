@@ -5,7 +5,7 @@
 import { BadRequestException, ConflictException, HttpException, Injectable, InternalServerErrorException, Logger, UnauthorizedException } from '@nestjs/common';
 import type { OtpPurpose, TwoFactorState } from '@chalk/schema';
 import { SupabaseService } from '../core/supabase.service';
-import type { AuthUser } from '../core/auth.guard';
+import { forgetFacts, type AuthUser } from '../core/auth.guard';
 import { MailPort } from '../mail/mail.port';
 import { config } from '../config';
 import { OTP, checkCode, hashCode, newCode, type OtpRow } from './otp';
@@ -114,6 +114,7 @@ export class TwoFactorService {
       if (r.error) throw new Error(r.error.message);
       await this.db.from('mfa_sessions').delete().eq('user_id', u.id);
     }
+    forgetFacts(u.id); // the guard must see the new state on the next request
     return this.fresh(u);
   }
 }

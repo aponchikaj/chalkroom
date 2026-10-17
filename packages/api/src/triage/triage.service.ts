@@ -37,7 +37,11 @@ export class TriageService {
   runNow(roomId: string): Promise<void> {
     const lane = this.lane(roomId);
     if (lane.timer) { clearTimeout(lane.timer); lane.timer = null; }
-    lane.running = lane.running.then(() => this.run(roomId)).catch((e) => this.log.error(`room ${roomId.slice(0, 8)}: ${(e as Error).stack ?? e}`));
+    lane.running = lane.running.then(() => this.run(roomId)).catch((e) => {
+      this.log.error(`room ${roomId.slice(0, 8)}: ${(e as Error).stack ?? e}`);
+      // a database blip must not leave questions pending until someone asks again
+      setTimeout(() => this.schedule(roomId), 5_000).unref();
+    });
     return lane.running;
   }
 
@@ -51,7 +55,7 @@ export class TriageService {
 
     const open = must(await this.db.from('clusters').select('id, title, route').eq('room_id', roomId).eq('answered', false), 'open clusters') as { id: string; title: string; route: ClusterRoute | null }[];
     const members = open.length
-      ? must(await this.db.from('questions').select('cluster_id, author_id').in('cluster_id', open.map((c) => c.id)), 'cluster askers') as { cluster_id: string; author_id: string }[]
+      ? must(await this.db.from('questions').select('cluster_id, author_id').eq('room_id', roomId).in('cluster_id', open.map((c) => c.id)), 'cluster askers') as { cluster_id: string; author_id: string }[]
       : [];
     const clusters: TriageCluster[] = open.map((c) => ({ ...c, askerIds: [...new Set(members.filter((m) => m.cluster_id === c.id).map((m) => m.author_id))] }));
 

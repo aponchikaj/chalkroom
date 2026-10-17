@@ -26,13 +26,23 @@ export const AllowWithoutMfa = () => SetMetadata('allowWithoutMfa', true);
 interface Identity { id: string; anonymous: boolean; email: string | null }
 const cache = new Map<string, { user: Identity; until: number }>();
 
+type Facts = { totp_verified: boolean; email_2fa: boolean; session_passed_email: boolean };
+/** user:session -> second-factor facts, for 5 s (one lookup per session per 5 s, not per request) */
+const facts = new Map<string, { row: Facts; until: number }>();
+
 /** Drop cached sessions of a user (after account deletion), so their tokens stop working at once. */
 export function forgetUser(userId: string) {
   for (const [token, hit] of cache) if (hit.user.id === userId) cache.delete(token);
+  forgetFacts(userId);
+}
+
+/** Drop a user's cached second-factor facts (the API just changed them). */
+export function forgetFacts(userId: string) {
+  for (const key of facts.keys()) if (key.startsWith(`${userId}:`)) facts.delete(key);
 }
 
 /** Claims of a token Supabase already verified (getUser). */
-function claims(token: string): { aal?: string; session_id?: string } {
+function claims(token: string): { aal?: string; session_id?: string; exp?: number } {
   try { return JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString()); } catch { return {}; }
 }
 
@@ -50,7 +60,9 @@ export class AuthGuard implements CanActivate {
       const { data, error } = await this.supa.db.auth.getUser(token);
       if (error || !data.user) throw new UnauthorizedException('invalid token');
       identity = { id: data.user.id, anonymous: !!data.user.is_anonymous, email: data.user.email ?? null };
-      cache.set(token, { user: identity, until: Date.now() + 60_000 });
+      // never past the token's own expiry
+      const exp = claims(token).exp;
+      cache.set(token, { user: identity, until: Math.min(Date.now() + 60_000, exp ? exp * 1000 : Infinity) });
       if (cache.size > 2000) cache.delete(cache.keys().next().value!);
     }
     // accounts required (B9): anonymous sessions are refused once the web has login
@@ -58,9 +70,15 @@ export class AuthGuard implements CanActivate {
 
     const c = claims(token);
     const sessionId = c.session_id ?? null;
-    const r = await this.supa.db.rpc('mfa_facts', { p_user: identity.id, p_session: sessionId });
-    if (r.error) throw new Error(`mfa_facts: ${r.error.message}`);
-    const row = (r.data as { totp_verified: boolean; email_2fa: boolean; session_passed_email: boolean }[])[0];
+    const key = `${identity.id}:${sessionId ?? ''}`;
+    let row = facts.get(key)?.until! > Date.now() ? facts.get(key)!.row : null;
+    if (!row) {
+      const r = await this.supa.db.rpc('mfa_facts', { p_user: identity.id, p_session: sessionId });
+      if (r.error) throw new Error(`mfa_facts: ${r.error.message}`);
+      row = (r.data as Facts[])[0];
+      facts.set(key, { row, until: Date.now() + 5_000 });
+      if (facts.size > 2000) facts.delete(facts.keys().next().value!);
+    }
     const mfa: MfaFacts = { aal: c.aal === 'aal2' ? 'aal2' : 'aal1', totpVerified: row.totp_verified, email2fa: row.email_2fa, sessionPassedEmail: row.session_passed_email };
     const user: AuthUser = { ...identity, sessionId, mfa, mfaPassed: mfaPassed(mfa) };
 

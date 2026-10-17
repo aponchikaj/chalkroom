@@ -47,9 +47,8 @@ export class QuestionsController {
     if (!found.data) throw new NotFoundException('question not found');
     const q = found.data as { room_id: string };
     await this.rooms.requireMember(q.room_id, u.id);
-    const del = await db.from('votes').delete().eq('question_id', id).eq('user_id', u.id).select('user_id');
-    if (!del.data?.length) await db.from('votes').insert({ question_id: id, user_id: u.id });
-    const count = await db.from('votes').select('user_id', { count: 'exact', head: true }).eq('question_id', id);
-    await db.from('questions').update({ votes: count.count ?? 0 }).eq('id', id);
+    // one statement: concurrent toggles cannot store a stale count
+    const r = await db.rpc('toggle_vote', { p_question: id, p_user: u.id });
+    if (r.error) throw new Error(r.error.message);
   }
 }

@@ -14,9 +14,20 @@ export class EventsService {
     return must(r, `append ${kind}`) as StreamEvent<K>;
   }
 
-  async after(streamId: string, afterSeq = 0, limit = 1000): Promise<StreamEvent[]> {
-    const r = await this.supa.db.from('events').select('*').eq('stream_id', streamId).gt('seq', afterSeq).order('seq').limit(limit);
-    return must(r, 'list events') as StreamEvent[];
+  /** Events after `afterSeq`, in order; all of them unless `limit` is given (pages of 1000, so
+   *  a long class never loses its newest events to a row cap). */
+  async after(streamId: string, afterSeq = 0, limit = Infinity): Promise<StreamEvent[]> {
+    const out: StreamEvent[] = [];
+    let seq = afterSeq;
+    while (out.length < limit) {
+      const page = Math.min(1000, limit - out.length);
+      const r = await this.supa.db.from('events').select('*').eq('stream_id', streamId).gt('seq', seq).order('seq').limit(page);
+      const rows = must(r, 'list events') as StreamEvent[];
+      out.push(...rows);
+      if (rows.length < page) break;
+      seq = rows[rows.length - 1].seq;
+    }
+    return out;
   }
 
   async createStream(roomId: string, kind: StreamKind): Promise<string> {

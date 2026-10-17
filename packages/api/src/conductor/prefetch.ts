@@ -7,7 +7,12 @@ export class ChunkBuffer<T> implements AsyncIterable<T> {
   private error: unknown = null;
   private wake: (() => void) | null = null;
 
+  /** set by cancel(): the producer stops pulling from the model */
+  cancelled = false;
+
   push(x: T) { this.items.push(x); this.wake?.(); }
+  /** Not needed after all (Slower, a weak check, the class ended): stop generating it. */
+  cancel() { this.cancelled = true; this.close(); }
   close(error: unknown = null) { this.done = true; this.error = error; this.wake?.(); }
 
   async *[Symbol.asyncIterator](): AsyncIterator<T> {
@@ -24,7 +29,14 @@ export class ChunkBuffer<T> implements AsyncIterable<T> {
 export function prefetch<T>(source: AsyncIterable<T>): ChunkBuffer<T> {
   const buf = new ChunkBuffer<T>();
   void (async () => {
-    try { for await (const x of source) buf.push(x); buf.close(); } catch (e) { buf.close(e); }
+    try {
+      for await (const x of source) {
+        // leaving the loop returns the source generator, which closes the model stream
+        if (buf.cancelled) return;
+        buf.push(x);
+      }
+      buf.close();
+    } catch (e) { buf.close(e); }
   })();
   return buf;
 }
