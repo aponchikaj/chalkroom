@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>API Sandbox</title>
+  <link rel="stylesheet" href="sandbox.css">
+  <script src="vendor/supabase.js"></script>
+  <script type="module" src="sandbox.js"></script>
+</head>
+<body>
+  <header>
+    <strong>Chalkroom API sandbox</strong>
+    <span id="status">loading...</span>
+  </header>
+  <main>
+    <section id="left">
+      <h2>Users</h2>
+      <form id="add-user">
+        <input id="user-name" placeholder="name" maxlength="32">
+        <button>Add anonymous user</button>
+      </form>
+      <ul id="users"></ul>
+
+      <h2>Context <small>auto-filled, editable</small></h2>
+      <div id="ctx"></div>
+
+      <h2>Bulk actions</h2>
+      <div class="row">
+        <button data-bulk="join">Everyone joins</button>
+        <button data-bulk="ready">Everyone ready</button>
+      </div>
+      <div class="row">
+        <input id="bulk-answer" value="1" size="4" title="answer to send (JSON)">
+        <button data-bulk="answer">Everyone answers</button>
+      </div>
+      <div class="row">
+        <button id="snapshot">Room snapshot (RLS, active user)</button>
+      </div>
+    </section>
+
+    <section id="middle">
+      <h2>Endpoints</h2>
+      <div id="endpoints"></div>
+      <div id="request">
+        <div class="row"><code id="req-line"></code></div>
+        <p id="req-note"></p>
+        <textarea id="req-body" spellcheck="false" rows="8"></textarea>
+        <div class="row">
+          <label>as <select id="req-user"></select></label>
+          <label><input type="checkbox" id="req-noauth"> no token</label>
+          <button id="send">Send (Ctrl+Enter)</button>
+          <button id="reset-body" type="button">Reset body</button>
+        </div>
+      </div>
+      <h2>Response</h2>
+      <pre id="response">Nothing sent yet.</pre>
+      <h2>History</h2>
+      <ol id="history" reversed></ol>
+    </section>
+
+    <section id="right">
+      <h2>Presence <small id="presence-who"></small></h2>
+      <ul id="presence"></ul>
+      <h2>Live feed <small>room channel</small></h2>
+      <div class="row">
+        <label><input type="checkbox" id="f-events" checked> events</label>
+        <label><input type="checkbox" id="f-rows" checked> rows</label>
+        <input id="f-text" placeholder="filter">
+        <button id="f-clear" type="button">Clear</button>
+      </div>
+      <ol id="feed" reversed></ol>
+    </section>
+  </main>
+</body>
+</html>

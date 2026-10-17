@@ -1,6 +1,6 @@
 // Questions: stored as `pending`, then triage groups and routes them.
 // Asking and +1 work today; triage wiring is backend work (RoomConductor.questionAsked).
-import { Body, Controller, HttpCode, HttpException, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, HttpCode, HttpException, NotFoundException, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
 import { z } from 'zod';
 import { Api, LIVE, type QuestionRow } from '@chalk/schema';
 import { AuthGuard, CurrentUser, type AuthUser } from '../core/auth.guard';
@@ -40,7 +40,10 @@ export class QuestionsController {
   @HttpCode(204)
   async vote(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
     const db = this.supa.db;
-    const q = must(await db.from('questions').select('room_id').eq('id', id).single(), 'question') as { room_id: string };
+    const found = await db.from('questions').select('room_id').eq('id', id).maybeSingle();
+    if (found.error) throw new Error(found.error.message);
+    if (!found.data) throw new NotFoundException('question not found');
+    const q = found.data as { room_id: string };
     await this.rooms.requireMember(q.room_id, u.id);
     const del = await db.from('votes').delete().eq('question_id', id).eq('user_id', u.id).select('user_id');
     if (!del.data?.length) await db.from('votes').insert({ question_id: id, user_id: u.id });

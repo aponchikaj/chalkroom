@@ -15,4 +15,6 @@ export const config = {
   modelId: process.env.MODEL_ID ?? 'claude-haiku-4-5',
   /** delay between scripted steps in mock mode, so the board still "streams" */
   mockDelayMs: Number(process.env.MOCK_DELAY_MS ?? 400),
+  /** dev console at /sandbox. On by default only against a local Supabase; SANDBOX=1/0 overrides. */
+  sandbox: process.env.SANDBOX ? process.env.SANDBOX === '1' : /^http:\/\/(127\.0\.0\.1|localhost)[:/]/.test(process.env.SUPABASE_URL ?? ''),
 };

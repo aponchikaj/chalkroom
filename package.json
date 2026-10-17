@@ -20,8 +20,10 @@
     "env": "node scripts/write-env.mjs",
     "build": "npm run build -w @chalk/web && npm run build -w @chalk/api",
     "typecheck": "tsc -p tsconfig.json && tsc -p packages/web/tsconfig.json && tsc -p packages/api/tsconfig.json",
-    "test": "vitest run",
-    "smoke": "node scripts/smoke.mjs"
+    "test": "vitest run --configLoader runner",
+    "smoke": "node scripts/smoke.mjs",
+    "test:api": "vitest run --configLoader runner --config vitest.e2e.config.ts",
+    "sandbox:tokens": "node scripts/sandbox-tokens.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
