@@ -7,7 +7,7 @@ import type {
 } from '@chalk/schema';
 import { Player } from '../lib/player';
 
-export type ConnState = 'connecting' | 'live' | 'reconnecting' | 'error';
+export type ConnState = 'connecting' | 'live' | 'reconnecting' | 'error' | 'removed';
 
 export interface OpenCheck { checkId: string; segment: number; question: StreamEvent<'check'>['data']['question'] }
 export type ClosedCheck = StreamEvent<'check_closed'>['data'];
@@ -60,7 +60,11 @@ export const useRoom = create<RoomStore>((set) => ({
     const del = c.op === 'DELETE';
     switch (c.table) {
       case 'rooms': return { room: del ? null : c.row };
-      case 'room_members': return { members: put(s.members, c.row.user_id, del ? null : c.row) };
+      case 'room_members': return {
+        members: put(s.members, c.row.user_id, del ? null : c.row),
+        // the host removed me: stop showing the class (the database already stopped sharing it)
+        ...(c.row.user_id === s.me && c.row.banned ? { conn: 'removed' as ConnState } : {}),
+      };
       case 'questions': return { questions: put(s.questions, c.row.id, del ? null : c.row) };
       case 'clusters': return { clusters: put(s.clusters, c.row.id, del ? null : c.row) };
       case 'threads': {
