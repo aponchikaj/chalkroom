@@ -31,7 +31,11 @@ function fakeConnection(): RoomConnection {
     onEvent: (fn) => { eventListeners.add(fn); return () => eventListeners.delete(fn); },
     fetchEvents: async (streamId, after) => devThreadEvents(streamId, after),
     onLaser: (fn) => { laserListeners.add(fn); return () => laserListeners.delete(fn); },
-    sendLaser: () => {},
+    // loop back as a second learner a little to the side, so the laser can be seen working
+    sendLaser: (p: LaserPayload) => {
+      const echo: LaserPayload = { userId: USERS.gio.id, color: USERS.gio.color, at: p.at ? [p.at[0] + 1.2, p.at[1] + 0.6] : null };
+      for (const fn of laserListeners) fn(echo);
+    },
     close: () => {},
   };
 }
@@ -97,6 +101,13 @@ function installDevApi() {
       later(1100, () => emit({ stream_id: t.stream_id, room_id: ROOM_ID, seq: seq(), kind: 'board', data: { steps: r.steps }, actor: 'thread', t: now() } as StreamEvent));
     },
     closeThread: async (threadId: string) => set((s) => ({ threads: { ...s.threads, [threadId]: { ...s.threads[threadId], status: 'closed' } }, openThreadId: null })),
+    editNote: async (_r: string, blockId: string, b: { markdown: string; version: number }) => {
+      const cur = st().notes[blockId];
+      if (cur && cur.version !== b.version) throw new Error('Someone else changed this block. Reload it and try again.');
+      const next = { ...cur, markdown: b.markdown, version: (cur?.version ?? 0) + 1, edited_by: st().me, updated_at: now() };
+      set((s) => ({ notes: { ...s.notes, [blockId]: next } }));
+      return next;
+    },
     shareThread: async (threadId: string, b: { markdown?: string }) => set((s) => ({ threads: { ...s.threads, [threadId]: { ...s.threads[threadId], shared_answer: b.markdown ?? 'Shared from a thread.' } } })),
   });
 }
