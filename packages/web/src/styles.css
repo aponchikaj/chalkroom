@@ -13,7 +13,7 @@
   --paper-3: #ddd4bf;        /* pressed / inset */
   --leaf: #fbf8f1;           /* the printed leaf the board sits on */
   --leaf-edge: #d9d0bb;
-  --acetate: rgba(251, 249, 243, 0.86);
+  --acetate: rgba(251, 249, 243, 0.96); /* a hint of the leaf below, never its text */
   --acetate-edge: rgba(70, 60, 40, 0.28);
 
   /* print ink */
@@ -185,6 +185,10 @@ p { margin: 0; }
   backdrop-filter: blur(1.5px) saturate(0.7);
   border: 1px solid var(--acetate-edge); border-radius: var(--r);
   box-shadow: var(--shadow-acetate);
+}
+/* phones: the acetate is opaque; the edge and the shadow still say it is a leaf laid on top */
+@media (max-width: 760px) {
+  .acetate { background: var(--leaf); -webkit-backdrop-filter: none; backdrop-filter: none; }
 }
 
 /* the hinge: two punched holes on the binding edge */

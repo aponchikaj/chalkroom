@@ -1,8 +1,9 @@
-// A4 (Dev A): the end-of-segment check, an acetate leaf over the lower board. Shows once narration
-// finishes; after the gate the class sees the spread, the answer and why. The result folds to a
-// chip when the board moves on (or on dismiss) so the figure stays in view.
+// A4 (Dev A): the end-of-segment check, an acetate leaf docked under the board and its captions.
+// Shows once narration finishes; after sending, my choice stays marked; after the gate the class
+// sees the spread, the answer and why. The result folds to a chip when the board moves on (or on
+// dismiss).
 import { useEffect, useState } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { Check, ChevronDown, ChevronUp } from 'lucide-react';
 import type { PublicQuestion, Question } from '@chalk/schema';
 import { mainPlayer, useRoom } from '../../room/store';
 import { usePlayer } from '../../board/Board';
@@ -82,7 +83,7 @@ export function CheckCard() {
             {!free && mine && local === undefined && <p className="check-note">You answered on another device.</p>}
           </div>
           <div className="check-col check-why">
-            <p className="check-answer"><span className="check-answer-label">Answer</span> {result.answerText || 'The tutor explains it in the Q&A.'}</p>
+            <p className="check-answer">{result.answerText ? `Answer: ${result.answerText}` : 'The tutor explains it in the Q&A.'}</p>
             {result.explanation && <Markdown className="check-expl" text={result.explanation} />}
           </div>
         </div>
@@ -108,7 +109,8 @@ export function CheckCard() {
       </header>
       <div className="check-prompt"><Markdown text={pub.prompt} /></div>
       <div className="check-inputs">
-        <QuestionInput q={q} value={mine ? (local ?? value) : value} onChange={setValue} disabled={mine || sending} />
+        {mine && local !== undefined && CHOICE.has(q.type) ? <SentChoice q={q} value={local} />
+          : <QuestionInput q={q} value={mine ? (local ?? value) : value} onChange={setValue} disabled={mine || sending} />}
       </div>
       {error && <p className="errata" role="alert">{error}</p>}
       <footer className="check-foot">
@@ -122,5 +124,28 @@ export function CheckCard() {
         )}
       </footer>
     </section>
+  );
+}
+
+const CHOICE = new Set(['mcq', 'multi', 'tf']);
+const LETTERS = 'ABCDEFGHIJ';
+
+/** The options as sent: mine in ink with a tick and "Your answer", the rest dashed. */
+function SentChoice({ q, value }: { q: Question; value: unknown }) {
+  const tf = q.type === 'tf';
+  const picked = tf
+    ? (b: number) => (typeof value === 'object' && value ? (value as { value?: boolean }).value : value) === (b === 0)
+    : (i: number) => (Array.isArray(value) ? value.includes(i) : value === i);
+  const opts = tf ? ['True', 'False'] : q.options ?? [];
+  return (
+    <ul className="sent-options" aria-label="Your answer">
+      {opts.map((o, i) => (
+        <li key={i} className={`sent-option${picked(i) ? ' is-mine' : ''}`}>
+          {!tf && <span className="key">{LETTERS[i]}</span>}
+          <span className="grow"><Markdown text={o} /></span>
+          {picked(i) && <span className="sent-mark"><Check size={16} strokeWidth={2.5} aria-hidden />Your answer</span>}
+        </li>
+      ))}
+    </ul>
   );
 }

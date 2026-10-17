@@ -24,10 +24,9 @@
 .host-controls.is-confirm { background: var(--leaf); border: 1px solid var(--rule-2); border-radius: var(--r); padding: 6px 8px 6px 12px; box-shadow: var(--shadow-leaf); }
 .host-confirm-q { font-size: var(--t-sm); font-weight: 650; color: var(--ink); }
 
-/* ---------- Q&A strip over the top of the board ---------- */
+/* ---------- Q&A strip above the board leaf (in the stage head, never over the figure) ---------- */
 .qa-banner {
-  position: absolute; z-index: 5; top: 10px; left: 50%; translate: -50% 0;
-  width: max-content; max-width: calc(100% - 20px);
+  width: max-content; max-width: 100%;
   display: flex; align-items: center; gap: 10px; padding: 7px 14px;
   font-size: var(--t-sm); color: var(--ink);
 }
@@ -44,16 +43,14 @@
 @media (max-width: 760px) {
   .ready-name { display: none; }
   .ready-people { gap: 8px; }
-  .host-label, .host-text { display: none; }
-  .host-controls .btn.small { width: 32px; padding: 0; min-height: 32px; }
-  .qa-banner { top: 6px; padding: 6px 10px; flex-wrap: wrap; width: calc(100% - 12px); }
+  /* phones keep the short words: an unlabelled icon row is a guessing game */
+  .host-label { display: none; }
+  .host-controls .btn.small { min-height: 36px; padding: 0 10px; }
+  .qa-banner { padding: 6px 10px; flex-wrap: wrap; width: 100%; }
   .qa-items { border-left: 0; padding-left: 0; flex-basis: 100%; }
   .qa-item { flex-wrap: wrap; }
 }
 @container (max-width: 620px) {
-  .qa-banner { flex-wrap: wrap; width: calc(100% - 12px); }
+  .qa-banner { flex-wrap: wrap; width: 100%; }
   .qa-items { border-left: 0; padding-left: 0; flex-basis: 100%; }
-}
-@container (max-height: 320px) {
-  .qa-banner { top: auto; bottom: 0; translate: -50% 100%; }
 }

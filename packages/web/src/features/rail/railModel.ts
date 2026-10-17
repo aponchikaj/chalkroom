@@ -1,6 +1,7 @@
 // A1 (Dev A): turns question, cluster and thread rows into rail cards (one per cluster, or one
 // per unclustered question), with the status a learner should read and the order to show them.
 import type { ClusterRow, QuestionRow, QuestionStatus, StreamEvent, ThreadRow } from '@chalk/schema';
+import { joinNames } from '../../lib/text';
 
 export interface RailCard {
   key: string;
@@ -90,6 +91,5 @@ export function creditLine(names: string[], myName: string | null) {
   const you = who.indexOf('You');
   if (you > 0) { who.splice(you, 1); who.unshift('You'); }
   if (!who.length) return '';
-  const list = who.length === 1 ? who[0] : `${who.slice(0, -1).join(', ')} and ${who[who.length - 1]}`;
-  return `${list} asked this`;
+  return `${joinNames(who)} asked this`;
 }

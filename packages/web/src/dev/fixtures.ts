@@ -180,7 +180,8 @@ export function buildFixture(state: DevState, who: DevUser): Fixture {
       q('q4', 'ana', 'Is the program id part of the hash?', 'c-pid', 'answered', 4.5),
     ];
     if (state === 'teaching') qs.push(q('q5', 'mari', 'Can two programs derive the same PDA?', null, 'pending', 5.8));
-    if (state !== 'teaching' && state !== 'check') qs.push(q('q6', 'nika', 'How is the bump seed chosen exactly?', 'c-thread', 'thread', 8));
+    // Nika's third bump-seed question (the one triage offers a thread on) arrives after the Q&A beat
+    if (['offer', 'thread', 'catchup', 'ended'].includes(state)) qs.push(q('q6', 'nika', 'How is the bump seed chosen exactly?', 'c-thread', 'thread', 8));
     for (const x of qs) questions[x.id] = x;
     const c = (id: string, title: string, route: ClusterRow['route'], askers: number, extra: Partial<ClusterRow> = {}): ClusterRow => ({
       id, room_id: ROOM_ID, title, route, reason: null, target_segment: null, answer: null, answered: false, asker_count: askers, created_at: at(3), ...extra,

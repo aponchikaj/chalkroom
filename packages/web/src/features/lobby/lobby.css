@@ -2,7 +2,7 @@
 
 .lobby-overlay { overflow: auto; align-items: center; }
 .lobby {
-  width: min(100%, 760px); padding: 22px 26px 20px 46px;
+  width: min(100%, 760px); padding: 22px 26px 20px;
   display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'main qr' 'people people';
   gap: 16px 28px;
 }
@@ -39,7 +39,7 @@
   .lobby-qr { display: none; }
 }
 @media (max-width: 760px) {
-  .lobby { padding: 16px 16px 16px 36px; gap: 12px; }
+  .lobby { padding: 16px; gap: 12px; }
   .lobby-code-value { font-size: 2.2rem; }
   .lobby-actions .btn { flex: 1; }
   .lobby-people ul { gap: 8px 14px; }

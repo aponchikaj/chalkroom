@@ -4,9 +4,10 @@ import { useEffect, useRef, useState } from 'react';
 import QRCode from 'qrcode';
 import { useShallow } from 'zustand/react/shallow';
 import { Check, Copy, Share2 } from 'lucide-react';
-import { selectActiveMembers, selectIsHost, useRoom } from '../../room/store';
+import { selectActiveMembers, selectPresentMembers, selectIsHost, useRoom } from '../../room/store';
 import { Punch } from '../../ui/Punch';
 import './lobby.css';
+import { nameFor } from '../../lib/text';
 
 const ICON = { size: 16, strokeWidth: 2 } as const;
 
@@ -20,6 +21,7 @@ export function LobbyLeaf() {
   const me = useRoom((s) => s.me);
   const members = useRoom(useShallow(selectActiveMembers));
   const presence = useRoom((s) => s.presence);
+  const here = useRoom((s) => selectPresentMembers(s).length);
   const host = members.find((m) => m.user_id === room.host_id);
   const url = `${location.origin}/r/${room.invite_code}`;
   const shareText = `Join my Chalkroom Live class "${room.title}": ${url} (code ${room.invite_code})`;
@@ -53,7 +55,7 @@ export function LobbyLeaf() {
 
   return (
     <div className="board-overlay lobby-overlay">
-      <section className="lobby leaf punched hinge-in" aria-label="Invite people">
+      <section className="lobby leaf hinge-in" aria-label="Invite people">
         <div className="lobby-main">
           <h2 className="lobby-title">{room.title}</h2>
           <p className="lobby-lede">
@@ -87,12 +89,12 @@ export function LobbyLeaf() {
         </figure>
 
         <div className="lobby-people">
-          <h3 className="section-title">Here now, <span className="mono">{members.filter((m) => presence[m.user_id]).length}/{room.seats}</span></h3>
+          <h3 className="section-title">Here now, <span className="mono">{here}/{room.seats}</span></h3>
           <ul>
             {members.map((m) => (
               <li key={m.user_id} className="step-in">
                 <Punch name={m.display_name} color={m.color} me={m.user_id === me} host={m.user_id === room.host_id} present={!!presence[m.user_id]} />
-                <span>{m.user_id === me ? 'You' : m.display_name}</span>
+                <span>{nameFor(m.user_id, m.display_name, me)}</span>
               </li>
             ))}
             {Array.from({ length: open }, (_, i) => (

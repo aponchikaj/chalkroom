@@ -49,7 +49,6 @@
   background: var(--hue); color: var(--on-hue, #fff);
   border-radius: 0 6px 6px 0;
   display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 8px;
-  transition: margin var(--step) steps(2);
 }
 .tabrail-vertical .tab-title {
   writing-mode: vertical-rl; transform: rotate(180deg);
@@ -63,15 +62,21 @@
 .tabrail-vertical .tab-now { margin-left: 0; box-shadow: -3px 0 0 var(--ink) inset; }
 .tabrail-empty { display: block; writing-mode: vertical-rl; transform: rotate(180deg); margin: auto; color: var(--ink-3); font-size: var(--t-xs); letter-spacing: 0.08em; text-transform: uppercase; }
 
-.tabrail-horizontal { overflow-x: auto; }
-.tabrail-horizontal ol { gap: 3px; min-width: max-content; }
+/* across a phone: every tab fits the width; titles wrap to two lines, the current one in full */
+.tabrail-horizontal { overflow: hidden; }
+.tabrail-horizontal ol { gap: 3px; align-items: flex-end; }
 .tabrail-horizontal .tab {
-  min-width: 96px; padding: 6px 10px 5px; flex-basis: 0;
+  min-width: 0; padding: 6px 8px 5px; flex-basis: 0;
   background: var(--hue); color: var(--on-hue, #fff); border-radius: 6px 6px 0 0;
   display: flex; flex-direction: column; gap: 1px; margin-top: 6px;
 }
 .tabrail-horizontal .tab-now { margin-top: 0; padding-top: 10px; }
 .tabrail-horizontal .tab-done { filter: saturate(0.55); }
-.tabrail-horizontal .tab-title { font-size: 11px; font-weight: 750; font-stretch: 80%; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; }
+.tabrail-horizontal .tab-title {
+  font-size: 11px; line-height: 1.2; font-weight: 750; font-stretch: 80%; letter-spacing: 0.04em; text-transform: uppercase;
+  overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.tabrail-horizontal .tab-now { flex-grow: 70 !important; }
+.tabrail-horizontal .tab-now .tab-title { -webkit-line-clamp: 3; }
 .tabrail-horizontal .tab-time { font-size: 10px; white-space: nowrap; }
 .tabrail-horizontal .tabrail-empty { writing-mode: horizontal-tb; transform: none; padding: 8px 12px; }

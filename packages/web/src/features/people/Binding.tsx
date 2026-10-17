@@ -1,8 +1,9 @@
 // A7 (Dev A): the binding edge: everyone in the class as punched holes, in arrival order. Seats left are
 // unpunched rings, so "4 of 5 here" is visible without a number.
 import { useShallow } from 'zustand/react/shallow';
-import { selectActiveMembers, selectReadyIds, useRoom } from '../../room/store';
+import { selectActiveMembers, selectPresentMembers, selectReadyIds, useRoom } from '../../room/store';
 import { Punch } from '../../ui/Punch';
+import { nameFor } from '../../lib/text';
 
 export function Binding({ orientation = 'vertical' }: { orientation?: 'vertical' | 'horizontal' }) {
   const members = useRoom(useShallow(selectActiveMembers));
@@ -10,7 +11,7 @@ export function Binding({ orientation = 'vertical' }: { orientation?: 'vertical'
   const room = useRoom((s) => s.room)!;
   const me = useRoom((s) => s.me);
   const ready = useRoom(useShallow((s) => [...selectReadyIds(s)]));
-  const here = members.filter((m) => presence[m.user_id]).length;
+  const here = useRoom((s) => selectPresentMembers(s).length);
   const open = Math.max(0, room.seats - members.length);
 
   return (
@@ -21,7 +22,7 @@ export function Binding({ orientation = 'vertical' }: { orientation?: 'vertical'
             <Punch name={m.display_name} color={m.color} me={m.user_id === me} host={m.user_id === room.host_id}
               size={orientation === 'horizontal' ? 'sm' : 'md'} present={!!presence[m.user_id]} inThread={!!presence[m.user_id]?.threadId}
               ready={room.phase === 'check' && ready.includes(m.user_id)} />
-            <span className="binding-name">{m.user_id === me ? 'You' : m.display_name}</span>
+            <span className="binding-name">{nameFor(m.user_id, m.display_name, me)}</span>
           </li>
         ))}
         {Array.from({ length: open }, (_, i) => (
