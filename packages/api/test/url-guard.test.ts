@@ -17,3 +17,24 @@ describe('isFetchable', () => {
     ['http://x:22/', ['1.1.1.1'], 'port'],
   ])('refuses %s', (u, addrs, why) => expect(isFetchable(new URL(u), addrs)).toContain(why));
 });
+
+describe('isFetchable: more reserved ranges', () => {
+  const u = new URL('https://example.com/');
+  it.each([
+    ['240.0.0.1'], ['255.255.255.255'], ['198.18.0.1'], ['192.0.0.8'], ['192.0.2.1'], ['100.64.0.1'],
+    ['64:ff9b::a9fe:a9fe'], ['::a9fe:a9fe'], ['2002:a9fe:a9fe::1'], ['fec0::1'], ['ff02::1'], ['::ffff:7f00:1'],
+  ])('refuses %s', (addr) => {
+    expect(isFetchable(u, [addr])).toMatch(/private/);
+  });
+  it('still allows public addresses', () => {
+    expect(isFetchable(u, ['93.184.216.34', '2606:2800:220:1:248:1893:25c8:1946'])).toBeNull();
+  });
+});
+
+describe('publicOnlyLookup (connect-time check)', () => {
+  it('refuses a host that resolves to a private address at connect time', async () => {
+    const { publicOnlyLookup } = await import('../src/rag/fetch-page');
+    const err = await new Promise<Error | null>((r) => publicOnlyLookup('localhost', {}, (e) => r(e)));
+    expect(err?.message).toMatch(/private/);
+  });
+});

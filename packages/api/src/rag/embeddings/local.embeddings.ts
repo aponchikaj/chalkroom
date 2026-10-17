@@ -27,7 +27,9 @@ export class LocalEmbeddings extends EmbeddingPort {
   private readonly log = new Logger('Embeddings');
   private extractor?: Promise<Extractor>;
 
-  constructor(private load: () => Promise<Extractor> = () => loadE5(), private batch = 32) {
+  /** Small batches with a pause between them: the ONNX run is synchronous on the main thread
+   *  (~90 ms per passage on a laptop CPU), so a big batch would freeze live classes. */
+  constructor(private load: () => Promise<Extractor> = () => loadE5(), private batch = 4) {
     super();
   }
 
@@ -43,6 +45,8 @@ export class LocalEmbeddings extends EmbeddingPort {
     for (let i = 0; i < texts.length; i += this.batch) {
       const slice = texts.slice(i, i + this.batch).map((t) => PREFIX[kind] + t);
       out.push(...(await run(slice, { pooling: 'mean', normalize: true })).tolist());
+      // let requests and the conductor run between batches
+      if (i + this.batch < texts.length) await new Promise((r) => setImmediate(r));
     }
     return out;
   }

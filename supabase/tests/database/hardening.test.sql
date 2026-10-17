@@ -1,7 +1,7 @@
 -- Hardening (20261017201838): exclusive room lease, the seat trigger, atomic email-code attempts.
 -- Run: npm run test:db
 begin;
-select plan(13);
+select plan(15);
 
 insert into auth.users (id, email) values
   ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaab', 'h@example.com'),
@@ -36,6 +36,14 @@ select lives_ok($$ insert into public.room_members (room_id, user_id, display_na
 select throws_ok($$ update public.room_members set left_at = null where user_id = 'b0000000-0000-4000-8000-000000000001' and room_id = 'd0000000-0000-4000-8000-000000000002' $$,
   'P0001', 'the room is full', 'coming back to a full room is refused');
 select lives_ok($$ update public.room_members set display_name = 'Two again' where user_id = 'b0000000-0000-4000-8000-000000000002' $$, 'active members can still be updated');
+
+-- ingest queue
+insert into public.sources (id, room_id, kind, title, status, attempts, updated_at) values
+  ('e1000000-0000-4000-8000-000000000001', 'd0000000-0000-4000-8000-000000000001', 'faq', 'crashes', 'processing', 3, now() - interval '11 minutes'),
+  ('e1000000-0000-4000-8000-000000000002', 'd0000000-0000-4000-8000-000000000001', 'faq', 'slow once', 'processing', 1, now() - interval '11 minutes');
+select * from public.claim_source();
+select is((select status from public.sources where id = 'e1000000-0000-4000-8000-000000000001'), 'failed', 'a source that crashed the worker 3 times fails');
+select is((select attempts from public.sources where id = 'e1000000-0000-4000-8000-000000000002'), 2, 'a stale one is claimed again and counted');
 
 -- email code attempts
 insert into public.email_otp_codes (user_id, purpose, code_hash, expires_at) values ('b0000000-0000-4000-8000-000000000001', 'login', repeat('a', 64), now() + interval '10 minutes');

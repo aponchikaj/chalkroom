@@ -129,7 +129,34 @@ as $$
          or (l.seen_at < now() - interval '30 seconds' and public.lease_group(l.conductor_id) = public.lease_group(p_instance)));
 $$;
 
--- 5. Indexes for hot paths and for foreign keys that cascade on account deletion.
+-- 5. Ingest queue: a source is claimed at most 3 times. One that keeps crashing the worker (it
+--    sat in `processing` past the 10 minute timeout each time) fails instead of looping; the
+--    worker refreshes updated_at while it works, so a slow ingest is not re-claimed.
+alter table public.sources add column attempts int not null default 0;
+
+create or replace function public.claim_source()
+returns setof public.sources
+language sql
+security definer
+set search_path = public
+as $$
+  update public.sources
+     set status = case when attempts >= 3 then 'failed' else 'pending' end,
+         error = case when attempts >= 3 then 'indexing kept failing; remove it and add it again' else error end
+   where status = 'processing' and updated_at < now() - interval '10 minutes';
+
+  update public.sources set status = 'processing', attempts = attempts + 1
+  where id = (
+    select id from public.sources
+    where status = 'pending'
+    order by created_at
+    for update skip locked
+    limit 1
+  )
+  returning *;
+$$;
+
+-- 6. Indexes for hot paths and for foreign keys that cascade on account deletion.
 create index chunks_needs_embedding on public.chunks (id) where embedding is null;
 create index questions_cluster on public.questions (cluster_id) where cluster_id is not null;
 create index questions_author on public.questions (author_id);
