@@ -1,6 +1,6 @@
 // Inputs for every question type, shared by inline checks and quizzes.
 import { useMemo } from 'react';
-import { Check, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, Check, X } from 'lucide-react';
 import type { Question } from '@chalk/schema';
 import { Markdown } from './Markdown';
 
@@ -85,7 +85,7 @@ export function QuestionInput({ q, value, onChange, reveal, disabled }: Props) {
                 <option value="" disabled>Choose…</option>
                 {right.map((r, j) => <option key={j} value={j}>{r}</option>)}
               </select>
-              {reveal && <span style={{ color: v[i] === (q.answer as number[])?.[i] ? 'var(--ok)' : 'var(--danger)' }}>{v[i] === (q.answer as number[])?.[i] ? <Check size={16} aria-label="correct" /> : <X size={16} aria-label="wrong" />}</span>}
+              {reveal && <span style={{ color: v[i] === (q.answer as number[])?.[i] ? 'var(--ok)' : 'var(--errata)' }}>{v[i] === (q.answer as number[])?.[i] ? <Check size={16} aria-label="correct" /> : <X size={16} aria-label="wrong" />}</span>}
             </div>
           ))}
         </div>
@@ -116,11 +116,11 @@ function OrderInput({ q, value, onChange, disabled, reveal }: { q: Question; val
   return (
     <div>
       {order.map((idx, i) => (
-        <div key={idx} className="order-item" style={reveal ? { borderColor: want?.[i] === idx ? 'var(--ok)' : 'var(--danger)' } : undefined}>
+        <div key={idx} className="order-item" style={reveal ? { borderColor: want?.[i] === idx ? 'var(--ok)' : 'var(--errata)' } : undefined}>
           <span className="faint" style={{ width: 18 }}>{i + 1}.</span>
           <span className="grow">{opts[idx]}</span>
-          <button type="button" className="btn ghost small" disabled={disabled || i === 0} onClick={() => move(i, -1)} aria-label="Move up">↑</button>
-          <button type="button" className="btn ghost small" disabled={disabled || i === order.length - 1} onClick={() => move(i, 1)} aria-label="Move down">↓</button>
+          <button type="button" className="btn ghost small" disabled={disabled || i === 0} onClick={() => move(i, -1)} aria-label="Move up"><ArrowUp size={14} aria-hidden /></button>
+          <button type="button" className="btn ghost small" disabled={disabled || i === order.length - 1} onClick={() => move(i, 1)} aria-label="Move down"><ArrowDown size={14} aria-hidden /></button>
         </div>
       ))}
       {value === undefined && !disabled && <button type="button" className="btn small" onClick={() => onChange(initial)}>Keep this order</button>}

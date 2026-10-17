@@ -1,0 +1,746 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-17T17:37:15.193Z",
+  "title": "Design System: Chalkroom Live",
+  "extensions": {
+    "colorMeta": {
+      "paper": {
+        "role": "neutral",
+        "displayName": "Section Board",
+        "canonical": "#f2ede0",
+        "oklch": "oklch(94.6% 0.018 89.4)",
+        "tonalRamp": [
+          "#0d0b06",
+          "#28251b",
+          "#464237",
+          "#656156",
+          "#878276",
+          "#a9a599",
+          "#cec9bc",
+          "#f1eee6"
+        ]
+      },
+      "paper-2": {
+        "role": "neutral",
+        "displayName": "Panel Stock",
+        "canonical": "#e8e1d0",
+        "oklch": "oklch(91.1% 0.024 88.2)",
+        "tonalRamp": [
+          "#0e0b05",
+          "#2a2518",
+          "#474134",
+          "#676152",
+          "#888272",
+          "#aba594",
+          "#cfc9b8",
+          "#f2eee4"
+        ]
+      },
+      "paper-3": {
+        "role": "neutral",
+        "displayName": "Pressed Stock",
+        "canonical": "#ddd4bf",
+        "oklch": "oklch(87.2% 0.030 87.6)",
+        "tonalRamp": [
+          "#0e0b04",
+          "#2b2414",
+          "#494130",
+          "#68604e",
+          "#8a826e",
+          "#ada490",
+          "#d1c8b4",
+          "#f4eee1"
+        ]
+      },
+      "leaf": {
+        "role": "neutral",
+        "displayName": "Printed Leaf",
+        "canonical": "#fbf8f1",
+        "oklch": "oklch(98.0% 0.010 87.5)",
+        "tonalRamp": [
+          "#0c0b08",
+          "#272520",
+          "#44423c",
+          "#63615b",
+          "#85827c",
+          "#a8a59e",
+          "#ccc9c2",
+          "#f0eeea"
+        ]
+      },
+      "leaf-edge": {
+        "role": "neutral",
+        "displayName": "Leaf Edge",
+        "canonical": "#d9d0bb",
+        "oklch": "oklch(85.9% 0.030 87.6)",
+        "tonalRamp": [
+          "#0e0b04",
+          "#2b2414",
+          "#494130",
+          "#68604e",
+          "#8a826e",
+          "#ada490",
+          "#d1c8b4",
+          "#f4eee1"
+        ]
+      },
+      "acetate": {
+        "role": "neutral",
+        "displayName": "Milk Acetate",
+        "canonical": "rgba(251, 249, 243, 0.96)",
+        "tonalRamp": [
+          "#0c0b09",
+          "#262521",
+          "#43423d",
+          "#63615c",
+          "#84827d",
+          "#a7a59f",
+          "#cbc9c3",
+          "#f0eeeb"
+        ]
+      },
+      "acetate-edge": {
+        "role": "neutral",
+        "displayName": "Acetate Edge",
+        "canonical": "rgba(70, 60, 40, 0.28)",
+        "tonalRamp": [
+          "#0f0a03",
+          "#2d2410",
+          "#4b412c",
+          "#6b604b",
+          "#8c816b",
+          "#afa48d",
+          "#d4c8b0",
+          "#f5eedf"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Print Ink",
+        "canonical": "#1b1a17",
+        "oklch": "oklch(21.8% 0.006 91.6)",
+        "tonalRamp": [
+          "#0c0b09",
+          "#262522",
+          "#43423e",
+          "#62615d",
+          "#83827e",
+          "#a6a5a1",
+          "#cac9c5",
+          "#efeeec"
+        ]
+      },
+      "ink-2": {
+        "role": "neutral",
+        "displayName": "Second Ink",
+        "canonical": "#4a463d",
+        "oklch": "oklch(39.5% 0.016 86.9)",
+        "tonalRamp": [
+          "#0d0b07",
+          "#28251c",
+          "#464239",
+          "#656157",
+          "#868278",
+          "#a9a59a",
+          "#cdc9be",
+          "#f1eee8"
+        ]
+      },
+      "ink-3": {
+        "role": "neutral",
+        "displayName": "Faint Ink",
+        "canonical": "#6b6557",
+        "oklch": "oklch(50.8% 0.023 87.6)",
+        "tonalRamp": [
+          "#0e0b05",
+          "#2a2418",
+          "#474134",
+          "#676153",
+          "#888273",
+          "#aba495",
+          "#cfc9b9",
+          "#f2eee4"
+        ]
+      },
+      "rule": {
+        "role": "neutral",
+        "displayName": "Rule",
+        "canonical": "#cdc4ae",
+        "oklch": "oklch(82.2% 0.032 88.4)",
+        "tonalRamp": [
+          "#0e0b03",
+          "#2b2413",
+          "#49412f",
+          "#69614d",
+          "#8a826d",
+          "#ada48f",
+          "#d2c8b2",
+          "#f4eee1"
+        ]
+      },
+      "rule-2": {
+        "role": "neutral",
+        "displayName": "Heavy Rule",
+        "canonical": "#a99f88",
+        "oklch": "oklch(70.5% 0.034 87.3)",
+        "tonalRamp": [
+          "#0f0b03",
+          "#2c2411",
+          "#4a412d",
+          "#6a604b",
+          "#8b816b",
+          "#aea48d",
+          "#d3c8b0",
+          "#f4eedf"
+        ]
+      },
+      "action": {
+        "role": "primary",
+        "displayName": "Chrome Yellow",
+        "canonical": "#f2c230",
+        "oklch": "oklch(83.4% 0.158 89.0)",
+        "tonalRamp": [
+          "#1a0500",
+          "#431700",
+          "#633700",
+          "#855800",
+          "#a87a00",
+          "#cd9e00",
+          "#f3c331",
+          "#ffeca4"
+        ]
+      },
+      "action-press": {
+        "role": "primary",
+        "displayName": "Deep Chrome",
+        "canonical": "#ddab16",
+        "oklch": "oklch(76.6% 0.153 86.8)",
+        "tonalRamp": [
+          "#1b0400",
+          "#431600",
+          "#643600",
+          "#865700",
+          "#aa7900",
+          "#ce9d00",
+          "#f4c13c",
+          "#ffeba7"
+        ]
+      },
+      "action-ink": {
+        "role": "primary",
+        "displayName": "Action Ink",
+        "canonical": "#1b1a17",
+        "oklch": "oklch(21.8% 0.006 91.6)",
+        "tonalRamp": [
+          "#0c0b09",
+          "#262522",
+          "#43423e",
+          "#62615d",
+          "#83827e",
+          "#a6a5a1",
+          "#cac9c5",
+          "#efeeec"
+        ]
+      },
+      "errata": {
+        "role": "tertiary",
+        "displayName": "Vermilion",
+        "canonical": "#d93a1c",
+        "oklch": "oklch(58.6% 0.200 32.6)",
+        "tonalRamp": [
+          "#2d0000",
+          "#670000",
+          "#8f0000",
+          "#b80b00",
+          "#e14224",
+          "#ff6a4b",
+          "#ff9070",
+          "#ffd1bb"
+        ]
+      },
+      "errata-tint": {
+        "role": "tertiary",
+        "displayName": "Errata Tint",
+        "canonical": "#fbe3dc",
+        "oklch": "oklch(93.3% 0.028 36.9)",
+        "tonalRamp": [
+          "#110907",
+          "#31201b",
+          "#503d37",
+          "#705c56",
+          "#927d77",
+          "#b69f99",
+          "#dbc3bc",
+          "#f9ebe7"
+        ]
+      },
+      "errata-ink": {
+        "role": "tertiary",
+        "displayName": "Errata Ink",
+        "canonical": "#6e1a09",
+        "oklch": "oklch(35.8% 0.120 33.1)",
+        "tonalRamp": [
+          "#220000",
+          "#510000",
+          "#752110",
+          "#994331",
+          "#bf6552",
+          "#e68873",
+          "#ffac96",
+          "#ffded0"
+        ]
+      },
+      "h-orange": {
+        "role": "secondary",
+        "displayName": "Section Orange",
+        "canonical": "#e0672a",
+        "oklch": "oklch(65.2% 0.167 44.1)",
+        "tonalRamp": [
+          "#280000",
+          "#5c0000",
+          "#820000",
+          "#a93400",
+          "#d05916",
+          "#f87d43",
+          "#ffa268",
+          "#ffd9b8"
+        ]
+      },
+      "h-teal": {
+        "role": "secondary",
+        "displayName": "Section Teal",
+        "canonical": "#0e7d79",
+        "oklch": "oklch(53.4% 0.089 190.8)",
+        "tonalRamp": [
+          "#001110",
+          "#00312f",
+          "#00504d",
+          "#00716d",
+          "#32938f",
+          "#5ab7b2",
+          "#7fdcd7",
+          "#c6fbf7"
+        ]
+      },
+      "h-grass": {
+        "role": "secondary",
+        "displayName": "Section Grass",
+        "canonical": "#3d7a30",
+        "oklch": "oklch(52.1% 0.125 140.2)",
+        "tonalRamp": [
+          "#001100",
+          "#003100",
+          "#105100",
+          "#357227",
+          "#56944a",
+          "#79b86c",
+          "#9cdd8f",
+          "#d4fccc"
+        ]
+      },
+      "h-ultra": {
+        "role": "secondary",
+        "displayName": "Section Ultramarine",
+        "canonical": "#2b4cbd",
+        "oklch": "oklch(46.5% 0.182 266.6)",
+        "tonalRamp": [
+          "#020038",
+          "#08007b",
+          "#1730a0",
+          "#3255c6",
+          "#5079ee",
+          "#719dff",
+          "#93c3ff",
+          "#cdedff"
+        ]
+      },
+      "h-violet": {
+        "role": "secondary",
+        "displayName": "Section Violet",
+        "canonical": "#7449bd",
+        "oklch": "oklch(51.4% 0.175 296.9)",
+        "tonalRamp": [
+          "#130030",
+          "#33006c",
+          "#4f1c91",
+          "#6e42b6",
+          "#8f66dc",
+          "#b28aff",
+          "#d6aeff",
+          "#f5e0ff"
+        ]
+      },
+      "h-sienna": {
+        "role": "secondary",
+        "displayName": "Section Sienna",
+        "canonical": "#93492a",
+        "oklch": "oklch(49.2% 0.109 42.4)",
+        "tonalRamp": [
+          "#1f0000",
+          "#4c0400",
+          "#6f2905",
+          "#93492a",
+          "#b86b4b",
+          "#df8e6d",
+          "#ffb290",
+          "#ffe1cc"
+        ]
+      },
+      "ok": {
+        "role": "tertiary",
+        "displayName": "State Green",
+        "canonical": "#3f7f33",
+        "oklch": "oklch(53.6% 0.128 140.6)",
+        "tonalRamp": [
+          "#001200",
+          "#003200",
+          "#0b5100",
+          "#327226",
+          "#549548",
+          "#77b96b",
+          "#9ade8e",
+          "#d3fccb"
+        ]
+      },
+      "warn": {
+        "role": "tertiary",
+        "displayName": "Burnt Amber",
+        "canonical": "#a8560f",
+        "oklch": "oklch(54.2% 0.131 53.7)",
+        "tonalRamp": [
+          "#210000",
+          "#500000",
+          "#732500",
+          "#984700",
+          "#bd692a",
+          "#e48c50",
+          "#ffb174",
+          "#ffe1be"
+        ]
+      },
+      "note": {
+        "role": "neutral",
+        "displayName": "Sticky Note",
+        "canonical": "#f6e7a6",
+        "oklch": "oklch(92.5% 0.084 96.7)",
+        "tonalRamp": [
+          "#110a00",
+          "#312300",
+          "#4f4100",
+          "#6f6121",
+          "#918244",
+          "#b4a567",
+          "#d9ca8a",
+          "#f8efc9"
+        ]
+      },
+      "note-ink": {
+        "role": "neutral",
+        "displayName": "Sticky Ink",
+        "canonical": "#2e2a17",
+        "oklch": "oklch(28.4% 0.032 97.8)",
+        "tonalRamp": [
+          "#0d0b03",
+          "#292512",
+          "#46422e",
+          "#66624d",
+          "#87836d",
+          "#aaa68f",
+          "#cecab2",
+          "#f2efe0"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Title Page Display",
+        "purpose": "Home and pre-join class name only; uppercase, wdth 75."
+      },
+      "headline": {
+        "displayName": "Running Head",
+        "purpose": "Class title in the masthead; lobby title."
+      },
+      "title": {
+        "displayName": "Section Title",
+        "purpose": "h2/h3, thread title, check heading, slip titles."
+      },
+      "body": {
+        "displayName": "Interface Text",
+        "purpose": "All UI words; tabular numerals."
+      },
+      "reading": {
+        "displayName": "Reading Serif",
+        "purpose": "Captions, tutor answers, notes, check prompts, ledes."
+      },
+      "label": {
+        "displayName": "Running-Head Label",
+        "purpose": "Panel headings, field labels, rail tabs; uppercase."
+      },
+      "button": {
+        "displayName": "Key Label",
+        "purpose": "Button text; uppercase."
+      },
+      "stamp": {
+        "displayName": "Stamp",
+        "purpose": "Status stamps; uppercase."
+      },
+      "mono": {
+        "displayName": "Figures",
+        "purpose": "Numbers, codes, times and keys only."
+      }
+    },
+    "shadows": [
+      {
+        "name": "leaf",
+        "value": "0 1px 0 var(--rule), 0 14px 28px -18px rgba(60, 45, 15, 0.45)",
+        "purpose": "A printed leaf lying on the section board: board, leaves, the question card that needs you."
+      },
+      {
+        "name": "acetate",
+        "value": "0 1px 0 var(--acetate-edge), 0 18px 34px -16px rgba(60, 45, 15, 0.38)",
+        "purpose": "Acetate hinged over the leaf: thread leaf, check card, slips."
+      },
+      {
+        "name": "punch-hole",
+        "value": "inset 0 2px 3px rgba(40, 30, 10, 0.35), 0 0 0 3px var(--who)",
+        "purpose": "Punched hole for a person, ringed in their colour."
+      },
+      {
+        "name": "focus-halo",
+        "value": "0 0 0 3px color-mix(in srgb, var(--action) 55%, transparent)",
+        "purpose": "Focused text field (with ink border)."
+      },
+      {
+        "name": "acetate-blur",
+        "value": "backdrop-filter: blur(1.5px) saturate(0.7)",
+        "purpose": "Acetate on desktop only; opaque leaf on phones."
+      }
+    ],
+    "motion": [
+      {
+        "name": "step",
+        "value": "90ms steps(2)",
+        "purpose": "Every UI state change: hover, press, focus economy, toasts, hinge."
+      },
+      {
+        "name": "hinge-in",
+        "value": "perspective(1400px) rotateY(-14deg) -> none, transform-origin left center, 90ms steps(2)",
+        "purpose": "A leaf or acetate arriving, pivoting on the punched edge."
+      },
+      {
+        "name": "step-in",
+        "value": "opacity 0.4 -> 1, 90ms steps(2)",
+        "purpose": "The only opacity entrance."
+      },
+      {
+        "name": "plot",
+        "value": "stroke-dashoffset 1 -> 0 over var(--dur, 0.7s) steps(8, end)",
+        "purpose": "Board figures plot on like a pen plotter; labels appear at half the stroke time."
+      },
+      {
+        "name": "camera",
+        "value": "transform 0.36s steps(4)",
+        "purpose": "Board camera moves."
+      },
+      {
+        "name": "pulse",
+        "value": "scale(1.06) 0.36s steps(2) x3",
+        "purpose": "Board shape emphasis."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "animation/transition 1ms, 1 iteration",
+        "purpose": "prefers-reduced-motion: reduce."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "phone",
+        "value": "760px",
+        "purpose": "max-width: one column, horizontal tabs, full-screen opaque thread leaf."
+      },
+      {
+        "name": "entry-tablet",
+        "value": "1080px",
+        "purpose": "max-width: Home and pre-join collapse."
+      },
+      {
+        "name": "tablet",
+        "value": "1180px",
+        "purpose": "max-width: classroom columns 64 / fluid / 280 / 48."
+      },
+      {
+        "name": "container-check",
+        "value": "620px",
+        "purpose": "container max-width: check card and Q&A strip stack."
+      },
+      {
+        "name": "container-recap",
+        "value": "760px",
+        "purpose": "container max-width: recap grid stacks."
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one chrome yellow pressable action on a surface (I'm ready, Submit, Send).",
+      "html": "<button class=\"ds-btn-primary\">I'm ready</button>",
+      "css": ".ds-btn-primary{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:36px;padding:0 14px;border:1.5px solid var(--ink,#1b1a17);border-radius:3px;font-family:'Archivo Variable','Archivo',system-ui,sans-serif;font-size:0.8125rem;font-weight:650;font-stretch:88%;letter-spacing:0.06em;text-transform:uppercase;cursor:pointer;transition:background 90ms steps(2);background:#f2c230;color:#1b1a17;}.ds-btn-primary:hover{background:#ddab16;}.ds-btn-primary:active{background:#1b1a17;color:#f2c230;}.ds-btn-primary:focus-visible{outline:2px solid #1b1a17;outline-offset:2px;}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Default printed key: leaf fill, ink outline; pressed inverts to ink.",
+      "html": "<button class=\"ds-btn\">Slower</button>",
+      "css": ".ds-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:36px;padding:0 14px;border:1.5px solid var(--ink,#1b1a17);border-radius:3px;font-family:'Archivo Variable','Archivo',system-ui,sans-serif;font-size:0.8125rem;font-weight:650;font-stretch:88%;letter-spacing:0.06em;text-transform:uppercase;cursor:pointer;transition:background 90ms steps(2);background:#fbf8f1;color:#1b1a17;}.ds-btn:hover{background:#e8e1d0;}.ds-btn:active{background:#1b1a17;color:#f2ede0;}.ds-btn:focus-visible{outline:2px solid #1b1a17;outline-offset:2px;}"
+    },
+    {
+      "name": "Disabled Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Not pressable yet: rule outline, faint ink, hatched ground; a disabled primary loses its yellow.",
+      "html": "<button class=\"ds-btn-off\" disabled>Ask</button>",
+      "css": ".ds-btn-off{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:36px;padding:0 14px;border:1.5px solid var(--ink,#1b1a17);border-radius:3px;font-family:'Archivo Variable','Archivo',system-ui,sans-serif;font-size:0.8125rem;font-weight:650;font-stretch:88%;letter-spacing:0.06em;text-transform:uppercase;cursor:pointer;transition:background 90ms steps(2);cursor:default;border-color:#a99f88;color:#6b6557;background:transparent;background-image:repeating-linear-gradient(135deg,transparent 0 5px,rgba(205,196,174,0.6) 5px 6px);}"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Leaf field with a rule border; focus turns the border ink with a yellow halo.",
+      "html": "<input class=\"ds-input\" placeholder=\"Ask anything. Hold Space to talk.\" />",
+      "css": ".ds-input{width:100%;min-height:38px;padding:8px 11px;background:#fbf8f1;border:1.5px solid #a99f88;border-radius:3px;color:#1b1a17;font-family:'Archivo Variable','Archivo',system-ui,sans-serif;font-size:0.9375rem;}.ds-input::placeholder{color:#6b6557;}.ds-input:focus{outline:none;border-color:#1b1a17;box-shadow:0 0 0 3px rgba(242,194,48,0.55);}"
+    },
+    {
+      "name": "Stamp",
+      "kind": "chip",
+      "refersTo": "stamp",
+      "description": "Printed status label; words first, tone reinforces (pending dashed, ok, section, errata).",
+      "html": "<span class=\"ds-stamp ds-stamp-pending\">Sorting</span> <span class=\"ds-stamp ds-stamp-ok\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M20 6 9 17l-5-5\"/></svg>Answered</span> <span class=\"ds-stamp ds-stamp-section\">Grouped · 2 asked</span>",
+      "css": ".ds-stamp{display:inline-flex;align-items:center;gap:5px;min-height:20px;padding:1px 7px;border:1.5px solid currentColor;border-radius:2px;font-family:'Archivo Variable','Archivo',system-ui,sans-serif;font-size:10.5px;font-weight:750;font-stretch:80%;letter-spacing:0.1em;text-transform:uppercase;line-height:1.2;white-space:nowrap;}.ds-stamp-pending{color:#6b6557;border-style:dashed;}.ds-stamp-ok{color:#3f7f33;}.ds-stamp-section{color:#e0672a;}"
+    },
+    {
+      "name": "Rail Tabs",
+      "kind": "nav",
+      "refersTo": "rail-tab",
+      "description": "Two small divider tabs over the rail leaf; the selected one turns leaf and rises.",
+      "html": "<div class=\"ds-railtabs\"><button class=\"ds-railtab\" aria-selected=\"true\">Questions</button><button class=\"ds-railtab\">Notes</button></div>",
+      "css": ".ds-railtabs{display:flex;gap:4px;padding:12px 14px 0;border-bottom:1.5px solid #1b1a17;align-items:flex-end;}.ds-railtab{border:1.5px solid #1b1a17;border-bottom:0;border-radius:4px 4px 0 0;background:#ddd4bf;padding:7px 14px 6px;margin-bottom:-1.5px;cursor:pointer;font-family:'Archivo Variable','Archivo',system-ui,sans-serif;font-size:0.72rem;font-weight:750;font-stretch:80%;letter-spacing:0.1em;text-transform:uppercase;color:#4a463d;}.ds-railtab[aria-selected='true']{background:#fbf8f1;color:#1b1a17;padding-top:10px;}.ds-railtab:focus-visible{outline:2px solid #1b1a17;outline-offset:2px;}"
+    },
+    {
+      "name": "Divider Tab Rail",
+      "kind": "nav",
+      "refersTo": "tab-rail",
+      "description": "Lesson segments as section-hue tabs on the fore edge; the current tab extends to the edge.",
+      "html": "<ol class=\"ds-tabrail\"><li class=\"ds-tab ds-tab-done\" style=\"--hue:#e0672a;--on:#1b1a17\"><span>What is a PDA?</span><b>2:41</b></li><li class=\"ds-tab ds-tab-now\" style=\"--hue:#0e7d79;--on:#fff\"><span>Finding the bump</span><b>0:30</b></li><li class=\"ds-tab ds-tab-todo\" style=\"--hue:#3d7a30;--on:#fff\"><span>Signing</span><b>~3m</b></li></ol>",
+      "css": ".ds-tabrail{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;width:54px;height:360px;}.ds-tab{flex:1;margin-left:8px;padding:10px 0;background:var(--hue);color:var(--on);border-radius:0 6px 6px 0;display:flex;flex-direction:column;align-items:center;justify-content:space-between;gap:8px;}.ds-tab span{writing-mode:vertical-rl;transform:rotate(180deg);font-family:'Archivo Variable','Archivo',system-ui,sans-serif;font-size:0.72rem;font-weight:750;font-stretch:78%;letter-spacing:0.08em;text-transform:uppercase;white-space:nowrap;overflow:hidden;}.ds-tab b{font-family:'JetBrains Mono',ui-monospace,monospace;font-weight:400;font-size:10px;}.ds-tab-done{filter:saturate(0.55);}.ds-tab-todo{margin-left:14px;}.ds-tab-now{margin-left:0;box-shadow:-3px 0 0 #1b1a17 inset;}"
+    },
+    {
+      "name": "Punch",
+      "kind": "custom",
+      "refersTo": "punch",
+      "description": "A person as a punched hole on the binding edge, ringed in their colour; ink mark when ready.",
+      "html": "<span class=\"ds-punch\" style=\"--who:#f2a93b\"><span class=\"ds-hole\">A</span><span class=\"ds-mark\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M20 6 9 17l-5-5\"/></svg></span></span>",
+      "css": ".ds-punch{position:relative;display:inline-grid;place-items:center;}.ds-hole{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:#ddd4bf;color:#1b1a17;box-shadow:inset 0 2px 3px rgba(40,30,10,0.35),0 0 0 3px var(--who);font-family:'Archivo Variable','Archivo',system-ui,sans-serif;font-size:14px;font-weight:800;font-stretch:80%;}.ds-mark{position:absolute;right:-4px;bottom:-4px;width:16px;height:16px;border-radius:50%;display:grid;place-items:center;background:#1b1a17;color:#f2ede0;border:2px solid #f2ede0;}.ds-mark svg{width:10px;height:10px;}"
+    },
+    {
+      "name": "Errata Slip",
+      "kind": "custom",
+      "refersTo": "errata-slip",
+      "description": "The one place vermilion fills a surface: an error, with what to do next.",
+      "html": "<div class=\"ds-errata\" role=\"alert\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.25\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M12 8v4M12 16h.01\"/></svg><span>The question did not send. Press Ask again.</span></div>",
+      "css": ".ds-errata{display:flex;gap:8px;align-items:flex-start;padding:9px 12px;background:#fbe3dc;border:1px solid #d93a1c;border-radius:2px;color:#6e1a09;font-family:'Archivo Variable','Archivo',system-ui,sans-serif;font-size:0.8125rem;}.ds-errata svg{flex:none;margin-top:2px;}"
+    },
+    {
+      "name": "Question Card",
+      "kind": "card",
+      "refersTo": "question-card",
+      "description": "A flat entry ruled on the rail leaf; the inline answer reads in the serif.",
+      "html": "<article class=\"ds-qcard\"><div class=\"ds-qhead\"><span class=\"ds-stamp ds-stamp-ok\">Answered</span></div><h4 class=\"ds-qtitle\">Is the program id part of the hash?</h4><p class=\"ds-qby\">You asked</p><p class=\"ds-qans\">Yes. The program id is hashed together with the seeds and the bump.</p></article>",
+      "css": ".ds-qcard{display:flex;flex-direction:column;gap:7px;padding:11px 12px 12px;background:#fbf8f1;border:1px solid #cdc4ae;border-radius:3px;max-width:330px;font-family:'Archivo Variable','Archivo',system-ui,sans-serif;color:#1b1a17;}.ds-qhead{min-height:28px;display:flex;align-items:center;}.ds-stamp{display:inline-flex;align-items:center;min-height:20px;padding:1px 7px;border:1.5px solid currentColor;border-radius:2px;font-size:10.5px;font-weight:750;font-stretch:80%;letter-spacing:0.1em;text-transform:uppercase;}.ds-stamp-ok{color:#3f7f33;}.ds-qtitle{margin:0;font-size:0.9375rem;font-weight:680;font-stretch:86%;line-height:1.28;}.ds-qby{margin:0;font-size:0.72rem;color:#6b6557;font-weight:600;font-stretch:85%;letter-spacing:0.04em;}.ds-qans{margin:0;font-family:'Source Serif 4 Variable','Source Serif 4',Georgia,serif;font-size:0.98rem;line-height:1.5;padding-top:8px;border-top:1px solid #cdc4ae;}"
+    },
+    {
+      "name": "Check Option",
+      "kind": "custom",
+      "refersTo": "check-option",
+      "description": "Answer options across the check leaf; chosen takes ink and a yellow tint, keys in mono.",
+      "html": "<div class=\"ds-opts\"><button class=\"ds-opt\" aria-pressed=\"true\"><span class=\"ds-key\">A</span>The program</button><button class=\"ds-opt\"><span class=\"ds-key\">B</span>The wallet</button></div>",
+      "css": ".ds-opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:6px;}.ds-opt{display:flex;gap:12px;align-items:flex-start;min-height:44px;padding:10px 12px;text-align:left;cursor:pointer;background:#fbf8f1;border:1.5px solid #a99f88;border-radius:3px;color:#1b1a17;font-family:'Archivo Variable','Archivo',system-ui,sans-serif;font-size:0.9375rem;transition:background 90ms steps(2),border-color 90ms steps(2);}.ds-opt:hover{border-color:#1b1a17;}.ds-opt[aria-pressed='true']{border-color:#1b1a17;background:#f8e8b6;}.ds-opt:focus-visible{outline:2px solid #1b1a17;outline-offset:2px;}.ds-key{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;color:#6b6557;padding-top:3px;}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Acetate Manual",
+    "overview": "The live class is a boxed-software reference manual lying open at a tabbed section. The lesson is the manual: each segment is a coloured divider tab on the fore edge, the shared whiteboard is the printed leaf in the middle of the page, people are punched holes along the binding, and a private thread is a sheet of milk acetate hinged over the leaf so the class stays visible underneath. Everything is cream stock and black print ink; colour is spent only where it carries meaning (a section, an action, an error).\n\nDensity is that of a reference manual, not a dashboard: condensed Archivo running heads and labels, Source Serif 4 for anything meant to be read as prose (captions, tutor answers, notes), and JetBrains Mono only for numbers, codes and times. Nothing eases or fades. Every state change is a two-frame mechanical step of 90 ms, and board figures plot on in discrete pen-plotter steps. The world refuses the video-call grid with a chat sidebar: no faces tiled, no bubble chat, no glassy dark panels.\n\nThe world is light only. `color-scheme` is set to `light` on `:root`; there is no dark theme.",
+    "keyCharacteristics": [
+      "Cream section board (paper), white printed leaf, milk acetate as the three material layers.",
+      "Chrome yellow is the one action ink; vermilion is the one error ink.",
+      "Six section hues on divider tabs, cycled per lesson segment.",
+      "Condensed uppercase Archivo for heads, labels, stamps and buttons; serif for reading; mono for figures.",
+      "Two-frame stepped motion (90 ms, `steps(2)`), hinged at the punched edge; never eased.",
+      "Lucide line icons only; no emoji."
+    ],
+    "rules": [
+      {
+        "name": "The One Yellow Rule",
+        "body": "Chrome yellow fills only the primary pressable action, and only while it can be pressed: a disabled primary drops to a transparent outline (the Send button only turns yellow once there is something to send). Never a section hue, never decoration, never a status.",
+        "section": "colors"
+      },
+      {
+        "name": "The Errata Rule",
+        "body": "Vermilion appears only when something failed or would destroy something. It is never a section hue and never emphasis.",
+        "section": "colors"
+      },
+      {
+        "name": "The Section Ink Rule",
+        "body": "A segment's hue belongs to that segment's tab and the few marks that say \"this part of the lesson\"; it is never used for actions or errors.",
+        "section": "colors"
+      },
+      {
+        "name": "The Mono-for-Figures Rule",
+        "body": "JetBrains Mono sets only numbers, codes, times and keys (seat counts, 0:30, invite codes, option letters, segment numbers, code on the board). Never words, never headings.",
+        "section": "typography"
+      },
+      {
+        "name": "The Serif-Is-Speech Rule",
+        "body": "If it is prose to be read (what the tutor says, what the class wrote down), it is Source Serif 4. Interface words stay in Archivo.",
+        "section": "typography"
+      },
+      {
+        "name": "The Lies-On-Top Rule",
+        "body": "A shadow means one sheet is laid over another. Question cards are ruled entries on the rail's leaf and stay flat; only the one that needs you (attention) takes the leaf shadow and an ink border.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Focus Economy Rule",
+        "body": "While a check or thread is in play, what is not in play falls back to the page: desaturate to 0.3 to 0.35 and drop opacity to 0.5 to 0.6, in a two-frame step.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do give each surface at most one chrome yellow primary action, and let it lose its yellow while disabled.",
+      "Do reserve vermilion for the errata slip, invalid fields, wrong answers and the destructive confirm.",
+      "Do colour lesson segments only with the six section hues, in order (orange, teal, grass, ultramarine, violet, sienna), with ink on orange and white on the rest.",
+      "Do set numbers, codes, times and keys in JetBrains Mono, and only those.",
+      "Do set spoken and written prose (captions, tutor answers, notes, prompts) in Source Serif 4.",
+      "Do animate in two-frame steps (`var(--step) steps(2)`, 90 ms) and hinge new leaves from the punched edge.",
+      "Do say status in words on a stamp first; colour only reinforces.",
+      "Do use lucide line icons (12 to 16px, stroke 2 to 3), with a short word beside them wherever there is room (host controls keep their words on phones).",
+      "Do show people as punched holes ringed in their colour, never as avatars or video tiles.",
+      "Do make the acetate opaque on phones while keeping its edge and shadow."
+    ],
+    "donts": [
+      "Don't use yellow for a section, a status, a warning or decoration.",
+      "Don't use vermilion for emphasis or as a section hue.",
+      "Don't ease or fade transitions (no `ease`, `ease-in-out` or smooth cross-fades); step them.",
+      "Don't use emoji anywhere in the interface; reactions and marks are lucide icons and words.",
+      "Don't use mono for words, labels or headings.",
+      "Don't round corners past 3px on leaves, buttons and inputs; only punches and swatches are circles.",
+      "Don't raise every card; only a sheet laid over another, or the one entry that needs you, gets a shadow.",
+      "Don't build a video-call grid or a bubble chat sidebar; the class is the manual.",
+      "Don't add a dark theme by inverting tokens; the world is printed stock and is light only."
+    ]
+  }
+}
