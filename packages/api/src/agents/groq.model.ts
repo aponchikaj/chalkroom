@@ -105,10 +105,15 @@ export class GroqModel extends ModelPort {
     const reader = r.body.getReader();
     const decoder = new TextDecoder();
     const s = new GroqStream();
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      for (const ev of s.push(decoder.decode(value, { stream: true }))) yield ev;
+    try {
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        for (const ev of s.push(decoder.decode(value, { stream: true }))) yield ev;
+      }
+    } finally {
+      // the consumer stopped early (a cancelled prefetch): close the connection, Groq stops
+      reader.cancel().catch(() => undefined);
     }
     const tail = s.end();
     const done = tail.at(-1) as Extract<ModelEvent, { type: 'done' }>;

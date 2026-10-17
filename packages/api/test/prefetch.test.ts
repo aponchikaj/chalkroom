@@ -21,3 +21,20 @@ describe('prefetch', () => {
     expect(got).toEqual([1]);
   });
 });
+
+describe('prefetch cancel', () => {
+  it('stops pulling from the source once cancelled', async () => {
+    let pulled = 0;
+    let release!: () => void;
+    const gate = new Promise<void>((r) => { release = r; });
+    async function* source() {
+      for (let i = 0; i < 100; i++) { pulled++; if (i === 2) await gate; yield i; }
+    }
+    const buf = prefetch(source());
+    await new Promise((r) => setTimeout(r, 10));
+    buf.cancel();
+    release();
+    await new Promise((r) => setTimeout(r, 10));
+    expect(pulled).toBeLessThanOrEqual(4);
+  });
+});

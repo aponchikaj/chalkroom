@@ -156,10 +156,11 @@ export class RoomConductor {
     // the summary runs beside the gate, never in front of it
     this.pendingSummary = this.summarize(room, segment, plan.segments[segment].title);
     // pipelining: write the next segment while the class answers the check and votes
+    // the gate opens first; the next segment's retrieval and writing run behind it
+    await this.deps.rooms.update(room.id, { phase: 'check' });
     if (config.pipeline && segment + 1 < plan.segments.length) {
       this.next = { segment: segment + 1, chunks: prefetch(this.deps.lead.teach(await this.teachContext(room, segment + 1, false))) };
     }
-    await this.deps.rooms.update(room.id, { phase: 'check' });
     await this.evaluateGate();
   }
 
@@ -173,9 +174,12 @@ export class RoomConductor {
   private takePrefetch(segment: number, slower: boolean): ChunkBuffer<TeachChunk> | null {
     const p = this.next;
     this.next = null;
-    if (!p || p.segment !== segment || slower) return null;
+    if (!p) return null;
     const s = this.lastCheck?.spread;
-    if (s && s.total > 0 && s.correct / s.total < 0.5) return null;
+    if (p.segment !== segment || slower || (s && s.total > 0 && s.correct / s.total < 0.5)) {
+      p.chunks.cancel(); // re-taught differently: stop spending tokens on it
+      return null;
+    }
     return p.chunks;
   }
 
@@ -250,10 +254,12 @@ export class RoomConductor {
     if (!clusters.data?.length) return;
     const prefix = await this.prefix(room);
     const known = await this.deps.retrieve.known(room);
+    // every cluster's questions in one query
+    const all = await this.db.from('questions').select('cluster_id, text, author_name').eq('room_id', room.id).in('cluster_id', clusters.data.map((c) => c.id));
     for (const c of clusters.data) {
-      const qs = await this.db.from('questions').select('text, author_name').eq('cluster_id', c.id);
-      const askers = [...new Set((qs.data ?? []).map((q) => q.author_name as string))];
-      const texts = (qs.data ?? []).map((q) => q.text as string);
+      const qs = (all.data ?? []).filter((q) => q.cluster_id === c.id);
+      const askers = [...new Set(qs.map((q) => q.author_name as string))];
+      const texts = qs.map((q) => q.text as string);
       try {
         const found = await this.deps.retrieve.context(room, [c.title, ...texts].join(' '));
         const top = found.passages[0];
@@ -276,6 +282,7 @@ export class RoomConductor {
     await this.notice(room, 'Class ended. Thanks for learning together!');
     await this.pendingSummary;
     await this.writeNotes(room);
+    this.next?.chunks.cancel();
     this.next = null;
     this.deps.ended(room.id);
   }
@@ -304,7 +311,8 @@ export class RoomConductor {
       this.summaries.push(summary);
       // B12: the class transcript becomes searchable for threads and the Q&A beat
       const narration = segmentTranscript(events, segment);
-      if (narration) await this.deps.ingest.indexNow({ room_id: room.id }, 'transcript', `Segment ${segment}: ${title}`, [{ page: null, text: `${narration}\n\nSummary: ${summary}`, heading: title }]);
+      // in the background: the next segment waits for the summary, not for indexing (never rejects)
+      if (narration) void this.deps.ingest.indexNow({ room_id: room.id }, 'transcript', `Segment ${segment}: ${title}`, [{ page: null, text: `${narration}\n\nSummary: ${summary}`, heading: title }]);
     } catch (e) {
       this.log.warn(`summary ${segment}: ${(e as Error).message}`);
     }

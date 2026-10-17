@@ -170,3 +170,59 @@ create index ready_votes_user on public.ready_votes (user_id);
 create index reactions_user on public.reactions (user_id);
 create index threads_owner on public.threads (owner_id);
 create index card_reviews_user on public.card_reviews (user_id);
+
+-- 7. Row security computed once per query. is_member(room_id) is a SECURITY DEFINER function of
+--    a column, so it ran once per returned row (a 1000-event replay: 1000 calls, each checking
+--    the second factor and membership). my_room_ids() takes no column, so `room_id in (select
+--    my_room_ids())` is evaluated once per statement. Same rule: member, not banned, second
+--    factor passed.
+create or replace function public.my_room_ids()
+returns setof uuid
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select m.room_id from public.room_members m
+  where m.user_id = auth.uid() and not m.banned and public.mfa_satisfied();
+$$;
+
+revoke execute on function public.my_room_ids() from public, anon;
+grant execute on function public.my_room_ids() to authenticated, service_role;
+
+alter policy "members read cards" on public.cards using (room_id is not null and room_id in (select public.my_room_ids()));
+alter policy "members read clusters" on public.clusters using (room_id in (select public.my_room_ids()));
+alter policy "members read events" on public.events using (room_id in (select public.my_room_ids()));
+alter policy "members read notes" on public.note_blocks using (room_id in (select public.my_room_ids()));
+alter policy "members read questions" on public.questions using (room_id in (select public.my_room_ids()));
+alter policy "members read reactions" on public.reactions using (room_id in (select public.my_room_ids()));
+alter policy "members read ready" on public.ready_votes using (room_id in (select public.my_room_ids()));
+alter policy "members read members" on public.room_members using (room_id in (select public.my_room_ids()));
+alter policy "members read room" on public.rooms using (id in (select public.my_room_ids()));
+alter policy "members read streams" on public.streams using (room_id in (select public.my_room_ids()));
+alter policy "members read threads" on public.threads using (room_id in (select public.my_room_ids()));
+alter policy "read room or course sources" on public.sources using (
+  (room_id is not null and room_id in (select public.my_room_ids()))
+  or (course_id is not null and public.can_read_course(course_id)));
+
+-- 8. Votes: toggle and recount in one transaction (the API did delete, insert, count and update
+--    as four calls, so two toggles at once could store a stale count).
+create or replace function public.toggle_vote(p_question uuid, p_user uuid)
+returns int
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare v_count int;
+begin
+  perform 1 from public.questions where id = p_question for update;
+  delete from public.votes where question_id = p_question and user_id = p_user;
+  if not found then insert into public.votes (question_id, user_id) values (p_question, p_user); end if;
+  select count(*) into v_count from public.votes where question_id = p_question;
+  update public.questions set votes = v_count where id = p_question;
+  return v_count;
+end;
+$$;
+
+revoke execute on function public.toggle_vote(uuid, uuid) from public, anon, authenticated;
+grant execute on function public.toggle_vote(uuid, uuid) to service_role;
