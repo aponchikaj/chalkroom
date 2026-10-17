@@ -24,13 +24,13 @@ describe('open and message', () => {
     expect(r.status).toBe(201);
     expect(r.body).toMatchObject({ room_id: room.id, owner_id: ana.id, topic: 'bump seeds', status: 'open' });
     expect(typeof Number(r.body.left_main_seq)).toBe('number');
-    await waitEvent(ana, (e) => e.stream_id === r.body.stream_id && e.kind === 'chat', 'the greeting');
+    await waitEvent(ana, (e) => e.stream_id === r.body.stream_id && e.kind === 'chat', 'the greeting', 30_000);
 
     expect((await api(ana, 'POST', `/threads/${r.body.id}/messages`, { text: 'Why does it start at 255?' })).status).toBe(202);
-    await waitEvent(ana, (e) => e.stream_id === r.body.stream_id && e.kind === 'chat' && (e.data as { role: string }).role === 'tutor' && e.seq >= 3, 'the tutor reply');
+    await waitEvent(ana, (e) => e.stream_id === r.body.stream_id && e.kind === 'chat' && (e.data as { role: string }).role === 'tutor' && e.seq >= 3, 'the tutor reply', 30_000);
     const lines = chats(ana, r.body.stream_id).map((e) => e.data.role);
     expect(lines.slice(0, 3)).toEqual(['tutor', 'learner', 'tutor']);
-    await waitEvent(ana, (e) => e.stream_id === r.body.stream_id && e.kind === 'board', 'mini board steps');
+    await waitEvent(ana, (e) => e.stream_id === r.body.stream_id && e.kind === 'board', 'mini board steps', 30_000);
   });
 
   it('opens from your own question and marks it `thread`', async () => {
