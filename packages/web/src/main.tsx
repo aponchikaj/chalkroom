@@ -7,6 +7,7 @@ import './styles.css';
 import { usePath } from './lib/router';
 import { Home } from './screens/Home';
 import { RoomRoute } from './screens/RoomRoute';
+import { ClassShelf } from './screens/shelf/ClassShelf';
 import { lazy, Suspense } from 'react';
 
 // Dev preview of every classroom state on fixture data; tree-shaken out of production builds.
@@ -15,6 +16,8 @@ const DevClassroom = import.meta.env.DEV ? lazy(() => import('./dev/DevClassroom
 function App() {
   const path = usePath();
   if (DevClassroom && path.startsWith('/dev/classroom')) return <Suspense fallback={null}><DevClassroom /></Suspense>;
+  const shelf = /^\/c\/([0-9a-f-]{36})\/?$/.exec(path);
+  if (shelf) return <ClassShelf key={shelf[1]} roomId={shelf[1]} />;
   const room = /^\/r\/([A-Za-z0-9]+)\/?$/.exec(path);
   return room ? <RoomRoute key={room[1].toUpperCase()} code={room[1].toUpperCase()} /> : <Home />;
 }

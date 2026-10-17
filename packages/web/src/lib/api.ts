@@ -1,6 +1,6 @@
 // REST client for the NestJS API. Request bodies are typed by @chalk/schema's Api contracts.
 import type { z } from 'zod';
-import type { Api, CreateRoomRes, JoinRoomRes, NoteBlockRow, QuestionRow, RoomPreview, ThreadRow } from '@chalk/schema';
+import type { Api, CardReviewRow, CreateRoomRes, JoinRoomRes, NoteBlockRow, QuestionRow, RoomPreview, ThreadRow } from '@chalk/schema';
 import { ensureSession, supabase } from './supabase';
 
 const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:3001';
@@ -44,5 +44,6 @@ export const api = {
   closeThread: (threadId: string) => call<void>('POST', `/threads/${threadId}/close`, {}),
   shareThread: (threadId: string, b: In<'shareThread'>) => call<void>('POST', `/threads/${threadId}/share`, b),
   moderate: (roomId: string, b: In<'moderate'>) => call<void>('POST', `/rooms/${roomId}/moderate`, b),
+  reviewCard: (cardId: string, b: In<'reviewCard'>) => call<CardReviewRow>('POST', `/cards/${cardId}/review`, b),
   editNote: (roomId: string, blockId: string, b: In<'editNote'>) => call<NoteBlockRow>('PUT', `/rooms/${roomId}/notes/${blockId}`, b),
 };
