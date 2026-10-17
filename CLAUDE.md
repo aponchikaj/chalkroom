@@ -25,10 +25,10 @@ whiteboard (Hacktoberfest Georgia 2026). Two developers build it in parallel.
 - Agents call models only through `ModelPort`, answer with one validated tool call, and keep
   a working `mock` answer (demo insurance; `MODEL=mock` must always run a full class).
 - New SQL goes in a new migration file; never edit a migration that is already on `main`.
-- Model: production is Claude Sonnet 5.5 (`claude-sonnet-5-5`, paid, `ANTHROPIC_API_KEY`). A free
-  tier is for testing only (Groq today: lead `openai/gpt-oss-120b`, thread `qwen/qwen3.8-27b`,
-  triage/scribe/planning `openai/gpt-oss-20b`). Order: Anthropic key, else the free tier, else
-  the mock; `MODEL` forces one (design doc, "Model choice").
+- Model: production is Claude Sonnet 5.5 (`claude-sonnet-5-5`, paid, `ANTHROPIC_API_KEY`). Free
+  tiers are for testing only: Gemini (`GEMINI_API_KEY`; lead `gemini-3.8-flash`, thread
+  `gemini-3.6-flash`, triage/scribe/planning `gemini-3.5-flash-lite`), or Groq (`GROQ_API_KEY`).
+  Order: Anthropic, Gemini, Groq, mock; `MODEL` forces one (design doc, "Model choice").
 - Text only for people: no microphone or speech input; only the AI tutor speaks.
 
 ## Rules
