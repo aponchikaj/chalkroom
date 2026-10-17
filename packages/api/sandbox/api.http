@@ -1,0 +1,155 @@
+# Chalkroom API: every endpoint, for the VS Code "REST Client" extension (humao.rest-client).
+# 1. npm run db:start && npm run env && npm run dev
+# 2. npm run sandbox:tokens        (writes ./.env with three anonymous users: Ana, Gio, Eve)
+# 3. Click "Send Request" above each block, top to bottom. Ids flow from earlier responses.
+# Tokens expire after 1 hour: run step 2 again on 401.
+
+@api = {{$dotenv API_URL}}
+@supabase = {{$dotenv SUPABASE_URL}}
+@anon = {{$dotenv ANON_KEY}}
+@ana = {{$dotenv TOKEN_ANA}}
+@gio = {{$dotenv TOKEN_GIO}}
+@eve = {{$dotenv TOKEN_EVE}}
+
+@roomId = {{create.response.body.$.room.id}}
+@code = {{create.response.body.$.room.invite_code}}
+@questionId = {{ask.response.body.$.id}}
+@checkId = {{checks.response.body.$[0].data.checkId}}
+@segment = {{checks.response.body.$[0].data.segment}}
+
+### Health (no token)
+GET {{api}}/health
+
+### Create a room (Ana hosts)
+# @name create
+POST {{api}}/rooms
+Authorization: Bearer {{ana}}
+Content-Type: application/json
+
+{ "title": "Solana PDAs", "goal": "", "displayName": "Ana", "color": "#f2d16b", "visibility": "private" }
+
+### Preview by invite code (no token)
+GET {{api}}/rooms/code/{{code}}
+
+### Gio joins
+POST {{api}}/rooms/join
+Authorization: Bearer {{gio}}
+Content-Type: application/json
+
+{ "inviteCode": "{{code}}", "displayName": "Gio", "color": "#8fc7e8" }
+
+### Start the class (host only)
+POST {{api}}/rooms/{{roomId}}/start
+Authorization: Bearer {{ana}}
+Content-Type: application/json
+
+{}
+
+### Latest check, read through Supabase with RLS as Ana (gives checkId and segment)
+# @name checks
+GET {{supabase}}/rest/v1/events?room_id=eq.{{roomId}}&kind=eq.check&select=seq,data&order=seq.desc&limit=1
+apikey: {{anon}}
+Authorization: Bearer {{ana}}
+
+### Ana answers the check (mcq: option index)
+POST {{api}}/rooms/{{roomId}}/checks/{{checkId}}/answer
+Authorization: Bearer {{ana}}
+Content-Type: application/json
+
+{ "answer": 1 }
+
+### Gio answers the check
+POST {{api}}/rooms/{{roomId}}/checks/{{checkId}}/answer
+Authorization: Bearer {{gio}}
+Content-Type: application/json
+
+{ "answer": 0 }
+
+### Ana is ready
+POST {{api}}/rooms/{{roomId}}/ready
+Authorization: Bearer {{ana}}
+Content-Type: application/json
+
+{ "segment": {{segment}} }
+
+### Gio is ready (the gate passes when both are)
+POST {{api}}/rooms/{{roomId}}/ready
+Authorization: Bearer {{gio}}
+Content-Type: application/json
+
+{ "segment": {{segment}} }
+
+### Host action: skip | hold | resume | slower | end
+POST {{api}}/rooms/{{roomId}}/host
+Authorization: Bearer {{ana}}
+Content-Type: application/json
+
+{ "action": "hold" }
+
+### Reaction on a shape (toggle): confused | got_it
+POST {{api}}/rooms/{{roomId}}/reactions
+Authorization: Bearer {{gio}}
+Content-Type: application/json
+
+{ "shapeId": "pda", "kind": "confused" }
+
+### Ask a question
+# @name ask
+POST {{api}}/rooms/{{roomId}}/questions
+Authorization: Bearer {{gio}}
+Content-Type: application/json
+
+{ "text": "Why can a PDA not sign?" }
+
+### Anonymous +1 (toggle)
+POST {{api}}/questions/{{questionId}}/vote
+Authorization: Bearer {{ana}}
+Content-Type: application/json
+
+{}
+
+### Room state as Gio (RLS: members only)
+GET {{supabase}}/rest/v1/questions?room_id=eq.{{roomId}}&select=id,text,status,votes,cluster_id
+apikey: {{anon}}
+Authorization: Bearer {{gio}}
+
+### Error case: Eve is not a member (403)
+POST {{api}}/rooms/{{roomId}}/questions
+Authorization: Bearer {{eve}}
+Content-Type: application/json
+
+{ "text": "let me in" }
+
+### Error case: no token (401)
+POST {{api}}/rooms
+Content-Type: application/json
+
+{ "title": "x", "displayName": "A", "color": "#f2d16b" }
+
+### Error case: invalid body (400)
+POST {{api}}/rooms
+Authorization: Bearer {{ana}}
+Content-Type: application/json
+
+{ "title": "", "displayName": "A", "color": "red" }
+
+### Threads (B4, returns 501 until built): open
+POST {{api}}/rooms/{{roomId}}/threads
+Authorization: Bearer {{gio}}
+Content-Type: application/json
+
+{ "topic": "bump seeds" }
+
+### Leave the room
+POST {{api}}/rooms/{{roomId}}/leave
+Authorization: Bearer {{gio}}
+Content-Type: application/json
+
+{}
+
+### End the class (host)
+POST {{api}}/rooms/{{roomId}}/host
+Authorization: Bearer {{ana}}
+Content-Type: application/json
+
+{ "action": "end" }
