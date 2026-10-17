@@ -26,7 +26,7 @@ import { NoEmbeddings } from './rag/embeddings/no.embeddings';
 @Controller()
 class HealthController {
   @Get('health')
-  health() { return { ok: true, model: config.model, modelId: config.model === 'mock' ? null : config.modelId }; }
+  health() { return { ok: true, model: config.model, modelId: config.model === 'mock' ? null : config.agentModels.lead, agents: config.model === 'mock' ? null : config.agentModels }; }
 }
 
 @Module({

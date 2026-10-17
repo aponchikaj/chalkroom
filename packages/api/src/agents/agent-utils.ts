@@ -4,7 +4,8 @@ import type { ModelPort, ModelRequest, ModelTool } from './model.port';
 
 export function toolFrom(name: string, description: string, schema: z.ZodObject): ModelTool {
   // the Messages API validates tool schemas as JSON Schema draft 2020-12 (tuples → prefixItems)
-  const json = z.toJSONSchema(schema, { target: 'draft-2020-12', unrepresentable: 'any' }) as Record<string, unknown>;
+  // io 'input': fields with a Zod default stay optional (providers like Groq validate strictly)
+  const json = z.toJSONSchema(schema, { target: 'draft-2020-12', unrepresentable: 'any', io: 'input' }) as Record<string, unknown>;
   delete json.$schema;
   return { name, description, input_schema: json };
 }

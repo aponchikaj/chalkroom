@@ -64,7 +64,7 @@ export class TriageService {
     try {
       result = await this.agent.run({
         roomId,
-        prefix: await this.rooms.prefixOf(room), segment: room.segment,
+        prefix: await this.rooms.prefixOf(room, { board: false }), segment: room.segment,
         segmentTitle: room.lesson_plan?.segments[room.segment]?.title ?? room.title,
         questions, clusters, history,
       });

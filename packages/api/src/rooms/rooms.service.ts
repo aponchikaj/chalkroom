@@ -85,8 +85,8 @@ export class RoomsService {
   }
 
   /** The cached prefix every agent of this room shares. Byte-stable across calls. */
-  async prefixOf(room: RoomRow): Promise<string> {
-    return roomPrefix({ title: room.title, goal: room.goal, syllabus: await this.syllabusOf(room) }, room.lesson_plan);
+  async prefixOf(room: RoomRow, opts: { board?: boolean } = {}): Promise<string> {
+    return roomPrefix({ title: room.title, goal: room.goal, syllabus: await this.syllabusOf(room) }, room.lesson_plan, opts);
   }
 
   async syllabusOf(room: RoomRow): Promise<string | undefined> {

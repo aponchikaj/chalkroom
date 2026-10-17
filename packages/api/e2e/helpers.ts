@@ -15,7 +15,7 @@ function readEnv(file: string): Record<string, string> {
 }
 
 export const env: Record<string, string | undefined> = { ...readEnv(`${ROOT}.env`), ...readEnv(`${ROOT}.env.local`), ...process.env };
-export const API = env.E2E_API_URL ?? env.VITE_API_URL ?? 'http://localhost:3001';
+export const API = process.env.E2E_API_URL ?? env.E2E_API_URL ?? env.VITE_API_URL ?? 'http://localhost:3001';
 
 const COLORS = ['#f2d16b', '#8fc7e8', '#a8dc9f', '#f4a6c8', '#f6b26b', '#c3a6f4'];
 let made = 0;
