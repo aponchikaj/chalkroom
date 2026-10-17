@@ -1,6 +1,7 @@
 // The ingest worker: claims pending sources (claim_source(), safe across instances), extracts
 // text per page, chunks it, embeds it (when an embedding provider is set), stores the chunks
-// and marks the source ready or failed.
+// and marks the source ready or failed. When the queue is empty it gives vectors to chunks
+// stored without one (sources indexed before embeddings were on).
 import { Injectable, Logger, type OnApplicationBootstrap, type OnModuleDestroy } from '@nestjs/common';
 import type { SourceRow } from '@chalk/schema';
 import { SupabaseService } from '../core/supabase.service';
@@ -29,7 +30,7 @@ export class IngestWorker implements OnApplicationBootstrap, OnModuleDestroy {
       for (let i = 0; i < 5; i++) {
         const r = await this.db.rpc('claim_source');
         const s = (r.data as SourceRow[] | null)?.[0];
-        if (!s) break;
+        if (!s) { await this.backfill(); break; }
         await this.ingest(s);
       }
     } catch (e) {
@@ -48,6 +49,20 @@ export class IngestWorker implements OnApplicationBootstrap, OnModuleDestroy {
     const dl = await this.db.storage.from('resources').download(s.uri!);
     if (dl.error || !dl.data) throw new Error('the file is gone from storage');
     return { pages: await extract(Buffer.from(await dl.data.arrayBuffer()), s.mime ?? dl.data.type) };
+  }
+
+  /** Up to 32 chunks without a vector get one. Updates are idempotent, so two instances doing
+   *  this at once only waste a little work. */
+  private async backfill() {
+    if (this.embeddings.name === 'none') return;
+    const r = await this.db.from('chunks').select('id, content').is('embedding', null).limit(32);
+    const rows = (r.data ?? []) as { id: number; content: string }[];
+    if (!rows.length) return;
+    const vectors = await this.embeddings.embed(rows.map((c) => c.content), 'document');
+    for (let i = 0; i < rows.length; i++) {
+      if (vectors[i]) await this.db.from('chunks').update({ embedding: `[${vectors[i]!.join(',')}]` }).eq('id', rows[i].id);
+    }
+    this.log.log(`gave vectors to ${rows.length} older chunk(s)`);
   }
 
   /** Chunk, embed and store pages for a source; returns the counts. */

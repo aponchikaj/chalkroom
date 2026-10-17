@@ -1,4 +1,4 @@
-import { Controller, Get, Module } from '@nestjs/common';
+import { Controller, Get, Logger, Module } from '@nestjs/common';
 import { config } from './config';
 import { CoreModule } from './core/core.module';
 import { AgentsModule } from './agents/agents.module';
@@ -26,11 +26,12 @@ import { RetrieveService } from './rag/retrieve.service';
 import { MailModule } from './mail/mail.module';
 import { EmbeddingPort } from './rag/embeddings/embedding.port';
 import { NoEmbeddings } from './rag/embeddings/no.embeddings';
+import { LocalEmbeddings } from './rag/embeddings/local.embeddings';
 
 @Controller()
 class HealthController {
   @Get('health')
-  health() { return { ok: true, model: config.model, modelId: config.model === 'mock' ? null : config.agentModels.lead, agents: config.model === 'mock' ? null : config.agentModels }; }
+  health() { return { ok: true, embeddings: config.embeddings.provider, model: config.model, modelId: config.model === 'mock' ? null : config.agentModels.lead, agents: config.model === 'mock' ? null : config.agentModels }; }
 }
 
 @Module({
@@ -39,8 +40,13 @@ class HealthController {
   // (threads -> conductor -> triage -> thread offers). Folders, not modules, carry the structure.
   providers: [
     RoomsService, ConductorService, ProfilesService, AvatarsService, TwoFactorService, ThreadStore, TriageService, ThreadsService, PresenceService, SourcesService, IngestWorker, RetrieveService,
-    // B12 swaps in the Voyage adapter when config.embeddings.provider is 'voyage'
-    { provide: EmbeddingPort, useClass: NoEmbeddings },
+    // meaning-based search: the model warms in the background so boot is not held up
+    { provide: EmbeddingPort, useFactory: () => {
+      if (config.embeddings.provider === 'none') return new NoEmbeddings();
+      const local = new LocalEmbeddings();
+      void local.warm().catch((e: Error) => new Logger('Embeddings').warn(`model not loaded, full text only until it is: ${e.message}`));
+      return local;
+    } },
   ],
   controllers: [HealthController, MeController, TwoFactorController, UsersController, RoomsController, QuestionsController, ThreadsController, NotesController, SourcesController, ...(config.sandbox ? [SandboxController] : [])],
 })

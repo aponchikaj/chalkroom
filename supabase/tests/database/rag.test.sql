@@ -27,9 +27,9 @@ insert into public.sources (id, course_id, kind, title, status) values
 -- embeddings: unit vectors along different axes so cosine ranking is predictable
 insert into public.chunks (source_id, idx, page, heading, content, token_count, embedding) values
   ('10000000-0000-4000-8000-000000000001', 0, 3, 'Signing', 'A program signs for its PDA with invoke_signed and the seeds.', 14,
-    ('[1' || repeat(',0', 1023) || ']')::extensions.vector),
+    ('[1' || repeat(',0', 383) || ']')::extensions.vector),
   ('10000000-0000-4000-8000-000000000001', 1, 4, 'Bumps', 'find_program_address starts at bump 255 and counts down.', 12,
-    ('[0,1' || repeat(',0', 1022) || ']')::extensions.vector),
+    ('[0,1' || repeat(',0', 382) || ']')::extensions.vector),
   ('10000000-0000-4000-8000-000000000002', 0, null, 'Syllabus', 'Program Derived Addresses come after the accounts model.', 10, null),
   ('10000000-0000-4000-8000-000000000003', 0, 1, 'Hidden', 'invoke_signed text in a pending source must not match.', 10, null);
 
@@ -42,14 +42,14 @@ select is(
 
 -- vector only (no keyword overlap): the nearest embedding wins
 select is(
-  (select page from public.match_chunks('zzz', ('[0,1' || repeat(',0', 1022) || ']')::extensions.vector, 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', null, 1)),
+  (select page from public.match_chunks('zzz', ('[0,1' || repeat(',0', 382) || ']')::extensions.vector, 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', null, 1)),
   4,
   'vector search ranks the closest chunk first'
 );
 
 -- hybrid: both rankings agree on page 3
 select is(
-  (select page from public.match_chunks('invoke_signed seeds', ('[1' || repeat(',0', 1023) || ']')::extensions.vector, 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', null, 1)),
+  (select page from public.match_chunks('invoke_signed seeds', ('[1' || repeat(',0', 383) || ']')::extensions.vector, 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', null, 1)),
   3,
   'hybrid search fuses both rankings'
 );

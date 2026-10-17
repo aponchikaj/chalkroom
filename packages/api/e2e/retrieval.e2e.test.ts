@@ -1,9 +1,10 @@
 // Retrieval (B12): the tutors get passages from the room's material and cite them; the class
 // transcript and the course syllabus become searchable. Mock tutor: it cites the top passage.
 import { afterAll, describe, expect, it } from 'vitest';
+import { createClient } from '@supabase/supabase-js';
 import type { SourceRow, SourceUploadRes, StreamEvent } from '@chalk/schema';
 import { makePdf } from '../test/fixtures';
-import { api, atCheck, closeAll, joinRoom, newUser, sleep, subscribe, waitEvent, type TestUser } from './helpers';
+import { api, atCheck, closeAll, env, joinRoom, newUser, sleep, subscribe, waitEvent, type TestUser } from './helpers';
 
 const COURSE = '00000000-0000-4000-8000-000000000001';
 const users: TestUser[] = [];
@@ -52,6 +53,40 @@ describe('retrieval in class', () => {
     expect([`res:${src.id}#p2`, `res:${transcript.id}`]).toContain(cited[0]);
     await api(ana, 'POST', `/rooms/${room.id}/host`, { action: 'end' });
   });
+
+  it('stores a meaning vector with every chunk (local embeddings)', async () => {
+    const health = (await (await fetch(`${process.env.E2E_API_URL ?? env.E2E_API_URL ?? 'http://localhost:3001'}/health`)).json()) as { embeddings?: string };
+    if (health.embeddings !== 'local') return; // EMBEDDINGS=none: full text only, nothing to check
+    const ana = await user('Ana');
+    const room = (await api(ana, 'POST', '/rooms', { title: 'Embeddings' })).body.room;
+    const pdf = makePdf(['A leaf takes in carbon dioxide and gives out oxygen.']);
+    const up = (await api<SourceUploadRes>(ana, 'POST', `/rooms/${room.id}/sources/upload-url`, { fileName: 'leaf.pdf', contentType: 'application/pdf', size: pdf.length })).body;
+    await ana.sb.storage.from('resources').uploadToSignedUrl(up.path, up.token, pdf, { contentType: 'application/pdf' });
+    const src = (await api<SourceRow>(ana, 'POST', `/rooms/${room.id}/sources`, { path: up.path, title: 'Leaf' })).body;
+    await sourcesUntil(ana, room.id, (l) => l.some((s) => s.id === src.id && s.status === 'ready'), 60_000);
+    // chunks are API-only (no learner policy): read them with the service role
+    const admin = createClient(env.SUPABASE_URL!, env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
+    const chunks = (await admin.from('chunks').select('embedding').eq('source_id', src.id)).data ?? [];
+    expect(chunks.length).toBeGreaterThan(0);
+    for (const c of chunks) expect(JSON.parse(c.embedding as string)).toHaveLength(384);
+  }, 90_000);
+
+  it('fills in vectors for chunks stored before embeddings were on', async () => {
+    const health = (await (await fetch(`${process.env.E2E_API_URL ?? env.E2E_API_URL ?? 'http://localhost:3001'}/health`)).json()) as { embeddings?: string };
+    if (health.embeddings !== 'local') return;
+    const ana = await user('Ana');
+    const room = (await api(ana, 'POST', '/rooms', { title: 'Backfill' })).body.room;
+    const admin = createClient(env.SUPABASE_URL!, env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
+    const src = await admin.from('sources').insert({ room_id: room.id, kind: 'faq', title: 'old faq', status: 'ready' }).select('id').single();
+    await admin.from('chunks').insert({ source_id: src.data!.id, idx: 0, page: null, heading: 'old', content: 'An old answer stored with no vector.', token_count: 8 });
+    const t0 = Date.now();
+    for (;;) {
+      const c = (await admin.from('chunks').select('embedding').eq('source_id', src.data!.id).single()).data;
+      if (c?.embedding) { expect(JSON.parse(c.embedding as string)).toHaveLength(384); break; }
+      if (Date.now() - t0 > 30_000) throw new Error('the chunk never got a vector');
+      await sleep(500);
+    }
+  }, 60_000);
 
   it('indexes the course syllabus once when a course class starts', async () => {
     const ana = await user('Ana');

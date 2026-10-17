@@ -23,3 +23,10 @@ describe('tool schemas describe inputs', () => {
     expect(JSON.stringify(check)).not.toMatch(/"required":\[[^\]]*"difficulty"/);
   });
 });
+
+describe('teach_segment tool', () => {
+  it('requires the end-of-segment check (models skip optional fields)', async () => {
+    const { TEACH_TOOL } = await import('../src/agents/lead-tutor.agent');
+    expect(TEACH_TOOL.input_schema.required).toContain('check');
+  });
+});
