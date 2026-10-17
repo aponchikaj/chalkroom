@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local --watch --watch-path=src --watch-path=../schema/src --watch-path=../board/src --watch-path=../mock-tutor/src --import @swc-node/register/esm-register src/main.ts",
-    "start": "node --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local --import @swc-node/register/esm-register src/main.ts",
+    "dev": "node --watch --watch-path=src --watch-path=../schema/src --watch-path=../board/src --watch-path=../mock-tutor/src --import @swc-node/register/esm-register src/main.ts",
+    "start": "node --import @swc-node/register/esm-register src/main.ts",
     "build": "tsc -p tsconfig.json --noEmit",
     "eval": "node --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local --import @swc-node/register/esm-register eval/run.ts",
     "eval:retrieval": "node --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local --import @swc-node/register/esm-register eval/retrieval.ts"

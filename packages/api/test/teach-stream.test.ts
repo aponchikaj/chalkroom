@@ -37,3 +37,20 @@ describe('streamTeach', () => {
     await expect((async () => { for await (const _ of streamTeach(model, req)) { /* drain */ } })()).rejects.toBeInstanceOf(InvalidTeach);
   });
 });
+
+describe('streamTeach cleans double-escaped text', () => {
+  it('turns literal \\n in streamed board text into line breaks', async () => {
+    const { streamTeach } = await import('../src/agents/teach-stream');
+    const { ModelPort } = await import('../src/agents/model.port');
+    const json = JSON.stringify({ title: 't', steps: [{ add: { id: 'a', kind: 'box', text: 'Inputs:\\nSeeds' } }, { say: 'Look.' }] });
+    class One extends ModelPort {
+      readonly name = 'x';
+      async *stream() { yield { type: 'tool_delta' as const, partialJson: json }; yield { type: 'tool' as const, name: 'teach_segment', input: JSON.parse(json) }; yield { type: 'done' as const, stopReason: 'stop' }; }
+    }
+    const req = { agent: 'lead', prefix: '', system: '', messages: [], tool: { name: 'teach_segment', description: '', input_schema: {} }, mock: () => null } as never;
+    const chunks = [];
+    for await (const c of streamTeach(new One(), req)) chunks.push(c);
+    const first = (chunks[0] as { steps: { add?: { text: string } }[] }).steps[0];
+    expect(first.add?.text).toBe('Inputs:\nSeeds');
+  });
+});

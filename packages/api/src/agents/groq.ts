@@ -261,3 +261,19 @@ export class RequestWindow {
   }
   spend(now: number) { this.times.push(now); }
 }
+
+const TEXT_KEYS = new Set(['text', 'label', 'title', 'say', 'caption', 'markdown', 'prompt', 'explanation', 'xLabel', 'yLabel']);
+
+/** Gemini double-escapes strings in tool arguments: a literal backslash-n where a line break was
+ *  meant, and `\\text` where LaTeX wanted `\text` (`\\` is a LaTeX line break, so formulas broke).
+ *  Text fields get their line breaks back; a formula with doubled backslashes before its commands
+ *  has every pair halved. Code is left alone: "\n" in code is literal. */
+export function undoDoubleEscapes(v: unknown, key = ''): unknown {
+  if (Array.isArray(v)) return v.map((x) => undoDoubleEscapes(x, key));
+  if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, undoDoubleEscapes(x, k)]));
+  if (typeof v !== 'string') return v;
+  // a formula escaped twice (\\text, \\frac): halve every backslash pair in it, \\\\ included
+  if (key === 'latex') return /\\\\[A-Za-z]/.test(v) ? v.replace(/\\\\/g, '\\') : v;
+  if (TEXT_KEYS.has(key)) return v.replace(/\\n/g, '\n');
+  return v;
+}

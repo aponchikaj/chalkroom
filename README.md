@@ -73,6 +73,16 @@ Force the scripted tutor with `MODEL=mock`.
 | `npx supabase migration new <name>` | New SQL migration (never edit one already on `main`) |
 | Supabase Studio | http://127.0.0.1:55423 |
 
+## Testing in the browser
+
+`npm run dev` (API on 3001, web on 5173) against the local stack. Until the login screens exist,
+the dev build signs in test accounts: `http://localhost:5173/?as=ana` in one tab and
+`http://localhost:5173/r/<code>?as=gio` in another are two different people (password
+`Dev-password-123`, accounts `<name>@dev.chalkroom.local`). The API runs on whichever model key is
+set: `GEMINI_API_KEY` (free, testing), `ANTHROPIC_API_KEY` (production), or the mock. Every
+endpoint is also in the sandbox at `http://localhost:3001/sandbox/` and in
+`packages/api/sandbox/api.http`.
+
 ## How it fits together
 
 ```

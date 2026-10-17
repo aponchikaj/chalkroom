@@ -63,6 +63,11 @@ export const ENDPOINTS = [
     body: () => ({ text: 'Why does it start at 255?' }) },
   { group: 'Threads', name: 'Close thread', method: 'POST', path: '/threads/:threadId/close', body: () => ({}) },
   { group: 'Threads', name: 'Share to class', method: 'POST', path: '/threads/:threadId/share', body: () => ({}) },
+  { group: 'Sources', name: 'List sources', method: 'GET', path: '/rooms/:roomId/sources', note: 'Status: pending, processing, ready or failed.' },
+  { group: 'Sources', name: 'Add a link', method: 'POST', path: '/rooms/:roomId/sources/url', body: () => ({ url: 'https://solana.com/docs/core/pda' }), note: 'Fetched by the ingest worker; private addresses are refused.' },
+  { group: 'Sources', name: 'File: upload URL', method: 'POST', path: '/rooms/:roomId/sources/upload-url', body: () => ({ fileName: 'handout.pdf', contentType: 'application/pdf', size: 1024 }), note: 'Then upload to the signed URL (resources bucket) and commit.' },
+  { group: 'Sources', name: 'File: commit upload', method: 'POST', path: '/rooms/:roomId/sources', body: () => ({ path: '<path from upload-url>', title: 'Handout' }) },
+  { group: 'Sources', name: 'Remove source', method: 'DELETE', path: '/sources/:sourceId' },
 
   { group: 'Notes', name: 'Edit note block', method: 'PUT', path: '/rooms/:roomId/notes/:blockId',
     body: (u, c) => ({ markdown: 'Edited in the sandbox', version: Number(c.blockVersion) }),

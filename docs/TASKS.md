@@ -194,9 +194,21 @@ gate (B5). Not done: notices as toasts (the rail shows the latest notices instea
 
 ### A8 Login, registration, password reset (P0, blocking) · API ready (B9)
 
-Anonymous sign-in is **off** (2026-10-17): until this ships, `ensureSession()` in
-`lib/supabase.ts` fails and the web cannot sign anyone in. Passwords need 10+ characters with
-lowercase, uppercase and digits. The pre-join mic test was removed (text only).
+Anonymous sign-in is **off** (2026-10-17). Until the login screens ship, a dev build against the
+local stack signs in test accounts (`VITE_DEV_LOGIN=1` from `npm run env`): open
+`http://localhost:5173/?as=ana` and `?as=gio` in two tabs for two people. Elsewhere
+`ensureSession()` throws `LoginRequired`: show the login screen on it. Passwords need 10+
+characters with lowercase, uppercase and digits. The pre-join mic test was removed (text only).
+
+Notes for Dev A from Dev B (2026-10-18), found while testing the web against the API:
+- `lib/api.ts` now has a typed method for every endpoint (profile, settings, avatar, 2FA,
+  public profiles, moderation, sources); `ApiError.code` carries `mfa_required` (401).
+- `RoomRow.host_id` is `string | null`: null once the host deleted their account (ended rooms).
+- Copy still says "No signup" and "hold Space to talk" on the home page (accounts are required,
+  voice input was removed).
+- A background tab can show an old state until reloaded (seen in a browser test); worth checking
+  that the room view catches up when the tab returns or the channel reconnects.
+- A returning member sees the join form again on reload; the API already knows they are a member.
 - Supabase Auth in the browser: `signUp({ email, password, options: { data: { username, display_name, color } } })`,
   `signInWithPassword`, `resetPasswordForEmail` + `updateUser({ password })`, `signOut`.
 - Join by link/QR goes through login and back to the room. Rooms take the name and color from

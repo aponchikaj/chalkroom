@@ -5,6 +5,7 @@
 import { BoardStep, Question, TeachSegment } from '@chalk/schema';
 import type { ModelPort, ModelRequest } from './model.port';
 import { StepStreamer } from './step-streamer';
+import { undoDoubleEscapes } from './groq';
 
 export type TeachChunk = { steps: BoardStep[] } | { check: Question };
 
@@ -33,14 +34,15 @@ export async function* streamTeach(model: ModelPort, req: ModelRequest): AsyncGe
     if (ev.type === 'tool') { final = ev.input; continue; }
     if (ev.type !== 'tool_delta' || broken) continue;
     for (const raw of streamer.push(ev.partialJson)) {
-      const step = BoardStep.safeParse(raw);
+      // double-escaped text (seen from Gemini: a literal \n in labels) is cleaned on every provider
+      const step = BoardStep.safeParse(undoDoubleEscapes(raw));
       if (!step.success) { broken = true; break; }
       pending.push(step.data);
       streamed++;
       if ('say' in step.data) { yield { steps: pending }; pending = []; }
     }
   }
-  const out = TeachSegment.safeParse(final);
+  const out = TeachSegment.safeParse(undoDoubleEscapes(final));
   if (!out.success) {
     if (!streamed) throw new InvalidTeach(`teach_segment invalid: ${out.error.issues[0]?.message ?? 'no input'}`);
     if (pending.length) yield { steps: pending };
