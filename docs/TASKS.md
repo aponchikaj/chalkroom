@@ -61,6 +61,14 @@ mock speaks the same contract.
 
 ## Dev A: Frontend tasks
 
+**Status (branch `a/frontend`):** A1-A7 are built in the "Acetate Manual" visual world
+(`DESIGN.md`, `PRODUCT.md`) and work end to end in the dev preview
+`/dev/classroom?state=lobby|teaching|check|result|qa|offer|thread|catchup|ended&as=ana|nika|gio|mari`,
+which runs on fixtures and a fake API (`packages/web/src/dev/`). Screenshots: `node scripts/shoot.mjs`.
+Waiting on Dev B to connect for real: question statuses and clusters (B2), threads endpoints (B4),
+`segment_summary` events, note blocks and `PUT /rooms/:id/notes/:blockId` (B3), presence-based
+gate (B5). Not done: notices as toasts (the rail shows the latest notices instead).
+
 ### A1 Question rail (P0) · needs B2 for real statuses (build against hand-made rows first)
 - Replace the bare list in `components/RightPanel.tsx`.
 - Group questions by `cluster_id`; one card per cluster titled `clusters.title`, with the

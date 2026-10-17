@@ -51,6 +51,8 @@ export interface RoomConnection {
   track: (patch: Partial<PresenceState>) => void;
   /** live stream events for any stream (thread drawers subscribe here) */
   onEvent: (fn: (ev: StreamEvent) => void) => () => void;
+  /** past events of any stream in this room (snapshot / gap fill for a StreamSync) */
+  fetchEvents: (streamId: string, afterSeq: number) => Promise<StreamEvent[]>;
   onLaser: (fn: (p: LaserPayload) => void) => () => void;
   sendLaser: (p: LaserPayload) => void;
   close: () => void;
@@ -129,6 +131,7 @@ export async function connectRoom(roomId: string, me: { name: string; color: str
     channel,
     track: (patch) => { presence = { ...presence, ...patch }; void channel.track(presence); },
     onEvent: (fn) => { eventListeners.add(fn); return () => eventListeners.delete(fn); },
+    fetchEvents,
     onLaser: (fn) => { laserListeners.add(fn); return () => laserListeners.delete(fn); },
     sendLaser: (p) => { void channel.send({ type: 'broadcast', event: RT.laser, payload: p }); },
     close: () => {

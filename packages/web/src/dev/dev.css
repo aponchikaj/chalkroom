@@ -1,0 +1,8 @@
+/* Dev preview switcher (dev builds only). */
+.dev-switcher {
+  position: fixed; left: 10px; bottom: 74px; z-index: 100; display: flex; flex-wrap: wrap; gap: 4px; max-width: 520px;
+  padding: 6px; background: var(--ink); border-radius: 3px; font: 600 11px/1 var(--font-mono);
+}
+.dev-switcher a, .dev-switcher span { color: var(--paper); text-decoration: none; padding: 4px 6px; }
+.dev-switcher a[aria-current='true'] { background: var(--action); color: var(--ink); }
+.dev-switcher span { color: var(--rule-2); }

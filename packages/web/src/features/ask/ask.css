@@ -1,0 +1,44 @@
+/* A2 (Dev A): the ask bar. Slips (listening, errata) hang above the bar so it never jumps. */
+
+.askbar { position: relative; }
+.askbar .ask-field { position: relative; flex: 1; min-width: 0; display: flex; }
+.askbar .ask-field .input { flex: 1; min-width: 0; }
+.ask-count { position: absolute; right: 9px; top: 50%; transform: translateY(-50%); font-size: 11px; color: var(--ink-3); background: var(--leaf); padding-left: 4px; pointer-events: none; }
+.askbar .ask-field .input:has(+ .ask-count) { padding-right: 64px; }
+
+/* the slip above the bar */
+.ask-slip {
+  position: absolute; left: 0; right: 0; bottom: calc(100% + 10px); z-index: 30;
+  display: flex; align-items: flex-start; gap: 8px; margin: 0;
+  box-shadow: var(--shadow-leaf);
+}
+.ask-listening {
+  padding: 9px 12px; border: 1.5px solid var(--ink); border-radius: 2px;
+  background: var(--leaf); color: var(--ink); font-size: var(--t-sm); font-weight: 600;
+}
+.ask-listening .lucide { flex: none; margin-top: 2px; }
+
+/* listening: the bar is in play, the field shows what is heard */
+.askbar.listening .input { border-color: var(--ink); background: var(--paper); font-family: var(--font-read); }
+
+/* pinned to the board selection */
+.ask-anchor {
+  flex: none; display: inline-flex; align-items: center; gap: 6px;
+  min-height: 36px; padding: 0 4px 0 9px;
+  border: 1.5px dashed var(--ink); border-radius: var(--r); background: var(--leaf);
+  font-size: var(--t-xs); font-weight: 700; font-stretch: 85%; letter-spacing: 0.04em; color: var(--ink);
+  white-space: nowrap;
+}
+.ask-anchor .lucide { flex: none; }
+
+/* small square dismiss (errata slip, anchor chip) */
+.errata .ask-dismiss { margin: -4px -6px -4px 0; }
+
+/* the mic: held, it reads as pressed ink */
+.ask-mic { touch-action: none; user-select: none; -webkit-user-select: none; }
+.ask-mic[aria-pressed='true']:hover:not(:disabled) { background: var(--ink-2); color: var(--paper); }
+.ask-nomic {
+  flex: none; width: 36px; height: 36px; display: grid; place-items: center;
+  border: 1.5px dashed var(--rule-2); border-radius: var(--r); color: var(--ink-3); cursor: help;
+}
+
