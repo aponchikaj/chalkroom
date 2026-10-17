@@ -7,7 +7,8 @@
 import { readFileSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
 
-const env = Object.fromEntries(readFileSync('.env', 'utf8').split(/\r?\n/).filter((l) => /^[A-Z_]+=/.test(l)).map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1)]));
+// SMOKE_ENV=.env.production.local npm run smoke runs it against production
+const env = Object.fromEntries(readFileSync(process.env.SMOKE_ENV ?? '.env', 'utf8').split(/\r?\n/).filter((l) => /^[A-Z_]+=/.test(l)).map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1)]));
 const API = env.VITE_API_URL ?? 'http://localhost:3001';
 const step = (m) => console.log(`• ${m}`);
 const fail = (m) => { console.error(`FAILED: ${m}`); process.exit(1); };

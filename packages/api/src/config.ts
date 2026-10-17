@@ -8,7 +8,8 @@ const need = (k: string) => {
 };
 
 export const config = {
-  port: Number(process.env.API_PORT ?? 3001),
+  /** hosts (Render, Railway, Fly) set PORT; API_PORT locally */
+  port: Number(process.env.PORT ?? process.env.API_PORT ?? 3001),
   webUrl: process.env.WEB_URL ?? 'http://localhost:5173',
   supabaseUrl: need('SUPABASE_URL'),
   supabaseServiceKey: need('SUPABASE_SERVICE_ROLE_KEY'),
