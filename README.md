@@ -53,8 +53,10 @@ Q&A answers `openai/gpt-oss-20b`. When a call would exceed the quota the API wai
 one class at a time comfortably. Override models with `MODEL_ID` (all) or `MODEL_ID_LEAD`,
 `MODEL_ID_THREAD`, `MODEL_ID_TRIAGE`, `MODEL_ID_SCRIBE`.
 
-Claude instead: `ANTHROPIC_API_KEY=sk-ant-...` (and no Groq key, or `MODEL=anthropic`) runs
-all agents on `claude-haiku-4-5`. Force the scripted tutor with `MODEL=mock`.
+Production runs on Claude: `ANTHROPIC_API_KEY=sk-ant-...` runs all agents on `claude-sonnet-5-5`
+(it wins over the free tier when both keys are set; `MODEL=groq` forces the free tier). Effort per
+agent: lead and thread `medium`, triage and scribe `low` (`ANTHROPIC_EFFORT_<AGENT>` overrides).
+Force the scripted tutor with `MODEL=mock`.
 
 ### Other commands
 
@@ -74,7 +76,7 @@ all agents on `claude-haiku-4-5`. Force the scripted tutor with `MODEL=mock`.
 ## How it fits together
 
 ```
- web (Vite + React + Zustand)  ──REST──▶  api (NestJS)  ──ModelPort──▶  Claude Haiku 4.5 / mock
+ web (Vite + React + Zustand)  ──REST──▶  api (NestJS)  ──ModelPort──▶  Claude Sonnet 5.5 / free tier / mock
    ▲ board player (pure reducer)            RoomConductor per room (phase, gate)
    │ StreamSync per stream                  agents: lead · triage · thread · scribe
    │                                         │ append_event() (gap-free seq)

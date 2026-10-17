@@ -258,10 +258,17 @@ about 8000 tokens per minute, so the agents use different models: the lead tutor
 `openai/gpt-oss-120b`, the thread tutor `qwen/qwen3.8-27b`, and triage, the scribe, lesson
 planning and Q&A answers `openai/gpt-oss-20b`. The API paces calls from Groq's rate-limit
 headers and falls back to the scripted tutor when quota is not back in time. All three
-produced valid Board Script on the first try in testing. Claude Haiku 4.5 remains supported
-(`ANTHROPIC_API_KEY`), and the original analysis below applies to it.
+produced valid Board Script on the first try in testing. The free tier is for testing only.
 
-**Claude Haiku 4.5 (`claude-haiku-4-5-20251001`) for all four agents.**
+**Production: Claude Sonnet 5.5 (`claude-sonnet-5-5`) for all four agents (decision
+2026-10-18).** $2 / M input, $10 / M output, cache reads $0.20 / M. Sonnet 5.5 rejects forced
+tool use, so each agent's tool is offered with `tool_choice: auto` and the prompt names it (a reply
+without the call goes through the repair pass, then the mock); thinking stays adaptive, effort is
+`medium` for the lead and thread tutors and `low` for triage and the scribe; refusals use the
+server-side fallback. The original analysis below was written for Claude Haiku 4.5; the needs are
+the same.
+
+**Original choice: Claude Haiku 4.5 for all four agents.**
 
 | Need | Why Haiku 4.5 fits |
 |---|---|
