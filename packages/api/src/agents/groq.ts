@@ -1,5 +1,6 @@
-// Pure pieces of the Groq adapter (OpenAI-compatible chat completions): request mapping and the
-// streamed-response reader. No network, no config, so both are unit-tested.
+// Pure pieces of the OpenAI-compatible adapter (Groq and Gemini's free tiers, for testing):
+// request mapping, the streamed-response reader, rate-limit parsing and pacing. No network, no
+// config, so all of it is unit-tested.
 import type { ModelEvent, ModelRequest } from './model.port';
 
 type Block = { type: string; [k: string]: unknown };
@@ -13,17 +14,24 @@ type GroqMessage =
 const text = (content: unknown) => (typeof content === 'string' ? content : (content as Block[]).filter((b) => b.type === 'text').map((b) => b.text as string).join('\n'));
 
 /** Our ModelRequest (Anthropic-shaped messages, one forced tool) as a Groq chat completion body. */
-/** Groq reasoning effort: gpt-oss takes low | medium | high, Qwen takes none | default. */
-export type ReasoningEffort = 'low' | 'medium' | 'high' | 'none' | 'default';
+/** Free-tier providers that speak OpenAI-compatible chat completions. */
+export type CompatProvider = 'groq' | 'gemini';
+
+/** Reasoning effort: gpt-oss takes low | medium | high, Qwen none | default, Gemini none |
+ *  minimal | low | medium | high (Gemini 3 cannot turn reasoning off: none is dropped). */
+export type ReasoningEffort = 'minimal' | 'low' | 'medium' | 'high' | 'none' | 'default';
 
 /** The effort if this model takes it, else undefined (the provider default). */
 function effortFor(model: string, effort?: ReasoningEffort): ReasoningEffort | undefined {
   if (!effort) return undefined;
-  const takes: ReasoningEffort[] = model.startsWith('openai/gpt-oss') ? ['low', 'medium', 'high'] : model.startsWith('qwen/') ? ['none', 'default'] : [];
+  const takes: ReasoningEffort[] = model.startsWith('openai/gpt-oss') ? ['low', 'medium', 'high']
+    : model.startsWith('qwen/') ? ['none', 'default']
+    : model.startsWith('gemini-3') ? ['minimal', 'low', 'medium', 'high']
+    : model.startsWith('gemini-') ? ['none', 'minimal', 'low', 'medium', 'high'] : [];
   return takes.includes(effort) ? effort : undefined;
 }
 
-export function toGroqBody(req: ModelRequest, model: string, maxTokens: number, effort?: ReasoningEffort) {
+export function toGroqBody(req: ModelRequest, model: string, maxTokens: number, effort?: ReasoningEffort, provider: CompatProvider = 'groq') {
   const messages: GroqMessage[] = [{ role: 'system', content: `${req.prefix}\n\n${req.system}` }];
   for (const m of req.messages) {
     const blocks = typeof m.content === 'string' ? null : (m.content as unknown as Block[]);
@@ -45,7 +53,8 @@ export function toGroqBody(req: ModelRequest, model: string, maxTokens: number, 
     stream_options: { include_usage: true },
     messages,
     tools: [{ type: 'function', function: { name: req.tool.name, description: req.tool.description, parameters: req.tool.input_schema } }],
-    tool_choice: { type: 'function', function: { name: req.tool.name } },
+    // one tool: Gemini's documented way to force a call is "required"; Groq names the function
+    tool_choice: provider === 'gemini' ? 'required' as const : { type: 'function' as const, function: { name: req.tool.name } },
     ...(effortFor(model, effort) ? { reasoning_effort: effortFor(model, effort) } : {}),
   };
 }
@@ -192,4 +201,32 @@ export function dailyLimit(body: string): number | null {
  *  per-minute output cap (OTPM; qwen3.8-27b allows 1000 on the free tier). Try another model. */
 export function tooLarge(body: string): boolean {
   try { return /request too large|\(OTPM\)/i.test((JSON.parse(body) as { error?: { message?: string } }).error?.message ?? ''); } catch { return false; }
+}
+
+/** Gemini's 429 (an array or a single error object): whether the per-day quota is spent, and how
+ *  long to wait (RetryInfo, or "retry in Ns" in the message). null for anything else. */
+export function geminiLimit(body: string): { daily: boolean; retryMs: number } | null {
+  let parsed: unknown;
+  try { parsed = JSON.parse(body); } catch { return null; }
+  const err = (Array.isArray(parsed) ? parsed[0] : parsed) as { error?: { code?: number; status?: string; message?: string; details?: { retryDelay?: string; violations?: { quotaId?: string }[] }[] } } | undefined;
+  const e = err?.error;
+  if (!e || (e.code !== 429 && e.status !== 'RESOURCE_EXHAUSTED')) return null;
+  const text = JSON.stringify(e);
+  const daily = /PerDay|per day/i.test(text);
+  const delay = e.details?.find((d) => d.retryDelay)?.retryDelay;
+  const inMsg = /retry in ([0-9.]+)\s*s/i.exec(e.message ?? '')?.[1];
+  const retryMs = delay ? parseDuration(delay) : inMsg ? Math.round(Number(inMsg) * 1000) : daily ? 3_600_000 : 10_000;
+  return { daily, retryMs };
+}
+
+/** Requests per rolling minute (Gemini's free tier limits requests, not tokens). */
+export class RequestWindow {
+  private times: number[] = [];
+  constructor(private rpm: number) {}
+  /** ms until one more request fits */
+  waitMs(now: number): number {
+    this.times = this.times.filter((t) => now - t < 60_000);
+    return this.times.length < this.rpm ? 0 : 60_000 - (now - this.times[0]);
+  }
+  spend(now: number) { this.times.push(now); }
 }

@@ -7,11 +7,19 @@ const need = (k: string) => {
   return v;
 };
 
-function provider(): 'groq' | 'anthropic' | 'mock' {
+type Provider = 'anthropic' | 'gemini' | 'groq' | 'mock';
+function provider(): Provider {
   const m = process.env.MODEL;
-  if (m === 'groq' || m === 'anthropic' || m === 'mock') return m;
-  return process.env.ANTHROPIC_API_KEY ? 'anthropic' : process.env.GROQ_API_KEY ? 'groq' : 'mock';
+  if (m === 'anthropic' || m === 'gemini' || m === 'groq' || m === 'mock') return m;
+  return process.env.ANTHROPIC_API_KEY ? 'anthropic' : process.env.GEMINI_API_KEY ? 'gemini' : process.env.GROQ_API_KEY ? 'groq' : 'mock';
 }
+/** a free tier (testing only): paced, no pipelining */
+const freeTier = () => provider() === 'gemini' || provider() === 'groq';
+/** default model per agent on each free tier: each model has its own limits, so they are spread */
+const FREE_MODELS = {
+  gemini: { lead: 'gemini-3.8-flash', thread: 'gemini-3.6-flash', triage: 'gemini-3.5-flash-lite', scribe: 'gemini-3.5-flash-lite' },
+  groq: { lead: 'openai/gpt-oss-120b', thread: 'qwen/qwen3.8-27b', triage: 'openai/gpt-oss-20b', scribe: 'openai/gpt-oss-20b' },
+};
 
 export const config = {
   /** hosts (Render, Railway, Fly) set PORT; API_PORT locally */
@@ -19,26 +27,27 @@ export const config = {
   webUrl: process.env.WEB_URL ?? 'http://localhost:5173',
   supabaseUrl: need('SUPABASE_URL'),
   supabaseServiceKey: need('SUPABASE_SERVICE_ROLE_KEY'),
-  /** 'anthropic' (production: Claude Sonnet 5.5) needs ANTHROPIC_API_KEY; 'groq' (free tier,
-   *  for testing) needs GROQ_API_KEY; 'mock' runs the scripted lesson. Default: anthropic when
-   *  its key is set, else groq when its key is set, else mock. MODEL forces one. */
+  /** 'anthropic' (production: Claude Sonnet 5.5) needs ANTHROPIC_API_KEY; the free tiers for
+   *  testing: 'gemini' (GEMINI_API_KEY) and 'groq' (GROQ_API_KEY); 'mock' runs the scripted
+   *  lesson. Default: the first key set in that order, else mock. MODEL forces one. */
   model: provider(),
   /** model id of the lead tutor (logs and /health); every agent's id is in agentModels */
-  modelId: process.env.MODEL_ID ?? (provider() === 'groq' ? 'openai/gpt-oss-120b' : 'claude-sonnet-5-5'),
+  modelId: process.env.MODEL_ID ?? (provider() === 'gemini' || provider() === 'groq' ? FREE_MODELS[provider() as 'gemini' | 'groq'].lead : 'claude-sonnet-5-5'),
   /** delay between scripted steps in mock mode, so the board still "streams" */
   mockDelayMs: Number(process.env.MOCK_DELAY_MS ?? 400),
   /** Model per agent. MODEL_ID sets all four; MODEL_ID_LEAD / _THREAD / _TRIAGE / _SCRIBE override one.
    *  Groq defaults spread the agents over three models: each free-tier model has its own
    *  8000 tokens-per-minute budget. */
   agentModels: (() => {
-    const groq = provider() === 'groq';
+    const p = provider();
+    const free = p === 'gemini' || p === 'groq' ? FREE_MODELS[p] : null;
     const all = process.env.MODEL_ID;
-    const pick = (agent: string, groqDefault: string) => process.env[`MODEL_ID_${agent}`] ?? all ?? (groq ? groqDefault : 'claude-sonnet-5-5');
-    return { lead: pick('LEAD', 'openai/gpt-oss-120b'), thread: pick('THREAD', 'qwen/qwen3.8-27b'), triage: pick('TRIAGE', 'openai/gpt-oss-20b'), scribe: pick('SCRIBE', 'openai/gpt-oss-20b') };
+    const pick = (agent: 'lead' | 'thread' | 'triage' | 'scribe') => process.env[`MODEL_ID_${agent.toUpperCase()}`] ?? all ?? free?.[agent] ?? 'claude-sonnet-5-5';
+    return { lead: pick('lead'), thread: pick('thread'), triage: pick('triage'), scribe: pick('scribe') };
   })(),
   /** B1 pipelining (write the next segment during the gate). Off by default on Groq's free tier:
    *  it doubles the lead tutor's tokens per minute. PIPELINE=1/0 overrides. */
-  pipeline: process.env.PIPELINE ? process.env.PIPELINE === '1' : provider() !== 'groq',
+  pipeline: process.env.PIPELINE ? process.env.PIPELINE === '1' : !freeTier(),
   /** dev console at /sandbox. On by default only against a local Supabase; SANDBOX=1/0 overrides. */
   /** resume live rooms at boot. Off for extra instances (tests) so two APIs never drive one room. */
   /** B6: tokens (input + output) a room may spend before the backup tutor takes over */
@@ -61,6 +70,10 @@ export const config = {
    *  budget (TPD) or refuses a request's size. Not qwen3.8-27b: its 1000 output tokens per
    *  minute cannot hold a teaching segment. */
   groqSpares: (process.env.GROQ_SPARES ?? 'openai/gpt-oss-20b,openai/gpt-oss-120b').split(',').map((m) => m.trim()).filter(Boolean),
+  /** Gemini spares, in order, when a model's daily request quota is used up */
+  geminiSpares: (process.env.GEMINI_SPARES ?? 'gemini-3.5-flash-lite,gemini-3.1-flash-lite,gemini-3.6-flash,gemini-3.8-flash').split(',').map((m) => m.trim()).filter(Boolean),
+  /** Gemini free tier: requests per minute per model (not published; ~10 reported) */
+  geminiRpm: Number(process.env.GEMINI_RPM ?? 10),
   /** RAG embeddings (B12): 'local' runs multilingual-e5-small in the API; 'none' is full-text search only. */
   embeddings: {
     provider: (process.env.EMBEDDINGS === 'none' ? 'none' : 'local') as 'local' | 'none',

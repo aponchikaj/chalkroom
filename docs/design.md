@@ -260,6 +260,14 @@ planning and Q&A answers `openai/gpt-oss-20b`. The API paces calls from Groq's r
 headers and falls back to the scripted tutor when quota is not back in time. All three
 produced valid Board Script on the first try in testing. The free tier is for testing only.
 
+**Testing on Gemini's free tier (decision 2026-10-18).** Same OpenAI-compatible adapter as
+Groq: lead `gemini-3.8-flash`, thread `gemini-3.6-flash`, triage, the scribe, planning and Q&A
+`gemini-3.5-flash-lite`. The free tier limits requests per minute and per day per model (Google no
+longer publishes the numbers; about 10 per minute is reported), so calls are paced per model
+(`GEMINI_RPM`), a per-day 429 moves the agent to the next spare (`GEMINI_SPARES`) until the quota
+is back, and the mock answers when nothing is left. Free-tier prompts may be used by Google to
+improve its products: test classes only, never real learners' data.
+
 **Production: Claude Sonnet 5.5 (`claude-sonnet-5-5`) for all four agents (decision
 2026-10-18).** $2 / M input, $10 / M output, cache reads $0.20 / M. Sonnet 5.5 rejects forced
 tool use, so each agent's tool is offered with `tool_choice: auto` and the prompt names it (a reply
