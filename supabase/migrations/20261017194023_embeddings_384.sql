@@ -33,12 +33,15 @@ as $$
     order by ts_rank_cd(c.tsv, q.tsq) desc
     limit 50
   ),
-  vec as (
-    select c.id, row_number() over (order by c.embedding <=> p_embedding) as r
+  -- exact distances over the room's own chunks: the HNSW index would search the whole corpus
+  -- first and filter after, leaving a small room with few or no vector hits
+  scoped as materialized (
+    select c.id, c.embedding <=> p_embedding as d
     from public.chunks c
     where p_embedding is not null and c.embedding is not null and c.source_id in (select id from scope)
-    order by c.embedding <=> p_embedding
-    limit 50
+  ),
+  vec as (
+    select id, row_number() over (order by d) as r from scoped order by d limit 50
   ),
   fused as (
     select coalesce(fts.id, vec.id) as id,

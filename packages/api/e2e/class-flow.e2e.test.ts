@@ -46,7 +46,8 @@ describe('a class end to end (mock tutor)', () => {
     const mine = await gio.sb.from('check_answers').select('user_id, correct').eq('room_id', roomId);
     expect(mine.data).toEqual([{ user_id: gio.id, correct: false }]);
     await waitRow(host, (r) => r.table === 'check_answers' && r.row.user_id === gio.id, 'gio answer row');
-    expect(host.rows.filter((r) => r.table === 'check_answers').every((r) => !('answer' in r.row))).toBe(true);
+    // nobody learns who got the check right before it closes (the spread comes in check_closed)
+    expect(host.rows.filter((r) => r.table === 'check_answers').every((r) => !('answer' in r.row) && !('correct' in r.row))).toBe(true);
 
     await api(host, 'POST', `/rooms/${roomId}/ready`, { segment: 0 });
     expect((await api(gio, 'POST', `/rooms/${roomId}/ready`, { segment: 0 })).status).toBe(204);
