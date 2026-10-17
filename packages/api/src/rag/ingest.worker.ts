@@ -68,6 +68,18 @@ export class IngestWorker implements OnApplicationBootstrap, OnModuleDestroy {
     return { page_count: pageNumbers.length ? Math.max(...pageNumbers) : null, chunk_count: drafts.length };
   }
 
+  /** Generated material (syllabus, transcript, notes, FAQ): indexed at once, no queue. Never rejects. */
+  async indexNow(scope: { room_id?: string; course_id?: string }, kind: 'syllabus' | 'notes' | 'faq' | 'transcript', title: string, pages: Page[]) {
+    try {
+      const ins = await this.db.from('sources').insert({ room_id: scope.room_id ?? null, course_id: scope.course_id ?? null, kind, title: title.slice(0, 200), status: 'processing' }).select('id').single();
+      if (ins.error) throw new Error(ins.error.message);
+      const counts = await this.store(ins.data.id as string, pages);
+      await this.db.from('sources').update({ status: 'ready', ...counts }).eq('id', ins.data.id);
+    } catch (e) {
+      this.log.warn(`index ${kind}: ${(e as Error).message}`);
+    }
+  }
+
   private async ingest(s: SourceRow) {
     const t0 = Date.now();
     try {

@@ -8,6 +8,7 @@ import { SupabaseService, must } from '../core/supabase.service';
 import { RoomsService } from '../rooms/rooms.service';
 import { TriageAgent } from '../agents/triage.agent';
 import { ThreadStore } from '../threads/thread-store';
+import { RetrieveService } from '../rag/retrieve.service';
 import { EMPTY_TRIAGE, planTriage, spammers, type TriageCluster, type TriagePlan } from './triage-plan';
 
 interface Lane { timer: ReturnType<typeof setTimeout> | null; running: Promise<void> }
@@ -17,7 +18,7 @@ export class TriageService {
   private lanes = new Map<string, Lane>();
   private log = new Logger('Triage');
 
-  constructor(private supa: SupabaseService, private rooms: RoomsService, private agent: TriageAgent, private threads: ThreadStore) {}
+  constructor(private supa: SupabaseService, private rooms: RoomsService, private agent: TriageAgent, private threads: ThreadStore, private retrieve: RetrieveService) {}
 
   private lane(roomId: string): Lane {
     let l = this.lanes.get(roomId);
@@ -62,8 +63,10 @@ export class TriageService {
     const questions = pending.map((p) => ({ id: p.id, text: p.text, authorId: p.author_id }));
     let result = EMPTY_TRIAGE;
     try {
+      const found = await this.retrieve.context(room, questions.map((q) => q.text).join(' '));
       result = await this.agent.run({
         roomId,
+        context: found.text,
         prefix: await this.rooms.prefixOf(room, { board: false }), segment: room.segment,
         segmentTitle: room.lesson_plan?.segments[room.segment]?.title ?? room.title,
         questions, clusters, history,

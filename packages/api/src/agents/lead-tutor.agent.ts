@@ -26,6 +26,8 @@ export interface TeachContext {
   summaries: string[];
   /** B6 retry after invalid Board Script: only the simplest steps */
   simple?: boolean;
+  /** B12: retrieved passages (formatPassages), placed in the user turn */
+  context?: string;
 }
 
 export type { TeachChunk } from './teach-stream';
@@ -52,6 +54,7 @@ export class LeadTutorAgent {
       `Teach segment ${ctx.segment}: "${seg.title}". Objective: ${seg.objective}`,
       ctx.slower ? 'The host asked to go slower: smaller steps, simpler words.' : '',
       ctx.simple ? 'Keep the board simple: use only page, text, box, sticky and say steps.' : '',
+      ctx.context ?? '',
       ctx.lastCheck ? `Last check "${ctx.lastCheck.prompt}": ${ctx.lastCheck.spread.correct}/${ctx.lastCheck.spread.total} correct (answer: ${ctx.lastCheck.answerText}).` : '',
       ctx.summaries.length ? `So far:\n${ctx.summaries.join('\n')}` : '',
     ].filter(Boolean).join('\n');
@@ -70,11 +73,11 @@ export class LeadTutorAgent {
     }
   }
 
-  async answerCluster(prefix: string, title: string, questions: string[], askers: string[], roomId?: string): Promise<BoardStep[]> {
+  async answerCluster(prefix: string, title: string, questions: string[], askers: string[], roomId?: string, context?: { text: string; cite?: string }): Promise<BoardStep[]> {
     const out = await callValidated(this.model, {
       agent: 'lead', roomId, prefix, system: PROMPTS.lead, tool: answerTool, maxTokens: 3000,
-      messages: [{ role: 'user', content: `Q&A beat. Cluster "${title}", asked by ${askers.join(', ')}:\n${questions.map((q) => `- ${q}`).join('\n')}\n\nCall answer_cluster.` }],
-      mock: () => ({ steps: mockClusterAnswer(title, askers) }),
+      messages: [{ role: 'user', content: `${context?.text ? `${context.text}\n\n` : ''}Q&A beat. Cluster "${title}", asked by ${askers.join(', ')}:\n${questions.map((q) => `- ${q}`).join('\n')}\n\nCall answer_cluster.` }],
+      mock: () => ({ steps: mockClusterAnswer(title, askers, context?.cite) }),
     }, AnswerCluster);
     return out.steps;
   }

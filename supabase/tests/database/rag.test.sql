@@ -6,6 +6,8 @@ select plan(13);
 insert into auth.users (id, email) values
   ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'host@example.com'),
   ('ffffffff-ffff-4fff-8fff-ffffffffffff', 'stranger@example.com');
+-- its own course, so data other tests left in the seed course does not count
+insert into public.courses (id, title, visibility) values ('eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'Test course', 'public');
 insert into public.rooms (id, title, host_id, invite_code)
 values ('cccccccc-cccc-4ccc-8ccc-cccccccccccc', 'Test room', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'TEST02');
 insert into public.room_members (room_id, user_id, role, display_name, color)
@@ -20,7 +22,7 @@ insert into public.sources (id, room_id, kind, title, uri, status) values
   ('10000000-0000-4000-8000-000000000001', 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', 'file', 'PDA handout', 'room/handout.pdf', 'ready'),
   ('10000000-0000-4000-8000-000000000003', 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', 'file', 'Not processed yet', 'room/later.pdf', 'pending');
 insert into public.sources (id, course_id, kind, title, status) values
-  ('10000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000001', 'syllabus', 'Course syllabus', 'ready');
+  ('10000000-0000-4000-8000-000000000002', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'syllabus', 'Course syllabus', 'ready');
 
 -- embeddings: unit vectors along different axes so cosine ranking is predictable
 insert into public.chunks (source_id, idx, page, heading, content, token_count, embedding) values
@@ -54,12 +56,12 @@ select is(
 
 -- scope: room plus its course
 select is(
-  (select count(*)::int from public.match_chunks('program', null, 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', '00000000-0000-4000-8000-000000000001', 8)),
+  (select count(*)::int from public.match_chunks('program', null, 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 8)),
   3,
   'room and course sources are both searched (program also matches find_program_address)'
 );
 select is(
-  (select count(*)::int from public.match_chunks('program', null, null, '00000000-0000-4000-8000-000000000001', 8)),
+  (select count(*)::int from public.match_chunks('program', null, null, 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 8)),
   1,
   'course scope alone excludes room material'
 );
