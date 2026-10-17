@@ -20,9 +20,43 @@
 ### Health (no token)
 GET {{api}}/health
 
-### My account (profile from the signup trigger, email, 2FA state)
+### My account (profile, email, settings, 2FA state)
 GET {{api}}/me
 Authorization: Bearer {{ana}}
+
+### Edit my profile (any subset; 409 when the username is taken)
+PATCH {{api}}/me
+Authorization: Bearer {{ana}}
+Content-Type: application/json
+
+{ "displayName": "Ana K", "bio": "Learning Solana." }
+
+### My settings (defaults until first saved)
+GET {{api}}/me/settings
+Authorization: Bearer {{ana}}
+
+### Change settings (any subset)
+PATCH {{api}}/me/settings
+Authorization: Bearer {{ana}}
+Content-Type: application/json
+
+{ "theme": "dark", "voiceRate": 1.25 }
+
+### Profile picture, step 1: signed upload URL (then upload the file to Storage, then commit)
+POST {{api}}/me/avatar/upload-url
+Authorization: Bearer {{ana}}
+Content-Type: application/json
+
+{ "contentType": "image/png" }
+
+### Public profile of Gio (no email)
+GET {{api}}/users/{{me_gio.response.body.$.profile.username}}
+Authorization: Bearer {{ana}}
+
+### (helper for the request above)
+# @name me_gio
+GET {{api}}/me
+Authorization: Bearer {{gio}}
 
 ### Create a room (Ana hosts)
 # @name create
