@@ -1,11 +1,13 @@
 // Dev preview fixtures: a believable class of four at any phase, built from the scripted PDA
 // lesson. Synthetic data, for design and screenshots only; never shipped to production.
 import type {
-  ClusterRow, MemberRow, NoteBlockRow, PresenceState, QuestionRow, ReactionRow, ReadyVoteRow, RoomRow, StreamEvent,
+  BoardStep, SourceRow, ClusterRow, MemberRow, NoteBlockRow, PresenceState, QuestionRow, ReactionRow, ReadyVoteRow, RoomRow, StreamEvent,
   StreamEventDataOf, StreamEventKind, ThreadRow,
 } from '@chalk/schema';
-import { PublicQuestion, correctAnswerText } from '@chalk/schema';
+import { PublicQuestion, citation, correctAnswerText } from '@chalk/schema';
 import { PDA_PLAN, PDA_SEGMENTS, mockClusterAnswer, mockSummary, mockThreadReply } from '@chalk/mock-tutor';
+import { api } from '../lib/api';
+import { rememberSources } from '../features/materials/store';
 
 export type DevState = 'lobby' | 'teaching' | 'check' | 'result' | 'qa' | 'offer' | 'thread' | 'catchup' | 'ended';
 export const DEV_STATES: DevState[] = ['lobby', 'teaching', 'check', 'result', 'qa', 'offer', 'thread', 'catchup', 'ended'];
@@ -77,7 +79,27 @@ export interface Fixture {
   caption: string;
 }
 
+/** Lane Q: one class material, so cited board shapes have a source to name and open. */
+export const DEV_SOURCES: SourceRow[] = [{
+  id: 'src-pda-notes', course_id: null, room_id: ROOM_ID, kind: 'file', title: 'Solana PDA field notes', uri: null, mime: 'application/pdf',
+  status: 'ready', error: null, page_count: 24, chunk_count: 40, created_by: USERS.ana.id, created_at: at(0), updated_at: at(0),
+}];
+
+/** Give the shape `shapeId` a Board Script `source` wherever it is added (steps are cloned, never mutated). */
+function cite(events: StreamEvent[], shapeId: string, source: string) {
+  for (let i = 0; i < events.length; i++) {
+    const ev = events[i];
+    if (ev.kind !== 'board') continue;
+    const steps = (ev.data as { steps: BoardStep[] }).steps;
+    if (!steps.some((st) => 'add' in st && st.add.id === shapeId)) continue;
+    events[i] = { ...ev, data: { steps: steps.map((st) => ('add' in st && st.add.id === shapeId ? { add: { ...st.add, source } } : st)) } } as StreamEvent;
+  }
+}
+
 export function buildFixture(state: DevState, who: DevUser): Fixture {
+  // the dev API has no materials: serve the fixture source and prime the chip and tag titles
+  rememberSources(DEV_SOURCES);
+  Object.assign(api, { sources: async () => DEV_SOURCES });
   const me = USERS[who].id;
   const e = makeEvents();
   let segment = 0;
@@ -146,6 +168,10 @@ export function buildFixture(state: DevState, who: DevUser): Fixture {
     e.t('chat', { role: 'learner', markdown: 'So the program stores the bump to avoid searching again?', authorId: USERS.nika.id }, 10, USERS.nika.id);
     e.t('chat', { role: 'tutor', markdown: 'Exactly. Store the **canonical bump** in the account and pass it back, so `invoke_signed` never has to search.' }, 10.2, 'thread');
   }
+
+  // lane Q: a cited shape on the main board (teaching) and on the thread mini board (thread)
+  if (state === 'teaching') cite(e.main, 'note', citation(DEV_SOURCES[0].id, 12));
+  if (threadOpen) cite(e.thread, 'tb-253', citation(DEV_SOURCES[0].id, 7));
 
   const mainSeq = e.main.length;
   const room: RoomRow = {

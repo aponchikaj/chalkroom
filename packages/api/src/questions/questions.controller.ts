@@ -1,6 +1,6 @@
 // Questions: stored as `pending`, then triage groups and routes them.
 // Each new question schedules triage for the room (TriageService: 4 s batch window).
-import { Body, Controller, ForbiddenException, HttpCode, HttpException, NotFoundException, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, ConflictException, ForbiddenException, HttpCode, HttpException, Logger, NotFoundException, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
 import { z } from 'zod';
 import { Api, LIVE, type QuestionRow } from '@chalk/schema';
 import { AuthGuard, CurrentUser, type AuthUser } from '../core/auth.guard';
@@ -8,6 +8,10 @@ import { ZodPipe } from '../core/zod.pipe';
 import { SupabaseService, must } from '../core/supabase.service';
 import { RoomsService } from '../rooms/rooms.service';
 import { TriageService } from '../triage/triage.service';
+import { TriageAgent } from '../agents/triage.agent';
+import { RetrieveService } from '../rag/retrieve.service';
+import { planTriage, type ClusterWrite } from '../triage/triage-plan';
+import { oldClusterAfter, unmergeRefusal, unmergedRoute, type UnmergeQuestion } from './unmerge-plan';
 
 const recent = new Map<string, number[]>();
 function rateLimit(userId: string) {
@@ -21,7 +25,9 @@ function rateLimit(userId: string) {
 @Controller()
 @UseGuards(AuthGuard)
 export class QuestionsController {
-  constructor(private supa: SupabaseService, private rooms: RoomsService, private triage: TriageService) {}
+  private log = new Logger('Questions');
+
+  constructor(private supa: SupabaseService, private rooms: RoomsService, private triage: TriageService, private triageAgent: TriageAgent, private retrieve: RetrieveService) {}
 
   @Post('rooms/:id/questions')
   async ask(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(Api.ask)) body: z.infer<typeof Api.ask>): Promise<QuestionRow> {
@@ -51,5 +57,56 @@ export class QuestionsController {
     if (!del.data?.length) await db.from('votes').insert({ question_id: id, user_id: u.id });
     const count = await db.from('votes').select('user_id', { count: 'exact', head: true }).eq('question_id', id);
     await db.from('questions').update({ votes: count.count ?? 0 }).eq('id', id);
+  }
+
+  /**
+   * Lane Q: take a question out of its group (the asker or the host). It gets its own cluster,
+   * titled with its text and routed by a one-question triage call (no open clusters offered, so
+   * it cannot be merged back); the old cluster is recounted, or deleted when nothing is left.
+   */
+  @Post('questions/:id/unmerge')
+  @HttpCode(200)
+  async unmerge(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(Api.unmerge)) _b: z.infer<typeof Api.unmerge>): Promise<QuestionRow> {
+    const db = this.supa.db;
+    const found = await db.from('questions').select('*').eq('id', id).maybeSingle();
+    if (found.error) throw new Error(found.error.message);
+    if (!found.data) throw new NotFoundException('question not found');
+    const q = found.data as QuestionRow;
+    const member = await this.rooms.requireMember(q.room_id, u.id);
+    if (member.banned) throw new ForbiddenException('you were removed from this room');
+    const room = await this.rooms.get(q.room_id);
+    const siblings = q.cluster_id
+      ? must(await db.from('questions').select('id, author_id, text').eq('cluster_id', q.cluster_id).neq('id', q.id), 'cluster questions') as { id: string; author_id: string; text: string }[]
+      : [];
+    const refused = unmergeRefusal(q as UnmergeQuestion, u.id, room.host_id, siblings.length);
+    if (refused) throw refused[0] === 403 ? new ForbiddenException(refused[1]) : new ConflictException(refused[1]);
+    const oldId = q.cluster_id!;
+
+    let planned: ClusterWrite | null = null;
+    try {
+      const question = { id: q.id, text: q.text, authorId: q.author_id };
+      const found = await this.retrieve.context(room, q.text);
+      const result = await this.triageAgent.run({
+        roomId: room.id, context: found.text, prefix: await this.rooms.prefixOf(room, { board: false }), segment: room.segment,
+        segmentTitle: room.lesson_plan?.segments[room.segment]?.title ?? room.title,
+        questions: [question], clusters: [], history: {},
+      });
+      planned = planTriage(result, [question], []).clusters[0] ?? null;
+    } catch (e) {
+      this.log.warn(`unmerge ${id.slice(0, 8)}: triage failed, routing to the class Q&A (${(e as Error).message})`);
+    }
+    const r = unmergedRoute(planned);
+    const cluster = must(await db.from('clusters').insert({
+      room_id: q.room_id, title: q.text, route: r.route, reason: r.reason, target_segment: r.target_segment, answer: r.answer, asker_count: 1,
+    }).select('id').single(), 'unmerge cluster') as { id: string };
+    const moved = must(await db.from('questions').update({ cluster_id: cluster.id, status: r.status }).eq('id', q.id).select('*').single(), 'unmerge question') as QuestionRow;
+
+    const old = await db.from('clusters').select('answered').eq('id', oldId).maybeSingle();
+    if (old.data) {
+      const w = oldClusterAfter(siblings, !!old.data.answered);
+      if (w.op === 'delete') await db.from('clusters').delete().eq('id', oldId);
+      else if (w.op === 'update') await db.from('clusters').update({ asker_count: w.asker_count, ...(w.title ? { title: w.title } : {}) }).eq('id', oldId);
+    }
+    return moved;
   }
 }

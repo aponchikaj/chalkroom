@@ -24,6 +24,13 @@ export class ThreadsController {
     return { ok: true };
   }
 
+  /** Lane Q: a classmate peeking at an open thread joins it (Api.joinThread). */
+  @Post('threads/:id/join')
+  @HttpCode(200)
+  join(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(Api.joinThread)) _b: z.infer<typeof Api.joinThread>): Promise<ThreadRow> {
+    return this.threads.join(id, u.id);
+  }
+
   @Post('threads/:id/close')
   @HttpCode(204)
   close(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
