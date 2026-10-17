@@ -1,31 +1,28 @@
-// Claude through @anthropic-ai/sdk: streaming, one forced tool, prompt caching on the shared prefix.
+// Claude through @anthropic-ai/sdk (production: Claude Sonnet 5.5): streaming, the agent's one
+// tool offered with tool_choice auto, prompt caching on the shared prefix. Request shape:
+// ./anthropic.params.ts (pure, tested).
 import Anthropic from '@anthropic-ai/sdk';
 import { config } from '../config';
 import { ModelPort, type ModelEvent, type ModelRequest } from './model.port';
+import { toAnthropicParams } from './anthropic.params';
 
 export class AnthropicModel extends ModelPort {
   readonly name = 'anthropic';
   private client = new Anthropic({ maxRetries: 2 });
 
   async *stream(req: ModelRequest): AsyncIterable<ModelEvent> {
-    const stream = this.client.messages.stream({
-      model: config.modelId,
-      max_tokens: req.maxTokens ?? 8000,
-      system: [
-        { type: 'text', text: req.prefix, cache_control: { type: 'ephemeral' } },
-        { type: 'text', text: req.system },
-      ],
-      messages: req.messages,
-      tools: [{ ...req.tool, input_schema: req.tool.input_schema as Anthropic.Tool.InputSchema, eager_input_streaming: true }],
-      tool_choice: { type: 'tool', name: req.tool.name },
-    });
+    const { stream: _s, ...params } = toAnthropicParams(req, config.agentModels[req.agent]);
+    const stream = this.client.beta.messages.stream(params);
     for await (const ev of stream) {
+      // thinking blocks (and progress updates) are skipped: only the tool input and text matter
       if (ev.type === 'content_block_delta' && ev.delta.type === 'input_json_delta') yield { type: 'tool_delta', partialJson: ev.delta.partial_json };
       else if (ev.type === 'content_block_delta' && ev.delta.type === 'text_delta') yield { type: 'text', text: ev.delta.text };
     }
     const msg = await stream.finalMessage();
     if (msg.stop_reason === 'max_tokens') throw new Error(`${req.agent}: hit max_tokens`);
-    const use = msg.content.find((b): b is Anthropic.ToolUseBlock => b.type === 'tool_use' && b.name === req.tool.name);
+    // declined even after the server-side fallback: the mock tutor answers instead
+    if (msg.stop_reason === 'refusal') throw new Error(`${req.agent}: refused (${msg.stop_details?.category ?? 'no category'})`);
+    const use = msg.content.find((b): b is Anthropic.Beta.BetaToolUseBlock => b.type === 'tool_use' && b.name === req.tool.name);
     if (use) yield { type: 'tool', name: use.name, input: use.input };
     yield {
       type: 'done',
@@ -38,27 +35,4 @@ export class AnthropicModel extends ModelPort {
   }
 }
 
-/** Try the primary model; if it fails before producing anything, answer from the fallback. */
-export class FallbackModel extends ModelPort {
-  readonly name: string;
-  constructor(private primary: ModelPort, private fallback: ModelPort, private log: (m: string) => void) {
-    super();
-    this.name = `${primary.name}→${fallback.name}`;
-  }
-
-  async *stream(req: ModelRequest): AsyncIterable<ModelEvent> {
-    let produced = false;
-    try {
-      for await (const e of this.primary.stream(req)) {
-        // partial tool JSON counts: falling back after it would replay a whole mock answer on top
-        if (e.type === 'tool' || e.type === 'tool_delta') produced = true;
-        yield e;
-      }
-      return;
-    } catch (err) {
-      if (produced) throw err;
-      this.log(`${req.agent}: ${this.primary.name} failed (${(err as Error).message}); using ${this.fallback.name}`);
-    }
-    yield* this.fallback.stream(req);
-  }
-}
+export { FallbackModel } from './fallback.model';

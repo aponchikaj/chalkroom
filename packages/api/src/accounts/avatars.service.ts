@@ -15,6 +15,11 @@ export class AvatarsService {
   private get bucket() { return this.supa.db.storage.from('avatars'); }
 
   async uploadUrl(userId: string, contentType: AvatarContentType): Promise<AvatarUploadRes> {
+    // uploads that were never committed would pile up: keep only the current picture
+    const [listed, profile] = await Promise.all([this.bucket.list(userId), this.supa.db.from('profiles').select('avatar_path').eq('id', userId).single()]);
+    const current = profile.data?.avatar_path as string | null;
+    const stale = (listed.data ?? []).map((f) => `${userId}/${f.name}`).filter((p) => p !== current);
+    if (stale.length) await this.bucket.remove(stale);
     const path = `${userId}/${crypto.randomUUID()}.${EXT[contentType]}`;
     const r = await this.bucket.createSignedUploadUrl(path);
     if (r.error) throw new Error(r.error.message);

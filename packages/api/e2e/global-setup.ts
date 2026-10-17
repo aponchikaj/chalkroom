@@ -26,15 +26,15 @@ export async function setup() {
 
   const running = await health();
   if (running?.model === 'mock') return;
-  // a dev API on a real model: run the suite against our own mock instance (no model calls spent)
-  if (running) {
-    process.env.E2E_API_URL = `http://localhost:${MOCK_PORT}`;
-    if (await health()) return;
-  }
+  // anything else (a dev API on a real model, or one restarting right now): run the suite
+  // against our own mock instance on its own port, so no model calls are spent and nothing
+  // collides with the dev API's port
+  process.env.E2E_API_URL = `http://localhost:${MOCK_PORT}`;
+  if (await health()) return;
 
   child = spawn('npm', ['run', 'start', '-w', '@chalk/api'], {
     cwd: ROOT,
-    env: { ...process.env, MODEL: 'mock', MOCK_DELAY_MS: '50', ...(running ? { API_PORT: String(MOCK_PORT), RESUME_ROOMS: '0', SANDBOX: '0' } : {}) },
+    env: { ...process.env, MODEL: 'mock', MOCK_DELAY_MS: '50', API_PORT: String(MOCK_PORT), PORT: String(MOCK_PORT), RESUME_ROOMS: '0', SANDBOX: '0', INSTANCE_GROUP: 'e2e' },
     stdio: ['ignore', 'ignore', 'inherit'],
     detached: true, // own process group, so teardown stops npm and node together
   });

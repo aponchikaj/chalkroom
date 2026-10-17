@@ -1,7 +1,7 @@
 // REST client for the NestJS API. Request bodies are typed by @chalk/schema's Api contracts.
 import type { z } from 'zod';
 import type {
-  Api, AvatarUploadRes, CourseCard, CourseRow, FaqRow, KudosRes, LobbyRoom, ReplayCard, ReplayRes, RoomRow, CardReviewRow, CreateRoomRes, JoinRoomRes, MeRes, NoteBlockRow, ProfileRow, QuestionRow, RoomPreview, SourceRow,
+  Api, AvatarUploadRes, CourseCard, CourseRow, FaqRow, KudosRes, LobbyRoom, ReplayCard, ReplayRes, RoomRow, CardReviewRow, CreateRoomRes, JoinRoomRes, MeRes, NoteBlockRow, ProfileRow, PublicProfile, QuestionRow, RoomPreview, SourceRow,
   SourceUploadRes, ThreadRow, TwoFactorState, UserSettings,
 } from '@chalk/schema';
 import { ensureSession, supabase } from './supabase';
@@ -91,4 +91,5 @@ export const api = {
   unmerge: (questionId: string) => call<QuestionRow>('POST', `/questions/${questionId}/unmerge`, {}),
   joinThread: (threadId: string) => call<ThreadRow>('POST', `/threads/${threadId}/join`, {}),
   editNote: (roomId: string, blockId: string, b: In<'editNote'>) => call<NoteBlockRow>('PUT', `/rooms/${roomId}/notes/${blockId}`, b),
+  publicProfile: (username: string) => call<PublicProfile>('GET', `/users/${encodeURIComponent(username)}`),
 };

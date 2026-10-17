@@ -1,0 +1,34 @@
+# Fly.io config for the API. ONE machine only: the room conductors live in this process.
+# First deploy: fly launch --no-deploy --copy-config (pick a free app name), set the secrets
+# (docs/DEPLOY.md), then: fly deploy --ha=false
+app = "chalkroom-api"
+primary_region = "lhr"  # nearest to the Supabase project (eu-west-1, Ireland)
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8080"
+  REQUIRE_ACCOUNT = "1"
+  SANDBOX = "0"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  # a stopped machine would drop live classes and the conductors' timers
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    grace_period = "30s"
+    interval = "15s"
+    method = "GET"
+    path = "/health"
+    timeout = "5s"
+
+[[vm]]
+  # the local embeddings model needs room next to Node
+  memory = "1gb"
+  cpu_kind = "shared"
+  cpus = 1
