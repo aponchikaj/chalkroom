@@ -7,8 +7,8 @@ import type {
 import { PublicQuestion, correctAnswerText } from '@chalk/schema';
 import { PDA_PLAN, PDA_SEGMENTS, mockClusterAnswer, mockSummary, mockThreadReply } from '@chalk/mock-tutor';
 
-export type DevState = 'lobby' | 'teaching' | 'check' | 'result' | 'qa' | 'thread' | 'catchup' | 'ended';
-export const DEV_STATES: DevState[] = ['lobby', 'teaching', 'check', 'result', 'qa', 'thread', 'catchup', 'ended'];
+export type DevState = 'lobby' | 'teaching' | 'check' | 'result' | 'qa' | 'offer' | 'thread' | 'catchup' | 'ended';
+export const DEV_STATES: DevState[] = ['lobby', 'teaching', 'check', 'result', 'qa', 'offer', 'thread', 'catchup', 'ended'];
 
 export const ROOM_ID = '00000000-0000-4000-8000-0000000000aa';
 export const MAIN = '00000000-0000-4000-8000-0000000000bb';
@@ -101,7 +101,7 @@ export function buildFixture(state: DevState, who: DevUser): Fixture {
       closeCheck(e, 0, (minute += 1), { '1': 3, '0': 1 }, 3);
       answered['check-0'] = true;
       if (state === 'result') phase = 'qa';
-      if (state === 'qa' || state === 'thread' || state === 'catchup' || state === 'ended') {
+      if (state === 'qa' || state === 'offer' || state === 'thread' || state === 'catchup' || state === 'ended') {
         e.m('answer_cluster', { clusterId: 'c-sign', title: 'Why can a PDA not sign?', askers: ['Gio', 'Mari'], steps: mockClusterAnswer('Why can a PDA not sign?', ['Gio', 'Mari']) }, (minute += 0.5));
         phase = 'qa';
       }
@@ -129,6 +129,7 @@ export function buildFixture(state: DevState, who: DevUser): Fixture {
 
   // thread for Nika on bump seeds
   const threadOpen = state === 'thread';
+  const threadOffered = state === 'offer';
   const threadClosed = state === 'catchup' || state === 'ended';
   if (threadOpen || threadClosed) {
     const r1 = mockThreadReply('how is the bump seed chosen exactly?');
@@ -191,6 +192,9 @@ export function buildFixture(state: DevState, who: DevUser): Fixture {
   }
 
   const threads: Record<string, ThreadRow> = {};
+  if (threadOffered) {
+    threads['th-bump'] = { id: 'th-bump', room_id: ROOM_ID, owner_id: USERS.nika.id, stream_id: THREAD_STREAM, topic: 'Bump seeds', status: 'offered', shared_answer: null, left_main_seq: null, created_at: at(8.8) };
+  }
   if (threadOpen || threadClosed) {
     threads['th-bump'] = { id: 'th-bump', room_id: ROOM_ID, owner_id: USERS.nika.id, stream_id: THREAD_STREAM, topic: 'Bump seeds', status: threadOpen ? 'open' : 'closed', shared_answer: null, left_main_seq: threadClosed ? mainSeq - 9 : 12, created_at: at(8.8) };
   }

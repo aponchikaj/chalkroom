@@ -58,7 +58,7 @@ export function TabRail({ orientation = 'vertical' }: { orientation?: 'vertical'
             <li key={i} className={`tab tab-${state}`} style={{ ['--hue' as string]: sectionHue(i), ['--on-hue' as string]: sectionInk(i), flexGrow: size(i) / total * 100 }}
               aria-current={state === 'now' ? 'step' : undefined} title={s.objective}>
               <span className="tab-title">{s.title}</span>
-              <span className="tab-time mono">{d.measured ? fmt(d.ms) : `~${Math.round(EST_MS / 60_000)} min`}</span>
+              <span className="tab-time mono">{d.measured ? fmt(d.ms) : `~${Math.round(EST_MS / 60_000)}m`}</span>
               <span className="sr-only">{state === 'done' ? 'done' : state === 'now' ? 'now teaching' : 'up next'}</span>
             </li>
           );

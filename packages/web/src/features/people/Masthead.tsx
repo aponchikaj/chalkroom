@@ -1,11 +1,13 @@
-// The running head of the manual: product, the class title at display scale, where the class
-// is (phase in words), the gate timer and the voice switch.
+// A7 (Dev A): the running head of the manual: product, the class title at display scale, where
+// the class is (phase in words), the gate timer and the voice switch. On phones it also carries
+// the people as a row of small punches (the binding column is hidden there).
 import { useEffect, useState } from 'react';
 import { Timer, Volume2, VolumeX } from 'lucide-react';
 import { mainPlayer, useRoom } from '../../room/store';
 import { usePlayer } from '../../board/Board';
 import { navigate } from '../../lib/router';
 import { Stamp } from '../../ui/Stamp';
+import { Binding } from './Binding';
 
 const PHASE = { lobby: 'Lobby', teaching: 'Teaching', check: 'Check and ready', qa: 'Questions and answers', ended: 'Class ended' } as const;
 
@@ -27,9 +29,13 @@ export function Masthead() {
       <div className="masthead-state">
         <Stamp tone={room.phase === 'ended' ? 'muted' : 'section'}>{PHASE[room.phase]}</Stamp>
         <GateTimer deadline={room.gate_deadline} held={room.gate_held} />
-        <button className="btn ghost icon-btn" aria-pressed={muted} aria-label={muted ? 'Turn tutor voice on' : 'Turn tutor voice off'}
-          onClick={() => mainPlayer.setMuted(!muted)}>{muted ? <VolumeX size={18} aria-hidden /> : <Volume2 size={18} aria-hidden />}</button>
+        <button className="btn ghost masthead-voice" aria-label={muted ? 'Tutor voice is off. Turn it on' : 'Tutor voice is on. Turn it off'}
+          title={muted ? 'Turn tutor voice on' : 'Turn tutor voice off'} onClick={() => mainPlayer.setMuted(!muted)}>
+          {muted ? <VolumeX size={16} aria-hidden /> : <Volume2 size={16} aria-hidden />}
+          <span className="masthead-voice-word">{muted ? 'Voice off' : 'Voice on'}</span>
+        </button>
       </div>
+      <div className="masthead-people"><Binding orientation="horizontal" /></div>
     </header>
   );
 }

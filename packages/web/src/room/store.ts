@@ -63,7 +63,11 @@ export const useRoom = create<RoomStore>((set) => ({
       case 'room_members': return { members: put(s.members, c.row.user_id, del ? null : c.row) };
       case 'questions': return { questions: put(s.questions, c.row.id, del ? null : c.row) };
       case 'clusters': return { clusters: put(s.clusters, c.row.id, del ? null : c.row) };
-      case 'threads': return { threads: put(s.threads, c.row.id, del ? null : c.row) };
+      case 'threads': {
+        // the drawer closes on its own when the thread it shows is closed (or deleted)
+        const gone = del || c.row.status === 'closed';
+        return { threads: put(s.threads, c.row.id, del ? null : c.row), ...(gone && s.openThreadId === c.row.id ? { openThreadId: null } : {}) };
+      }
       case 'note_blocks': return { notes: put(s.notes, c.row.id, del ? null : c.row) };
       case 'ready_votes': {
         const same = (v: ReadyVoteRow) => v.segment === c.row.segment && v.user_id === c.row.user_id;

@@ -56,7 +56,7 @@
   font-size: var(--t-xs); font-weight: 750; font-stretch: 78%; letter-spacing: 0.08em; text-transform: uppercase;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-height: 100%; min-height: 0; flex: 1;
 }
-.tabrail-vertical .tab-time { font-size: 10px; opacity: 0.92; }
+.tabrail-vertical .tab-time { font-size: 10px; white-space: nowrap; }
 .tabrail-vertical .tab-done { filter: saturate(0.55); }
 .tabrail-vertical .tab-todo { margin-left: 14px; }
 /* the current tab extends past the others and owns the fore edge */
@@ -73,5 +73,5 @@
 .tabrail-horizontal .tab-now { margin-top: 0; padding-top: 10px; }
 .tabrail-horizontal .tab-done { filter: saturate(0.55); }
 .tabrail-horizontal .tab-title { font-size: 11px; font-weight: 750; font-stretch: 80%; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; }
-.tabrail-horizontal .tab-time { font-size: 10px; opacity: 0.92; }
+.tabrail-horizontal .tab-time { font-size: 10px; white-space: nowrap; }
 .tabrail-horizontal .tabrail-empty { writing-mode: horizontal-tb; transform: none; padding: 8px 12px; }

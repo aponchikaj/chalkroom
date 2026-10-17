@@ -1,0 +1,63 @@
+/* A1 (Dev A): the question rail. Cards are entries ruled on the rail's leaf, not raised
+   cards: only the one that needs you stands up off the page. */
+
+.qrail { display: flex; flex-direction: column; gap: 12px; padding: 14px; }
+
+/* system lines ("Class ended") */
+.qrail-notices { list-style: none; margin: 0; padding: 0 0 10px; border-bottom: 1px solid var(--rule); display: flex; flex-direction: column; gap: 4px; }
+.qrail-notice { display: flex; gap: 7px; align-items: flex-start; font-size: var(--t-sm); color: var(--ink-2); }
+.qrail-notice .lucide { flex: none; margin-top: 2px; }
+.qrail-notice.warn { color: var(--warn); }
+
+.qrail-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+
+.qrail-empty { padding: 22px 6px; display: flex; flex-direction: column; gap: 8px; font-size: var(--t-sm); color: var(--ink-2); }
+.qrail-empty-head { font-size: var(--t-lg); font-weight: 700; font-stretch: 82%; color: var(--ink); }
+
+/* ---------- card ---------- */
+.qcard {
+  display: flex; flex-direction: column; gap: 7px;
+  padding: 11px 12px 12px;
+  background: var(--leaf); border: 1px solid var(--rule); border-radius: var(--r);
+}
+.qcard.attention { border-color: var(--ink); box-shadow: var(--shadow-leaf); }
+/* settled: answered, so it falls back to the page */
+.qcard.settled { background: color-mix(in srgb, var(--paper) 55%, var(--leaf)); }
+.qcard.settled .qcard-title { color: var(--ink-2); }
+
+.qcard-head { display: flex; align-items: center; gap: 8px; min-height: 28px; }
+.qcard-head .stamp { white-space: normal; }
+
+.qcard-title { font-size: var(--t-md); font-weight: 680; font-stretch: 86%; line-height: 1.28; letter-spacing: 0; }
+
+.qcard-by { font-size: var(--t-xs); color: var(--ink-3); font-weight: 600; font-stretch: 85%; letter-spacing: 0.04em; }
+
+.qcard-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.qcard-list li { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 8px; font-size: var(--t-sm); line-height: 1.38; }
+.qcard-who {
+  padding-top: 2px; font-size: 10.5px; font-weight: 750; font-stretch: 80%; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.qcard-text { color: var(--ink); overflow-wrap: anywhere; }
+
+.qcard-meta, .qcard-credit { display: flex; align-items: center; gap: 6px; font-size: var(--t-xs); color: var(--ink-2); }
+.qcard-meta .lucide, .qcard-credit .lucide { flex: none; }
+.qcard-credit { font-size: var(--t-sm); color: var(--ok); font-weight: 600; }
+
+.qcard-note { font-size: var(--t-sm); color: var(--ink-2); line-height: 1.4; }
+.qcard-note strong { color: var(--ink); font-weight: 650; }
+
+/* the inline answer reads as body text in the manual */
+.qcard-answer {
+  font-family: var(--font-read); font-size: 0.98rem; line-height: 1.5; color: var(--ink);
+  padding-top: 8px; border-top: 1px solid var(--rule);
+}
+
+.qcard-actions { display: flex; gap: 8px; padding-top: 2px; }
+.qcard .errata { font-size: var(--t-xs); }
+
+/* anonymous +1 */
+.qvote { gap: 6px; min-width: 52px; letter-spacing: 0.02em; }
+.qvote[aria-pressed='true']:hover:not(:disabled) { background: var(--ink-2); color: var(--paper); }
+.qvote-n { font-size: 11px; font-weight: 500; }
+.qvote-static { display: inline-flex; align-items: center; gap: 6px; font-size: var(--t-xs); font-weight: 650; color: var(--ink-3); padding: 0 4px; }

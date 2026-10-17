@@ -1,0 +1,84 @@
+/* A4 (Dev A): the check leaf, the answer spread and the folded result chip. */
+
+.check-card {
+  position: absolute; z-index: 6; left: 50%; bottom: 10px; translate: -50% 0;
+  width: min(780px, calc(100% - 20px)); max-height: min(64cqh, 100% - 20px); overflow: auto;
+  padding: 14px 18px 14px 34px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+/* the hinge: one punched hole each side of the binding edge */
+.check-card::before {
+  content: ''; position: absolute; left: 11px; top: 18px; width: var(--hole); height: var(--hole); border-radius: 50%;
+  background: var(--paper-3); box-shadow: inset 0 1px 2px rgba(40, 30, 10, 0.35);
+}
+.check-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.check-head h3 { font-size: var(--t-lg); font-stretch: 80%; }
+.check-tally { font-size: var(--t-md); font-weight: 650; font-stretch: 86%; color: var(--ink); }
+.check-chip .check-tally { font-size: var(--t-sm); }
+.check-prompt .md { font-family: var(--font-read); font-size: 1.08rem; line-height: 1.45; color: var(--ink); }
+.check-note { font-size: var(--t-sm); color: var(--ink-2); }
+
+/* the inputs lie across the leaf so the figure above stays visible */
+.check-inputs [role='radiogroup'], .check-inputs [role='group'] {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 6px;
+}
+.check-inputs .option { margin-bottom: 0; min-height: 44px; transition: background var(--step) steps(2), border-color var(--step) steps(2); }
+.check-inputs .option .md { font-family: var(--font-ui); font-size: var(--t-md); }
+.check-inputs .option:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.check-inputs .option:active:not(:disabled) { background: var(--paper-3); }
+.check-inputs .option:disabled { opacity: 1; color: var(--ink-2); }
+.check-inputs .option:disabled:not([aria-pressed='true']) { background: transparent; border-style: dashed; }
+.check-inputs [role='group'] > .faint { grid-column: 1 / -1; }
+
+.check-foot { display: flex; align-items: center; justify-content: flex-end; gap: 14px; flex-wrap: wrap; }
+.check-foot .check-note { flex: 1; min-width: 180px; }
+
+/* result: spread on the left, the answer and why on the right */
+.check-body { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 18px; }
+.check-col { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.check-why { border-left: 1px solid var(--rule); padding-left: 18px; }
+.check-answer { font-size: var(--t-md); font-weight: 650; color: var(--ink); }
+.check-answer-label {
+  display: block; margin-bottom: 2px;
+  font-size: var(--t-xs); font-weight: 700; font-stretch: 78%; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ok);
+}
+.check-expl { font-size: 1rem; color: var(--ink); }
+
+.spread { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.spread-row { display: grid; grid-template-columns: minmax(0, 1fr) 2.2em; grid-template-areas: 'label label' 'track count'; gap: 3px 8px; align-items: center; }
+.spread-label { grid-area: label; display: flex; align-items: center; gap: 6px; font-size: var(--t-sm); color: var(--ink); }
+.spread-label .md { font-family: var(--font-ui); font-size: var(--t-sm); line-height: 1.3; }
+.spread-track { grid-area: track; height: 12px; background: var(--paper-2); border: 1px solid var(--rule); border-radius: 2px; overflow: hidden; }
+.spread-bar { display: block; height: 100%; background: var(--section); min-width: 0; }
+.spread-row.is-correct .spread-bar { background: var(--ok); }
+.spread-row.is-correct .spread-label { font-weight: 650; }
+.spread-count { grid-area: count; text-align: right; font-size: var(--t-sm); font-weight: 600; color: var(--ink); }
+
+/* folded result: a small printed tab at the foot of the board */
+.check-chip {
+  position: absolute; z-index: 6; left: 12px; bottom: 10px;
+  display: inline-flex; align-items: center; gap: 10px; min-height: 36px; padding: 0 12px;
+  font-size: var(--t-sm); color: var(--ink); cursor: pointer;
+  transition: background var(--step) steps(2);
+}
+.check-chip-name { font-weight: 700; font-stretch: 80%; letter-spacing: 0.08em; text-transform: uppercase; font-size: var(--t-xs); }
+.check-chip .mono { font-weight: 600; }
+.check-chip:hover { background: var(--leaf); }
+.check-chip:active { background: var(--paper-3); }
+.check-chip:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+@container (max-width: 620px) {
+  .check-card { padding: 12px 12px 12px 30px; max-height: calc(100% - 12px); bottom: 6px; width: calc(100% - 12px); gap: 8px; }
+  .check-card::before { left: 9px; }
+  .check-body { grid-template-columns: 1fr; gap: 12px; }
+  .check-why { border-left: 0; padding-left: 0; border-top: 1px solid var(--rule); padding-top: 10px; }
+  .check-inputs [role='radiogroup'], .check-inputs [role='group'] { grid-template-columns: 1fr; }
+  .check-inputs .option { min-height: 40px; padding: 8px 10px; }
+  .check-prompt .md { font-size: 1rem; }
+}
+
+/* a short board (phones): the leaf drops from the top of the board over what is below it */
+@container (max-height: 320px) {
+  .check-card { top: 0; bottom: auto; translate: -50% 0; max-height: 72vh; width: calc(100% - 4px); }
+  .check-chip { bottom: auto; top: 4px; left: 4px; }
+}
