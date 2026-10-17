@@ -2,9 +2,9 @@
 // the questions merged into it, the inline answer or class credit, the anonymous +1 and,
 // when a thread is offered to me, the way in.
 import { useState } from 'react';
-import { ArrowUpRight, Check, Pin } from 'lucide-react';
+import { ArrowUpRight, Check, Pin, Split } from 'lucide-react';
 import { Stamp } from '../../ui/Stamp';
-import { useRoom } from '../../room/store';
+import { selectIsHost, useRoom } from '../../room/store';
 import { api } from '../../lib/api';
 import { creditLine, type RailCard } from './railModel';
 import { nameFor } from '../../lib/text';
@@ -16,6 +16,8 @@ export function QuestionCard({ card, stale }: { card: RailCard; stale: boolean }
   const myName = useRoom((s) => (s.me ? s.members[s.me]?.display_name ?? null : null));
   const room = useRoom((s) => s.room)!;
   const openThreadId = useRoom((s) => s.openThreadId);
+  const isHost = useRoom(selectIsHost);
+  const [splitting, setSplitting] = useState<string | null>(null);
   const [voted, setVoted] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -31,6 +33,18 @@ export function QuestionCard({ card, stale }: { card: RailCard; stale: boolean }
     if (!target) return;
     setError('');
     api.vote(target.id).then(() => setVoted((v) => !v)).catch((e) => setError(`Could not count your +1. ${(e as Error).message}`));
+  };
+
+  // lane Q: triage merged a different question in here; take it back out (asker or host)
+  const canSplit = (q: (typeof questions)[number]) =>
+    !lone && questions.length > 1 && (isHost || q.author_id === me) && !!q.cluster_id && q.status !== 'pending' && q.status !== 'flagged' && q.status !== 'thread';
+  const unmerge = (questionId: string) => {
+    setSplitting(questionId);
+    setError('');
+    // the card splits when the question and cluster rows arrive on the room channel
+    api.unmerge(questionId)
+      .catch((e) => setError(`Could not take that question out of the group. ${(e as Error).message}`))
+      .finally(() => setSplitting(null));
   };
 
   const enterThread = () => {
@@ -70,6 +84,12 @@ export function QuestionCard({ card, stale }: { card: RailCard; stale: boolean }
             <li key={q.id}>
               <span className="qcard-who">{name(q.author_name, q.author_id)}</span>
               <span className="qcard-text">{q.text}</span>
+              {canSplit(q) && (
+                <button type="button" className="btn ghost small qcard-split" onClick={() => unmerge(q.id)} disabled={splitting !== null}
+                  aria-label={`Not the same question: take "${q.text}" out of this group`}>
+                  <Split size={13} strokeWidth={2.25} aria-hidden />{splitting === q.id ? 'Taking it out' : 'Not the same question'}
+                </button>
+              )}
             </li>
           ))}
         </ul>

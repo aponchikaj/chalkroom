@@ -3,7 +3,7 @@
 // chat transcript, a composer for the owner, a live picture-in-picture of the class, and a
 // read-only "peek" mode for everyone else.
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, Eye, SendHorizontal, Share2 } from 'lucide-react';
+import { ArrowLeft, Eye, SendHorizontal, Share2, UserPlus } from 'lucide-react';
 import type { StreamEvent } from '@chalk/schema';
 import { mainPlayer, useRoom } from '../../room/store';
 import { useRoomConn } from '../../room/context';
@@ -25,8 +25,12 @@ export function ThreadLeaf({ threadId }: { threadId: string }) {
   const thread = useRoom((s) => s.threads[threadId]);
   const me = useRoom((s) => s.me);
   const ownerName = useRoom((s) => (thread ? s.members[thread.owner_id]?.display_name : undefined)) ?? 'a classmate';
+  const members = useRoom((s) => s.members);
   const conn = useRoomConn();
   const mine = !!thread && thread.owner_id === me;
+  // lane Q: a classmate who joined from a peek writes here too
+  const joined = !!thread && !!me && !mine && (thread.members ?? []).includes(me);
+  const writer = mine || joined;
   const streamId = thread?.stream_id;
 
   const player = useMemo(() => new Player({ silent: true }), [streamId]);
@@ -36,6 +40,7 @@ export function ThreadLeaf({ threadId }: { threadId: string }) {
   const [error, setError] = useState('');
   const [closing, setClosing] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [joining, setJoining] = useState(false);
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const backRef = useRef<HTMLButtonElement>(null);
   const logRef = useRef<HTMLOListElement>(null);
@@ -58,16 +63,30 @@ export function ThreadLeaf({ threadId }: { threadId: string }) {
     return () => { alive = false; off(); player.reset(); };
   }, [conn, streamId, player]);
 
-  // presence: only the owner is "in a thread" (peeking does not excuse anyone from the gate)
+  // presence: the owner and joined members are "in a thread" (peeking does not excuse anyone from the gate)
   useEffect(() => {
-    if (!conn || !mine) return;
+    if (!conn || !writer) return;
     conn.track({ threadId });
     return () => conn.track({ threadId: null });
-  }, [conn, mine, threadId]);
+  }, [conn, writer, threadId]);
 
   useEffect(() => {
-    (mine ? composerRef.current : backRef.current)?.focus();
-  }, [mine]);
+    (writer ? composerRef.current : backRef.current)?.focus();
+  }, [writer]);
+
+  const join = async () => {
+    setJoining(true);
+    setError('');
+    try {
+      const t = await api.joinThread(threadId);
+      // the row broadcast brings the same row; apply it now so the composer appears at once
+      useRoom.setState((s) => ({ threads: { ...s.threads, [t.id]: t } }));
+    } catch (e) {
+      setError(`Could not join this thread: ${(e as Error).message}. Try Join this thread again.`);
+    } finally {
+      setJoining(false);
+    }
+  };
 
   // keep the newest line in view: on open, on each message, and while replies and the leaf settle
   // (markdown, maths and the share button change height after the first paint); scrolling up to
@@ -145,8 +164,14 @@ export function ThreadLeaf({ threadId }: { threadId: string }) {
     }
   };
 
-  const nameOf = (c: Chat) => (c.data.role === 'tutor' ? 'Tutor' : nameFor(c.data.authorId, ownerName, me));
+  const nameOf = (c: Chat) => {
+    if (c.data.role === 'tutor') return 'Tutor';
+    const id = c.data.authorId ?? thread?.owner_id;
+    return nameFor(id, (id && members[id]?.display_name) || ownerName, me);
+  };
   const closed = thread?.status === 'closed';
+  const joinedNames = (thread?.members ?? []).map((id) => nameFor(id, members[id]?.display_name ?? 'a classmate', me));
+  const canJoin = !!thread && !writer && thread.status === 'open';
 
   return (
     <section className="thread-leaf acetate hinge-in" aria-label={thread ? `Thread: ${thread.topic}` : 'Thread'}
@@ -155,7 +180,9 @@ export function ThreadLeaf({ threadId }: { threadId: string }) {
         <div className="tl-title">
           <h2>{thread?.topic ?? 'Opening the thread'}</h2>
           <p className="tl-who">
-            {mine ? 'Your 1:1 with the tutor. The class keeps going.' : <><Eye {...ICON} /> Peeking at {ownerName}'s thread. Read-only.</>}
+            {mine ? (joinedNames.length ? <>Your thread with the tutor. Joined: {joinedNames.join(', ')}.</> : 'Your 1:1 with the tutor. The class keeps going.')
+              : joined ? <>You joined {ownerName}'s thread{joinedNames.length > 1 ? `, with ${joinedNames.filter((n) => n !== 'You').join(', ')}` : ''}. The class keeps going.</>
+              : <><Eye {...ICON} /> Peeking at {ownerName}'s thread{joinedNames.length ? ` with ${joinedNames.join(', ')}` : ''}. Read-only.</>}
             {closed && <Stamp tone="muted">Closed</Stamp>}
           </p>
         </div>
@@ -170,7 +197,7 @@ export function ThreadLeaf({ threadId }: { threadId: string }) {
       </div>
 
       <ol className="tl-log" ref={logRef} aria-label="Thread chat" aria-live="polite">
-        {!chat.length && <li className="tl-empty">{mine ? 'Ask your question below. The tutor answers here and on the board above.' : 'No messages yet.'}</li>}
+        {!chat.length && <li className="tl-empty">{writer ? 'Ask your question below. The tutor answers here and on the board above.' : 'No messages yet.'}</li>}
         {chat.map((c) => (
           <li key={c.seq} className={`tl-msg tl-${c.data.role}`}>
             <span className="tl-name">{nameOf(c)}</span>
@@ -191,7 +218,7 @@ export function ThreadLeaf({ threadId }: { threadId: string }) {
 
       {error && <div className="errata tl-error" role="alert">{error}</div>}
 
-      {mine && !closed ? (
+      {writer && !closed ? (
         <form className="tl-composer" onSubmit={(e) => { e.preventDefault(); void send(); }}>
           <label className="sr-only" htmlFor="thread-composer">Message the tutor</label>
           <textarea id="thread-composer" ref={composerRef} className="textarea" rows={2} value={draft} maxLength={1000}
@@ -204,6 +231,13 @@ export function ThreadLeaf({ threadId }: { threadId: string }) {
             <span className="tl-hint"><span className="kbd">Enter</span> sends, <span className="kbd">Shift</span>+<span className="kbd">Enter</span> new line</span>
           </div>
         </form>
+      ) : canJoin ? (
+        <div className="tl-readonly tl-join">
+          <p>Same question? Join to ask the tutor here with {ownerName}.</p>
+          <button className="btn primary" onClick={() => void join()} disabled={joining}>
+            <UserPlus {...ICON} />{joining ? 'Joining' : 'Join this thread'}
+          </button>
+        </div>
       ) : (
         <p className="tl-readonly">{closed ? 'This thread is closed.' : `Only ${ownerName} can write here.`}</p>
       )}

@@ -1,15 +1,18 @@
 // A5 (Dev A): the recap over the board when phase === 'ended': check results per part, my
 // questions and what became of them, and the shared notes (read and edited in the Notes tab).
-import { useMemo, useState } from 'react';
-import { BookOpen, House } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { BookOpen, House, Users } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import type { ClusterRow, QuestionRow, StreamEvent } from '@chalk/schema';
 import { useRoom } from '../../room/store';
 import { api } from '../../lib/api';
+import { supabase } from '../../lib/supabase';
 import { navigate } from '../../lib/router';
 import { sectionHue } from '../../ui/section';
 import { Stamp, type StampTone } from '../../ui/Stamp';
 import { FREE_TEXT, myAnswer, spreadRows } from '../check/checkData';
+import { BookNext } from '../../screens/library/BookNext';
+import { classKudos } from '../../screens/library/files';
 import './notes.css';
 
 const minutes = (a: string | null, b: string | null) => a && b ? Math.max(1, Math.round((Date.parse(b) - Date.parse(a)) / 60_000)) : null;
@@ -35,7 +38,19 @@ export function Recap() {
   const me = useRoom((s) => s.me);
   const notes = useRoom((s) => s.notes);
   const questions = useRoom((s) => s.questions);
-  const clusters = useRoom((s) => s.clusters);
+  const liveClusters = useRoom((s) => s.clusters);
+  // the end of class can outrun the last cluster updates on the channel: read them once more
+  const [fresh, setFresh] = useState<Record<string, ClusterRow>>({});
+  useEffect(() => {
+    let live = true;
+    const t = setTimeout(() => {
+      void supabase.from('clusters').select('*').eq('room_id', room.id).then((r) => {
+        if (live && r.data) setFresh(Object.fromEntries((r.data as ClusterRow[]).map((c) => [c.id, c])));
+      });
+    }, 1500);
+    return () => { live = false; clearTimeout(t); };
+  }, [room.id]);
+  const clusters = useMemo(() => ({ ...liveClusters, ...fresh }), [liveClusters, fresh]);
   const closed = useRoom((s) => s.closedChecks);
   const mainEvents = useRoom((s) => s.mainEvents);
   const learners = useRoom(useShallow((s) => Object.keys(s.members).length));
@@ -52,6 +67,9 @@ export function Recap() {
   const mine = useMemo(() => Object.values(questions).filter((q) => q.author_id === me).sort((a, b) => a.created_at.localeCompare(b.created_at)), [questions, me]);
   const heads = useMemo(() => Object.values(notes).sort((a, b) => a.idx - b.idx).map((n) => ({ id: n.id, h: headingOf(n.markdown) })), [notes]);
   const mins = minutes(room.started_at, room.ended_at);
+  // kudos for this class: my questions answered for everyone that others shared or +1'd
+  const kudos = useMemo(() => me ? classKudos(me, Object.values(questions), clusters) : { questionsHelped: 0, peopleHelped: 0 }, [me, questions, clusters]);
+  const amHost = !!me && room.host_id === me;
 
   const leave = () => {
     setLeaving(true);
@@ -79,6 +97,14 @@ export function Recap() {
             </button>
           </div>
         </header>
+
+        {kudos.peopleHelped > 0 && (
+          <p className="recap-kudos" role="status">
+            <Users size={16} strokeWidth={2} aria-hidden />
+            <span>Your questions helped <span className="mono">{kudos.peopleHelped}</span> {kudos.peopleHelped === 1 ? 'person' : 'people'}
+              {kudos.questionsHelped > 1 && <> across <span className="mono">{kudos.questionsHelped}</span> questions</>}.</span>
+          </p>
+        )}
 
         <div className="recap-grid">
           <section className="recap-sec" aria-labelledby="recap-checks">
@@ -135,6 +161,12 @@ export function Recap() {
             ) : <p className="recap-empty">The scribe did not write notes for this class.</p>}
           </section>
         </div>
+
+        {amHost && (
+          <footer className="recap-foot recap-book">
+            <BookNext room={room} variant="recap" />
+          </footer>
+        )}
       </article>
     </div>
   );

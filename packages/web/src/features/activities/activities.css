@@ -1,0 +1,113 @@
+/* Lane M: live activities. The duel leaf lies over the board; the teach-back leaf hinges over
+   its right side so the tutor's drawing stays visible on the left. */
+
+/* ---------- shared leaf ---------- */
+.act-overlay { z-index: 12; }
+.act-leaf {
+  width: min(760px, 100%); max-height: calc(100cqh - 24px); overflow: auto;
+  padding: 14px 18px 16px; display: flex; flex-direction: column; gap: 12px;
+}
+.act-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-height: 28px; }
+.act-head h3 { font-size: var(--t-lg); font-stretch: 80%; }
+.act-count { font-size: var(--t-sm); font-weight: 650; font-stretch: 86%; color: var(--ink-2); }
+.act-count .mono { color: var(--ink); }
+.act-prompt .md { font-family: var(--font-read); font-size: 1.2rem; line-height: 1.4; color: var(--ink); }
+.act-prompt-sm .md { font-size: 1.02rem; }
+.act-note { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: var(--t-sm); color: var(--ink-2); }
+.act-note .lucide { color: var(--ok); }
+.act-answer { font-size: var(--t-md); font-weight: 650; color: var(--ink); }
+.act-label { font-size: var(--t-xs); font-weight: 700; font-stretch: 78%; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-2); }
+.act-foot { display: flex; align-items: center; justify-content: flex-end; gap: 14px; flex-wrap: wrap; }
+.act-foot .act-note { flex: 1; min-width: 160px; }
+.act-time { font-size: var(--t-sm); color: var(--ink-2); white-space: nowrap; }
+.act-time .mono { color: var(--ink); font-weight: 600; }
+.act-leaf .btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+/* ---------- duel: countdown, options ---------- */
+.duel-clock { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 12px; }
+.duel-secs { font-size: 2rem; font-weight: 600; line-height: 1; min-width: 2ch; text-align: right; color: var(--ink); font-variant-numeric: tabular-nums; }
+.duel-track { height: 10px; background: var(--paper-2); border: 1px solid var(--rule); border-radius: 2px; overflow: hidden; }
+.duel-fill { display: block; height: 100%; background: var(--section); transition: width 250ms steps(2); }
+
+.duel-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 6px; }
+.duel-option { margin-bottom: 0; min-height: 48px; align-items: center; transition: background var(--step) steps(2), border-color var(--step) steps(2); }
+.duel-option .md { font-family: var(--font-ui); font-size: var(--t-md); }
+.duel-option .key { padding-top: 0; }
+.duel-option:active:not(:disabled) { background: var(--paper-3); }
+.duel-option:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.duel-option:disabled { opacity: 1; color: var(--ink-2); }
+.duel-option[aria-pressed='true'] { border: 2px solid var(--ink); color: var(--ink); }
+.duel-option.is-off, .duel-option:disabled:not([aria-pressed='true']) { background: transparent; border-style: dashed; }
+.duel-option .sent-mark { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; font-size: var(--t-xs); font-weight: 700; font-stretch: 84%; white-space: nowrap; }
+.duel-typed { display: flex; gap: 8px; align-items: center; max-width: 420px; }
+.duel-typed .input { font-family: var(--font-mono); }
+
+/* ---------- duel: result spread beside the leaderboard ---------- */
+.duel-result { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 18px; }
+.duel-col { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.duel-board { border-left: 1px solid var(--rule); padding-left: 18px; }
+
+.leaders { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.leader { display: flex; align-items: center; gap: 10px; min-height: 34px; padding: 4px 2px; border-bottom: 1px solid var(--rule); }
+.leader:first-child { border-top: 1px solid var(--rule); }
+.leader-rank { width: 1.6em; color: var(--ink-3); font-size: var(--t-sm); }
+.leader-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 650; font-stretch: 86%; color: var(--ink); }
+.leader-points { font-size: var(--t-md); font-weight: 600; color: var(--ink); }
+.leader.is-me .leader-rank { color: var(--ink); }
+.act-reteach { font-family: var(--font-read); font-size: 1.08rem; line-height: 1.45; color: var(--ink); border-top: 1.5px solid var(--ink); padding-top: 10px; }
+.act-reteach strong { font-weight: 650; }
+
+/* ---------- teach-back: a leaf hinged over the right of the board ---------- */
+.tb-layer { position: absolute; top: 10px; right: 10px; bottom: 10px; width: min(440px, 46%); z-index: 12; display: flex; align-items: flex-start; pointer-events: none; }
+.tb-leaf { pointer-events: auto; width: 100%; max-height: 100%; }
+.tb-concept { font-family: var(--font-read); font-size: 1.12rem; line-height: 1.4; color: var(--ink); }
+.tb-compose { display: flex; flex-direction: column; gap: 6px; }
+.tb-compose .textarea { min-height: 112px; }
+.tb-said { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; background: var(--paper-2); border-radius: 2px; }
+.tb-who { font-size: var(--t-xs); font-weight: 700; font-stretch: 78%; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-2); }
+.tb-text { font-family: var(--font-read); font-size: 1rem; line-height: 1.5; color: var(--ink); white-space: pre-wrap; overflow-wrap: anywhere; }
+.tb-feedback { display: flex; flex-direction: column; gap: 6px; border-top: 1px solid var(--rule); padding-top: 10px; }
+.tb-md { font-family: var(--font-read); font-size: 1rem; line-height: 1.5; color: var(--ink); }
+.tb-md p + p { margin-top: 6px; }
+.tb-sub { font-size: var(--t-xs); font-weight: 700; font-stretch: 78%; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-2); margin: 6px 0 0; }
+.tb-missing { margin: 0; padding-left: 18px; font-family: var(--font-read); font-size: 0.98rem; line-height: 1.45; color: var(--ink); }
+.tb-missing li::marker { color: var(--warn); }
+
+/* ---------- host buttons in the control bar ---------- */
+.activity-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding-left: 14px; border-left: 1px solid var(--rule); }
+.activity-controls .btn.small { gap: 6px; }
+.activity-controls .btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.act-reason { font-size: var(--t-xs); color: var(--ink-3); }
+.activity-controls .errata { flex-basis: 100%; }
+.activity-controls.is-confirm { background: var(--leaf); border: 1px solid var(--rule-2); border-radius: var(--r); padding: 6px 8px 6px 12px; box-shadow: var(--shadow-leaf); }
+.act-concept { min-height: 28px; padding: 3px 9px; width: min(240px, 22vw); }
+
+@container (max-width: 620px) {
+  .act-leaf { padding: 12px; gap: 10px; }
+  .duel-result { grid-template-columns: 1fr; gap: 12px; }
+  .duel-board { border-left: 0; padding-left: 0; }
+  .duel-options { grid-template-columns: 1fr; }
+  .act-prompt .md { font-size: 1.08rem; }
+}
+
+/* the board shrinks when the stage is short: keep the leaf readable */
+@media (max-width: 1180px) {
+  .tb-layer { width: min(400px, 52%); }
+  .act-reason { display: none; }
+}
+
+/* ---------- phone: the duel takes the board's place; the teach-back sits under the board ---------- */
+@media (max-width: 760px) {
+  .act-leaf { max-height: none; overflow: visible; width: 100%; }
+  .duel-result { grid-template-columns: 1fr; gap: 12px; }
+  .duel-board { border-left: 0; padding-left: 0; }
+  .duel-options { grid-template-columns: 1fr; }
+  .duel-option { min-height: 44px; }
+  .duel-secs { font-size: 1.6rem; }
+  .board-wrap:has(> .tb-layer) { aspect-ratio: auto; container-type: normal; display: flex; flex-direction: column; gap: 6px; }
+  .board-wrap:has(> .tb-layer) > .board-svg { width: 100%; }
+  .tb-layer { position: static; width: 100%; pointer-events: auto; }
+  .activity-controls { padding-left: 0; border-left: 0; }
+  .activity-controls.is-confirm { flex: 1 1 100%; }
+  .act-concept { flex: 1; width: auto; min-width: 0; }
+}

@@ -53,3 +53,8 @@
   .recap { inset: 0 0 auto 0; padding: 0; background: none; overflow: visible; }
   .recap-leaf { max-height: 78vh; overflow: auto; }
 }
+
+/* lane L: kudos for this class, and the host's booking of the next session */
+.recap-kudos { display: flex; align-items: center; gap: 8px; margin-top: -6px; font-family: var(--font-read); font-size: 1.05rem; color: var(--ink); }
+.recap-kudos .lucide { color: var(--ok); flex: none; }
+.recap-book { display: block; }

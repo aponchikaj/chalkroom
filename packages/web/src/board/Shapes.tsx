@@ -6,6 +6,8 @@ import hljs from 'highlight.js/lib/common';
 import type { ShapeStyle } from '@chalk/schema';
 import { arrowGeometry, tableColumnWidths, gridToPx, type BoardPage, type ShapeState } from '@chalk/board';
 import { rect, ellipse, line, curve, linear, FILL, type RPath } from './rough';
+import { openSource, useMaterials } from '../features/materials/store';
+import './citeTag.css';
 
 export const STROKE: Record<ShapeStyle, string> = {
   default: 'var(--fig-ink)', accent: 'var(--fig-accent)', muted: 'var(--fig-muted)',
@@ -254,9 +256,50 @@ function Arrow({ s, page }: { s: ShapeState; page: BoardPage }) {
   );
 }
 
-export const ShapeView = memo(function ShapeView({ s, page, animMs, selected, pulsing, onPointerDown }: {
+/** A shape's `source` ("res:<source id>#p<page>", page optional), or null. */
+export function parseSource(source: string | undefined): { id: string; page: number | null } | null {
+  const m = source ? /^res:([\w.-]+)(?:#p(\d+))?$/.exec(source) : null;
+  if (!m) return null;
+  const page = m[2] ? Number(m[2]) : null;
+  return { id: m[1], page: page && page > 0 ? page : null };
+}
+
+const TAG_H = 40;
+const TAG_MAX_W = 380;
+
+/**
+ * Lane Q: a printed citation tag on the shape's top right corner. Named from the materials
+ * cache when the title is known, else "Source"; pressing it opens the source in the Materials
+ * tab, like the citation chips in chat. Only the tag takes the pointer, never the box around it.
+ */
+function CiteTag({ s }: { s: ShapeState }) {
+  const cite = parseSource(s.source);
+  const title = useMaterials((st) => (cite ? st.titles[cite.id] : undefined));
+  if (!cite || s.kind === 'arrow' || s.kind === 'group') return null;
+  const name = title || 'Source';
+  const label = `Open source: ${name}${cite.page ? `, page ${cite.page}` : ''}`;
+  // right edge on the shape's right edge, sitting on its top rule
+  const x = s.x + s.w - TAG_MAX_W;
+  const y = s.y - TAG_H / 2;
+  return (
+    <foreignObject className="cite-tag-fo" x={x} y={y} width={TAG_MAX_W} height={TAG_H}>
+      <div className="cite-tag-row">
+        <button type="button" className="cite-tag" aria-label={label} title={label}
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => { e.stopPropagation(); openSource(cite.id, cite.page); }}>
+          <span className="cite-tag-title">{name}</span>
+          {cite.page && <span className="cite-tag-page">p. {cite.page}</span>}
+        </button>
+      </div>
+    </foreignObject>
+  );
+}
+
+export const ShapeView = memo(function ShapeView({ s, page, animMs, selected, pulsing, onPointerDown, tags = true }: {
   s: ShapeState; page: BoardPage; animMs?: number; selected?: boolean; pulsing?: boolean;
   onPointerDown?: (e: React.PointerEvent, id: string) => void;
+  /** citation tags; off in page thumbnails (no buttons inside a button) */
+  tags?: boolean;
 }) {
   let body: React.ReactNode;
   switch (s.kind) {
@@ -283,9 +326,10 @@ export const ShapeView = memo(function ShapeView({ s, page, animMs, selected, pu
       {/* invisible hit area so thin strokes are easy to click */}
       {s.kind !== 'arrow' && s.kind !== 'group' && s.kind !== 'frame' && <rect x={s.x} y={s.y} width={s.w} height={s.h} fill="transparent" />}
       {body}
+      {tags && s.source && <CiteTag s={s} />}
     </g>
   );
-}, (a, b) => a.s === b.s && a.animMs === b.animMs && a.selected === b.selected && a.pulsing === b.pulsing && (a.s.kind !== 'arrow' || a.page === b.page));
+}, (a, b) => a.s === b.s && a.animMs === b.animMs && a.selected === b.selected && a.pulsing === b.pulsing && a.tags === b.tags && (a.s.kind !== 'arrow' || a.page === b.page));
 
 function escapeHtml(s: string) {
   return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
