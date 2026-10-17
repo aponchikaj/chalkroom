@@ -94,7 +94,10 @@ try {
   await ana.call('POST', `/rooms/${room.id}/ready`, { segment: 0 });
   await gio.call('POST', `/rooms/${room.id}/ready`, { segment: 0 });
   const closed = await waitFor(ana, (e) => e.kind === 'check_closed', 'check_closed');
-  if (closed.data.spread.total !== 2 || closed.data.spread.correct !== 1) fail(`unexpected spread ${JSON.stringify(closed.data.spread)}`);
+  // the mock's answer is option 1; a real model writes its own check, so only the shape is known
+  const spread = closed.data.spread;
+  const spreadOk = health.model === 'mock' ? spread.total === 2 && spread.correct === 1 : spread.total === 2 && spread.correct >= 0 && spread.correct <= 2;
+  if (!spreadOk) fail(`unexpected spread ${JSON.stringify(spread)}`);
   step(`gate passed: ${closed.data.spread.correct}/${closed.data.spread.total} got it`);
   if (health.model === 'mock') {
     await waitRow(ana, (r) => r.table === 'clusters' && r.row.route === 'class' && r.row.asker_count === 2, 'a grouped class cluster');
@@ -113,10 +116,10 @@ try {
   await gio.call('POST', `/threads/${thread.id}/messages`, { text: 'Why does it start at 255?' });
   await waitFor(gio, (e) => e.stream_id === thread.stream_id && e.kind === 'chat' && e.data.role === 'tutor' && e.seq >= 3, 'the thread tutor reply');
   step('thread opened; the thread tutor replied');
-  const check2 = await waitFor(ana, (e) => e.kind === 'check' && e.data.segment === 1, 'the second check');
+  // a real model may end a segment without a check: wait for the gate itself
   await waitRow(ana, (r) => r.table === 'rooms' && r.row.phase === 'check' && r.row.segment === 1, 'the gate of segment 1');
   await ana.call('POST', `/rooms/${room.id}/ready`, { segment: 1 });
-  await waitFor(ana, (e) => e.kind === 'check_closed' && e.data.checkId === check2.data.checkId, 'gate 2 without the thread owner');
+  await waitFor(ana, (e) => e.kind === 'segment_start' && e.data.segment === 2, 'segment 2 (gate 2 passed without the thread owner)');
   step('gate passed while Gio was in a thread');
   await gio.call('POST', `/threads/${thread.id}/close`, {});
   await waitFor(ana, (e) => e.kind === 'segment_summary' && e.data.segment === 0, 'the segment 0 summary');
