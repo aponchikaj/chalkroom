@@ -62,7 +62,7 @@ export const ENDPOINTS = [
   { group: 'Threads', name: 'Share to class', method: 'POST', path: '/threads/:threadId/share', body: () => ({}) },
 
   { group: 'Notes', name: 'Edit note block', method: 'PUT', path: '/rooms/:roomId/notes/:blockId',
-    body: (u, c) => ({ markdown: 'Edited in the sandbox', version: Number(c.blockVersion) }), built: false, task: 'B3',
+    body: (u, c) => ({ markdown: 'Edited in the sandbox', version: Number(c.blockVersion) }),
     note: '409 when version is stale.' },
 ];
 
