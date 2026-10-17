@@ -170,3 +170,8 @@
   .live.phase-ended .recap-sec { border-left: 0; padding-left: 0; }
   .live.phase-ended .captions, .live.phase-ended .pagestrip { display: none; }
 }
+
+/* removed by the host */
+.removed { height: 100%; display: grid; place-items: center; padding: 20px; }
+.removed .leaf { max-width: 440px; }
+.removed .btn { align-self: flex-start; }

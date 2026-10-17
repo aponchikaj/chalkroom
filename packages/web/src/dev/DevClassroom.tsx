@@ -24,7 +24,6 @@ const devThreadEvents = (streamId: string, after: number) => threadEvents.filter
 
 function fakeConnection(): RoomConnection {
   return {
-    channel: null as unknown as RoomConnection['channel'],
     track: (patch: Partial<PresenceState>) => useRoom.setState((s) => {
       const me = s.me!;
       return { presence: { ...s.presence, [me]: { ...s.presence[me], ...patch } } };
@@ -102,6 +101,12 @@ function installDevApi() {
       later(1100, () => emit({ stream_id: t.stream_id, room_id: ROOM_ID, seq: seq(), kind: 'board', data: { steps: r.steps }, actor: 'thread', t: now() } as StreamEvent));
     },
     closeThread: async (threadId: string) => set((s) => ({ threads: { ...s.threads, [threadId]: { ...s.threads[threadId], status: 'closed' } }, openThreadId: null })),
+    moderate: async (_r: string, b: { userId: string; action: 'mute' | 'unmute' | 'kick' }) => set((s) => {
+      const m = s.members[b.userId];
+      if (!m) return {};
+      const next = b.action === 'kick' ? { ...m, banned: true, left_at: now() } : { ...m, muted: b.action === 'mute' };
+      return { members: { ...s.members, [b.userId]: next } };
+    }),
     editNote: async (_r: string, blockId: string, b: { markdown: string; version: number }) => {
       const cur = st().notes[blockId];
       if (cur && cur.version !== b.version) throw new Error('Someone else changed this block. Reload it and try again.');

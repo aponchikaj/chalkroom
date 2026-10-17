@@ -27,7 +27,9 @@ export function AskBar() {
   const [sending, setSending] = useState(false);
   const typing = useRef({ on: false, timer: 0 });
   const ended = room.phase === 'ended';
-  const anchored = !ended && selection.length > 0;
+  const muted = useRoom((s) => !!(s.me && s.members[s.me]?.muted));
+  const closed = ended || muted;
+  const anchored = !closed && selection.length > 0;
 
   const setTyping = (on: boolean) => {
     window.clearTimeout(typing.current.timer);
@@ -42,7 +44,7 @@ export function AskBar() {
 
   const submit = (raw: string) => {
     const body = raw.trim();
-    if (!body || sending || ended) return;
+    if (!body || sending || closed) return;
     const shapeIds = useRoom.getState().selection;
     const anchor = shapeIds.length ? { streamId: room.main_stream_id, shapeIds } : undefined;
     setSending(true);
@@ -62,10 +64,10 @@ export function AskBar() {
     if (typing.current.on) conn?.track({ typing: false });
   }, [conn]);
 
-  const placeholder = ended ? 'Class has ended.'
+  const placeholder = ended ? 'Class has ended.' : muted ? 'The host muted your questions for now.'
     : anchored ? 'Ask about the selected shapes'
     : 'Ask anything';
-  const canSend = !!text.trim() && !sending && !ended;
+  const canSend = !!text.trim() && !sending && !closed;
 
   return (
     <form className="askbar" onSubmit={(e) => { e.preventDefault(); submit(text); }} aria-busy={sending}>
@@ -89,7 +91,7 @@ export function AskBar() {
 
       <span className="ask-field">
         <input className="input" placeholder={placeholder} value={text} maxLength={MAX}
-          disabled={ended} aria-label={anchored ? 'Ask about the selected shapes' : 'Ask a question'}
+          disabled={closed} aria-label={anchored ? 'Ask about the selected shapes' : 'Ask a question'}
           aria-invalid={!!error || undefined}
           onChange={(e) => { setText(e.target.value); setError(''); if (e.target.value) bumpTyping(); else setTyping(false); }}
           onBlur={() => setTyping(false)} />

@@ -43,5 +43,6 @@ export const api = {
   threadMessage: (threadId: string, b: In<'threadMessage'>) => call<void>('POST', `/threads/${threadId}/messages`, b),
   closeThread: (threadId: string) => call<void>('POST', `/threads/${threadId}/close`, {}),
   shareThread: (threadId: string, b: In<'shareThread'>) => call<void>('POST', `/threads/${threadId}/share`, b),
+  moderate: (roomId: string, b: In<'moderate'>) => call<void>('POST', `/rooms/${roomId}/moderate`, b),
   editNote: (roomId: string, blockId: string, b: In<'editNote'>) => call<NoteBlockRow>('PUT', `/rooms/${roomId}/notes/${blockId}`, b),
 };
