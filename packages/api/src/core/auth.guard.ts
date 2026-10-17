@@ -7,6 +7,11 @@ export interface AuthUser { id: string; anonymous: boolean }
 
 const cache = new Map<string, { user: AuthUser; until: number }>();
 
+/** Drop cached sessions of a user (after account deletion), so their tokens stop working at once. */
+export function forgetUser(userId: string) {
+  for (const [token, hit] of cache) if (hit.user.id === userId) cache.delete(token);
+}
+
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(private supa: SupabaseService) {}
