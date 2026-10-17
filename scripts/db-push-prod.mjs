@@ -17,7 +17,7 @@ const password = decodeURIComponent(url.password);
 url.password = '';
 const target = `${url.hostname}:${url.port || 5432} as ${decodeURIComponent(url.username)}`;
 const env = { ...process.env, PGPASSWORD: password };
-const push = (extra) => execFileSync('npx', ['supabase', 'db', 'push', '--db-url', url.toString(), ...extra], { stdio: 'inherit', env });
+const push = (extra) => execFileSync('npx', ['supabase', 'db', 'push', '--db-url', url.toString(), ...extra], { stdio: 'inherit', env, shell: process.platform === 'win32' });
 
 console.log(`Target: ${target}\n\nPending migrations (dry run, nothing is changed):`);
 push(['--dry-run']);
