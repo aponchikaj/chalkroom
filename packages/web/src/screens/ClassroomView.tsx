@@ -24,6 +24,8 @@ import { LobbyLeaf } from '../features/lobby/LobbyLeaf';
 import { Recap } from '../features/notes/Recap';
 import { ReactionsLayer } from '../features/layers/ReactionsLayer';
 import { LaserLayer } from '../features/layers/LaserLayer';
+import { ActivityLayer } from '../features/activities/ActivityLayer';
+import { ActivityControls } from '../features/activities/ActivityControls';
 import '../ui/ui.css';
 import './classroom.css';
 
@@ -61,6 +63,7 @@ export function ClassroomView() {
               emptyHint={room.phase === 'lobby' ? '' : 'The tutor is preparing the first figure'} />
             <ReactionsLayer />
             <LaserLayer />
+            <ActivityLayer />
             {room.phase === 'lobby' && <LobbyLeaf />}
             {room.phase === 'ended' && <Recap />}
           </div>
@@ -76,6 +79,7 @@ export function ClassroomView() {
       <footer className="controlbar">
         <ReadyStrip />
         <HostControls />
+        <ActivityControls />
         <AskBar />
       </footer>
     </div>

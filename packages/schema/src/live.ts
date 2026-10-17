@@ -85,6 +85,26 @@ export const StreamEventData = {
   chat: z.object({ role: z.enum(['tutor', 'learner']), markdown: z.string(), authorId: z.string().optional() }),
   /** Small system line ("Class ended", "Tutor is retrying…"). */
   notice: z.object({ text: z.string(), level: z.enum(['info', 'warn']).default('info') }),
+  // --- live activities on `main` (lane M): quiz duel and teach-back ---
+  /** A quiz duel begins: every learner answers the same questions against the clock. */
+  duel_start: z.object({ duelId: z.string(), count: z.number().int().min(1).max(10), secondsPerQuestion: z.number().int().min(5).max(120) }),
+  /** One duel question is open until `endsAt` (ISO). Answers: POST /rooms/:id/duel/answer. */
+  duel_question: z.object({ duelId: z.string(), index: z.number().int(), question: PublicQuestion, endsAt: z.string() }),
+  /** The question closed: the class spread, the answer and the running leaderboard. */
+  duel_result: z.object({
+    duelId: z.string(), index: z.number().int(), spread: CheckSpread, answer: z.unknown(), answerText: z.string(),
+    leaders: z.array(z.object({ userId: z.string(), name: z.string(), points: z.number().int() })),
+  }),
+  /** The duel is over: final leaderboard, and what the tutor will re-teach (most missed). */
+  duel_end: z.object({ duelId: z.string(), leaders: z.array(z.object({ userId: z.string(), name: z.string(), points: z.number().int() })), reteach: z.string().optional() }),
+  /** Teach-back: the tutor invites a volunteer to explain a concept in their own words. */
+  teachback_invite: z.object({ teachbackId: z.string(), concept: z.string(), prompt: z.string() }),
+  /** Someone volunteered; only they can submit the explanation. */
+  teachback_volunteer: z.object({ teachbackId: z.string(), userId: z.string(), name: z.string() }),
+  /** The volunteer's explanation, shown to the class. */
+  teachback_explanation: z.object({ teachbackId: z.string(), userId: z.string(), name: z.string(), text: z.string() }),
+  /** The tutor's response: what was right, what was missing, optionally drawn on the board. */
+  teachback_feedback: z.object({ teachbackId: z.string(), markdown: z.string(), missing: z.array(z.string()), steps: z.array(BoardStep).optional() }),
 } as const;
 
 export type StreamEventKind = keyof typeof StreamEventData;
@@ -133,6 +153,10 @@ export interface RoomRow {
   created_at: string;
   started_at: string | null;
   ended_at: string | null;
+  /** planned start for lobby listings (lane C); null starts when the host says so */
+  starts_at?: string | null;
+  /** "Book the next session" created this follow-up room (lane L) */
+  next_room_id?: string | null;
 }
 
 export interface MemberRow {
@@ -202,6 +226,8 @@ export interface ThreadRow {
   shared_answer: string | null;
   /** main-stream seq when the learner left the class (for the catch-up card) */
   left_main_seq: number | null;
+  /** classmates who joined this thread from a peek (lane Q); they may post too */
+  members?: string[];
   created_at: string;
 }
 
@@ -338,6 +364,8 @@ export const Api = {
     /** defaults to the caller's profile */
     color: Color.optional(),
     visibility: z.enum(['private', 'public']).default('private'),
+    /** lobby start time (lane C) */
+    startsAt: z.string().datetime().optional(),
   }),
   /** POST /rooms/join → JoinRoomRes */
   joinRoom: z.object({ inviteCode: z.string().trim().min(4).max(12), displayName: DisplayName.optional(), color: Color.optional() }),
@@ -390,6 +418,34 @@ export const Api = {
   avatarCommit: z.object({ path: z.string().max(200) }),
   /** POST /cards/:id/review -> CardReviewRow (the API schedules the next review with FSRS) */
   reviewCard: z.object({ rating: z.enum(['again', 'hard', 'good', 'easy']) }),
+  // --- courses and lobby (lane C) ---
+  /** POST /courses -> CourseRow. Without syllabusMd the planner drafts one from title + goal. */
+  createCourse: z.object({ title: z.string().trim().min(1).max(120), goal: z.string().max(500).optional(), syllabusMd: z.string().max(20000).optional(), visibility: z.enum(['public', 'private']).default('public') }),
+  /** PATCH /courses/:id (owner) -> CourseRow */
+  updateCourse: z.object({ title: z.string().trim().min(1).max(120).optional(), goal: z.string().max(500).optional(), syllabusMd: z.string().max(20000).optional(), visibility: z.enum(['public', 'private']).optional() }),
+  /** POST /courses/:id/fork -> CourseRow (a private copy owned by the caller) */
+  forkCourse: z.object({ title: z.string().trim().min(1).max(120).optional() }),
+  /** POST /courses/:id/rating (one per user, replaces) */
+  rateCourse: z.object({ stars: z.number().int().min(1).max(5) }),
+  // --- live activities (lane M) ---
+  /** POST /rooms/:id/duel (host) */
+  startDuel: z.object({ count: z.number().int().min(3).max(8).default(5), secondsPerQuestion: z.number().int().min(10).max(60).default(20) }),
+  /** POST /rooms/:id/duel/answer */
+  duelAnswer: z.object({ duelId: z.string(), index: z.number().int(), answer: z.unknown() }),
+  /** POST /rooms/:id/teachback (host); concept defaults to the current segment's objective */
+  startTeachback: z.object({ concept: z.string().max(200).optional() }),
+  /** POST /rooms/:id/teachback/volunteer */
+  teachbackVolunteer: z.object({ teachbackId: z.string() }),
+  /** POST /rooms/:id/teachback/explain (the volunteer only) */
+  teachbackExplain: z.object({ teachbackId: z.string(), text: z.string().trim().min(1).max(2000) }),
+  // --- library (lane L) ---
+  /** POST /rooms/:id/next (host) -> RoomRow: book the next session of this group */
+  nextSession: z.object({ startsAt: z.string().datetime(), title: z.string().trim().min(1).max(80).optional() }),
+  // --- questions and threads (lane Q) ---
+  /** POST /questions/:id/unmerge (asker or host) -> QuestionRow: take it out of its group */
+  unmerge: z.object({}),
+  /** POST /threads/:id/join -> ThreadRow: a classmate joins a thread they were peeking at */
+  joinThread: z.object({}),
   /** PUT /rooms/:id/notes/:blockId */
   editNote: z.object({ markdown: z.string().max(5000), version: z.number().int() }),
 } as const;
@@ -560,3 +616,64 @@ export const ProposedCards = z.object({
   cards: z.array(z.object({ front: z.string().trim().min(1).max(300), back: z.string().trim().min(1).max(600) })).min(3).max(12),
 });
 export type ProposedCards = z.infer<typeof ProposedCards>;
+
+// ---------------------------------------------------------------------------
+// Courses and the lobby (lane C)
+// ---------------------------------------------------------------------------
+
+/** Row of `courses`. The syllabus is Markdown in the Chalkroom syllabus format (parseSyllabus). */
+export interface CourseRow {
+  id: string;
+  title: string;
+  goal: string;
+  syllabus_md: string;
+  visibility: 'public' | 'private';
+  owner_id: string | null;
+  forked_from: string | null;
+  created_at: string;
+}
+
+/** GET /courses (catalog) and GET /courses/:id */
+export interface CourseCard extends CourseRow {
+  owner_name: string | null;
+  /** how many rooms ran this course */
+  rooms_run: number;
+  /** mean stars, null without ratings */
+  rating: number | null;
+  ratings: number;
+  /** my own stars, if I rated it */
+  my_rating: number | null;
+}
+
+/** Row of `faq`: answered class questions of a course, reused by later rooms. */
+export interface FaqRow { id: string; course_id: string; topic_id: string | null; question: string; answer: string; askers_total: number; created_at: string }
+
+/** GET /lobby: open public rooms (lobby or live) with free seats */
+export interface LobbyRoom {
+  id: string;
+  title: string;
+  course_id: string | null;
+  course_title: string | null;
+  phase: Phase;
+  seats: number;
+  taken: number;
+  starts_at: string | null;
+  host_name: string;
+  invite_code: string;
+}
+
+// ---------------------------------------------------------------------------
+// Library: replays and kudos (lane L)
+// ---------------------------------------------------------------------------
+
+/** GET /replays: finished public classes */
+export interface ReplayCard { id: string; title: string; course_title: string | null; ended_at: string; minutes: number | null; chapters: number; host_name: string }
+
+/** A jump point in a replay: a segment, or a class question answered on the board. */
+export interface ReplayChapter { seq: number; kind: 'segment' | 'question'; title: string }
+
+/** GET /rooms/:id/replay (members, or anyone for a public finished room) */
+export interface ReplayRes { room: RoomRow; events: StreamEvent[]; chapters: ReplayChapter[] }
+
+/** GET /me/kudos: how my questions and threads helped others, across all my classes */
+export interface KudosRes { questionsHelped: number; peopleHelped: number; sharedThreads: number }

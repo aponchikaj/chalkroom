@@ -1,7 +1,7 @@
 // REST client for the NestJS API. Request bodies are typed by @chalk/schema's Api contracts.
 import type { z } from 'zod';
 import type {
-  Api, AvatarUploadRes, CardReviewRow, CreateRoomRes, JoinRoomRes, MeRes, NoteBlockRow, ProfileRow, QuestionRow, RoomPreview, SourceRow,
+  Api, AvatarUploadRes, CourseCard, CourseRow, FaqRow, KudosRes, LobbyRoom, ReplayCard, ReplayRes, RoomRow, CardReviewRow, CreateRoomRes, JoinRoomRes, MeRes, NoteBlockRow, ProfileRow, QuestionRow, RoomPreview, SourceRow,
   SourceUploadRes, ThreadRow, TwoFactorState, UserSettings,
 } from '@chalk/schema';
 import { ensureSession, supabase } from './supabase';
@@ -67,5 +67,28 @@ export const api = {
   sourceUploadUrl: (roomId: string, b: In<'sourceUploadUrl'>) => call<SourceUploadRes>('POST', `/rooms/${roomId}/sources/upload-url`, b),
   addSourceFile: (roomId: string, b: In<'addSourceFile'>) => call<SourceRow>('POST', `/rooms/${roomId}/sources`, b),
   deleteSource: (sourceId: string) => call<void>('DELETE', `/sources/${sourceId}`),
+  // courses and lobby (lane C)
+  courses: (query?: string) => call<CourseCard[]>('GET', `/courses${query ? `?q=${encodeURIComponent(query)}` : ''}`),
+  course: (courseId: string) => call<CourseCard>('GET', `/courses/${courseId}`),
+  courseFaq: (courseId: string) => call<FaqRow[]>('GET', `/courses/${courseId}/faq`),
+  createCourse: (b: In<'createCourse'>) => call<CourseRow>('POST', '/courses', b),
+  updateCourse: (courseId: string, b: In<'updateCourse'>) => call<CourseRow>('PATCH', `/courses/${courseId}`, b),
+  forkCourse: (courseId: string, b: In<'forkCourse'>) => call<CourseRow>('POST', `/courses/${courseId}/fork`, b),
+  rateCourse: (courseId: string, b: In<'rateCourse'>) => call<void>('POST', `/courses/${courseId}/rating`, b),
+  lobby: () => call<LobbyRoom[]>('GET', '/lobby'),
+  // live activities (lane M)
+  startDuel: (roomId: string, b: In<'startDuel'>) => call<{ duelId: string }>('POST', `/rooms/${roomId}/duel`, b),
+  duelAnswer: (roomId: string, b: In<'duelAnswer'>) => call<void>('POST', `/rooms/${roomId}/duel/answer`, b),
+  startTeachback: (roomId: string, b: In<'startTeachback'>) => call<{ teachbackId: string }>('POST', `/rooms/${roomId}/teachback`, b),
+  teachbackVolunteer: (roomId: string, b: In<'teachbackVolunteer'>) => call<void>('POST', `/rooms/${roomId}/teachback/volunteer`, b),
+  teachbackExplain: (roomId: string, b: In<'teachbackExplain'>) => call<void>('POST', `/rooms/${roomId}/teachback/explain`, b),
+  // library (lane L)
+  replays: () => call<ReplayCard[]>('GET', '/replays'),
+  replay: (roomId: string) => call<ReplayRes>('GET', `/rooms/${roomId}/replay`),
+  nextSession: (roomId: string, b: In<'nextSession'>) => call<RoomRow>('POST', `/rooms/${roomId}/next`, b),
+  kudos: () => call<KudosRes>('GET', '/me/kudos'),
+  // questions and threads (lane Q)
+  unmerge: (questionId: string) => call<QuestionRow>('POST', `/questions/${questionId}/unmerge`, {}),
+  joinThread: (threadId: string) => call<ThreadRow>('POST', `/threads/${threadId}/join`, {}),
   editNote: (roomId: string, blockId: string, b: In<'editNote'>) => call<NoteBlockRow>('PUT', `/rooms/${roomId}/notes/${blockId}`, b),
 };
