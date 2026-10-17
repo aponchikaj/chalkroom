@@ -56,12 +56,13 @@ export async function signIn(email: string, password: string) {
   await refreshMe();
 }
 
-/** Returns true when the account still needs its email confirmed before signing in. */
-export async function signUp(email: string, password: string, profile: { username?: string; display_name: string; color: string }): Promise<boolean> {
-  const r = await supabase.auth.signUp({ email, password, options: { data: profile, emailRedirectTo: `${location.origin}/login` } });
+/** Creates the account and signs it in. The server confirms emails itself (no confirmation mail). */
+export async function signUp(email: string, password: string, profile: { username?: string; display_name: string; color: string }): Promise<void> {
+  const r = await supabase.auth.signUp({ email, password, options: { data: profile } });
   fail(r.error);
+  // an existing address comes back without a session (Supabase hides whether it exists)
+  if (!r.data.session) throw new Error('This email may already have an account. Log in instead');
   await refreshMe();
-  return !r.data.session;
 }
 
 export async function signOut() {
