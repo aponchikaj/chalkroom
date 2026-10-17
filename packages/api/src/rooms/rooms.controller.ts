@@ -35,6 +35,7 @@ export class RoomsController {
   @UseGuards(AuthGuard)
   async leave(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
     await this.rooms.leave(id, u.id);
+    await this.rooms.handOffHost(id);
     void this.conductor.for(id).membersChanged();
   }
 

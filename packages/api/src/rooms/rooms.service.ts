@@ -7,6 +7,7 @@ import { EventsService } from '../core/events.service';
 import { config } from '../config';
 import { ProfilesService } from '../accounts/profiles.service';
 import { roomPrefix } from '../agents/prompts';
+import { pickSuccessor } from '../presence/presence-tracker';
 
 const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const inviteCode = () => Array.from({ length: 6 }, () => CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)]).join('');
@@ -51,6 +52,31 @@ export class RoomsService {
     const room = await this.get(roomId);
     if (room.host_id !== userId) throw new ForbiddenException('only the host can do this');
     return room;
+  }
+
+  /** Every member, including those who left. */
+  async allMembers(roomId: string): Promise<MemberRow[]> {
+    return must(await this.db.from('room_members').select('*').eq('room_id', roomId), 'members') as MemberRow[];
+  }
+
+  async setPresence(roomId: string, back: string[], gone: string[]) {
+    if (back.length) await this.db.from('room_members').update({ left_at: null }).eq('room_id', roomId).in('user_id', back);
+    if (gone.length) await this.db.from('room_members').update({ left_at: new Date().toISOString() }).eq('room_id', roomId).in('user_id', gone).is('left_at', null);
+  }
+
+  /** If the host is gone, the longest-present member takes over (design doc: Pacing). */
+  async handOffHost(roomId: string): Promise<MemberRow | null> {
+    const room = await this.get(roomId);
+    if (room.phase === 'ended') return null;
+    const active = await this.activeMembers(roomId);
+    if (active.some((m) => m.user_id === room.host_id)) return null;
+    const next = pickSuccessor(active, room.host_id);
+    if (!next) return null;
+    await this.update(roomId, { host_id: next.user_id });
+    await this.db.from('room_members').update({ role: 'learner' }).eq('room_id', roomId).eq('user_id', room.host_id);
+    await this.db.from('room_members').update({ role: 'host' }).eq('room_id', roomId).eq('user_id', next.user_id);
+    await this.events.append(room.main_stream_id, 'notice', { text: `${next.display_name} is now the host.`, level: 'info' }, 'system');
+    return next;
   }
 
   /** Members currently in the room (joined, not left). */

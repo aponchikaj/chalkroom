@@ -7,6 +7,7 @@ import { RoomsService } from '../rooms/rooms.service';
 import { LeadTutorAgent } from '../agents/lead-tutor.agent';
 import { TriageService } from '../triage/triage.service';
 import { ScribeAgent } from '../agents/scribe.agent';
+import { PresenceService } from '../presence/presence.service';
 import { RoomConductor } from './room-conductor';
 import { config } from '../config';
 
@@ -22,13 +23,17 @@ export class ConductorService implements OnApplicationBootstrap {
     private lead: LeadTutorAgent,
     private triage: TriageService,
     private scribe: ScribeAgent,
-  ) {}
+    private presence: PresenceService,
+  ) {
+    this.presence.onMembersChanged((id) => void this.for(id).membersChanged());
+  }
 
   for(roomId: string): RoomConductor {
     let c = this.rooms.get(roomId);
     if (!c) {
       c = new RoomConductor(roomId, { supa: this.supa, events: this.events, rooms: this.roomsService, lead: this.lead, triage: this.triage, scribe: this.scribe });
       this.rooms.set(roomId, c);
+      this.presence.watch(roomId);
     }
     return c;
   }

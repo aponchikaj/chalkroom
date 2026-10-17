@@ -115,7 +115,7 @@ export class RoomConductor {
     ]);
     const ready = new Set((votes.data ?? []).map((v) => v.user_id as string));
     const excused = new Set((threads.data ?? []).map((t) => t.owner_id as string));
-    // TODO(backend): count only learners present in Supabase Presence (leave after 15 s).
+    // activeMembers is presence-aware: PresenceService sets left_at after 15 s of absence
     const waitingFor = members.filter((m) => !excused.has(m.user_id) && !ready.has(m.user_id));
     // an empty room never passes on its own (no runaway lesson)
     if (members.length && !waitingFor.length) return this.passGate(room);
