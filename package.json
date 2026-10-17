@@ -23,6 +23,7 @@
     "typecheck": "tsc -p tsconfig.json && tsc -p packages/web/tsconfig.json && tsc -p packages/api/tsconfig.json",
     "test": "vitest run --configLoader runner",
     "smoke": "node scripts/smoke.mjs",
+    "bench": "node scripts/bench.mjs",
     "test:api": "vitest run --configLoader runner --config vitest.e2e.config.ts",
     "sandbox:tokens": "node scripts/sandbox-tokens.mjs"
   },
