@@ -30,7 +30,7 @@ Done = built and tested. Next = being built. Todo = planned.
 | **Platform** | Monorepo, CI, contracts, board engine, local Supabase (Postgres 17), env split local/prod, backend folder structure, sandbox console, e2e + pgTAP + smoke + bench | Deploy (todo) | | B0 done, B7 todo |
 | **Accounts and security** | Schema for profiles, settings, 2FA, moderation; signup trigger; `GET /me`; rooms use the profile; `PATCH /me`, settings, profile picture, public profiles, account deletion; 2FA: authenticator app enforcement and email codes (`/me/2fa`), gated in the API and in RLS; email users in every test; `REQUIRE_ACCOUNT` switch | Switch off anonymous sign-in with the web login (next) | A8 login, A9 profile and settings, A10 2FA (todo) | B9 done except the switch, B10 done, B11 done |
 | **Live class** | Rooms (max 5), join by code, gate (all ready / 60 s / skip), hold, resume, slower, end, checks with spread, reactions, Q&A beat, resume after restart; web: classroom in the Acetate Manual design, check card, gate, laser, confusion heat | Presence-aware gate, host handoff (todo) | A4, A6, A7 done on fixtures | B5 todo |
-| **Questions** | Ask, anonymous +1, rate limit 6/min; web: question rail and ask bar (text only) | Triage: clusters and routes (todo) | A1, A2 done on fixtures | B2 todo |
+| **Questions** | Ask, anonymous +1, rate limit 6/min; triage: clusters, the four routes, thread offers, every question routed within ~4.5 s; web: question rail and ask bar (text only) | Connect the rail to real statuses (Dev A) | A1, A2 done on fixtures | B2 done |
 | **Threads** | Routes in the contract (501); web: thread drawer, offer, catch-up | Thread service (todo) | A3 done on fixtures | B4 todo |
 | **Notes and recap** | `note_blocks` table and broadcast; web: notes and recap, one editor per block | Scribe summaries, notes, edit route (todo) | A5 done on fixtures | B3 todo |
 | **AI tutor** | ModelPort, mock tutor, Claude adapter with fallback, four agents callable | Real model, streaming steps, pipelining (todo, needs `ANTHROPIC_API_KEY`) | | B1 todo |
@@ -224,7 +224,7 @@ Detail: [`DEVB_TASKS.md`](DEVB_TASKS.md). Steps, code and tests: [`PLANS_DEVB.md
 | B9 Accounts | done (switch pending A8) | `GET /me`, rooms use the profile, email users in tests, `REQUIRE_ACCOUNT` |
 | B10 Profiles and settings | done | `PATCH /me`, settings, profile picture, public profiles, account deletion |
 | B11 Two-factor authentication | done | TOTP enforcement (API + RLS), email codes via Mailpit/SMTP |
-| B2 Triage | todo | clusters and the four routes |
+| B2 Triage | done | clusters and the four routes, thread offers, at every gate |
 | B4 Threads | todo | open, message, close, share |
 | B3 Scribe and notes | todo | summaries, notes, edit route |
 | B5 Presence and host handoff | todo | gate counts present learners |

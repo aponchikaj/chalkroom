@@ -1,5 +1,5 @@
 // Questions: stored as `pending`, then triage groups and routes them.
-// Asking and +1 work today; triage wiring is backend work (RoomConductor.questionAsked).
+// Each new question schedules triage for the room (TriageService: 4 s batch window).
 import { Body, Controller, HttpCode, HttpException, NotFoundException, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
 import { z } from 'zod';
 import { Api, LIVE, type QuestionRow } from '@chalk/schema';
@@ -7,7 +7,7 @@ import { AuthGuard, CurrentUser, type AuthUser } from '../core/auth.guard';
 import { ZodPipe } from '../core/zod.pipe';
 import { SupabaseService, must } from '../core/supabase.service';
 import { RoomsService } from '../rooms/rooms.service';
-import { ConductorService } from '../conductor/conductor.service';
+import { TriageService } from '../triage/triage.service';
 
 const recent = new Map<string, number[]>();
 function rateLimit(userId: string) {
@@ -21,7 +21,7 @@ function rateLimit(userId: string) {
 @Controller()
 @UseGuards(AuthGuard)
 export class QuestionsController {
-  constructor(private supa: SupabaseService, private rooms: RoomsService, private conductor: ConductorService) {}
+  constructor(private supa: SupabaseService, private rooms: RoomsService, private triage: TriageService) {}
 
   @Post('rooms/:id/questions')
   async ask(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(Api.ask)) body: z.infer<typeof Api.ask>): Promise<QuestionRow> {
@@ -31,7 +31,7 @@ export class QuestionsController {
     const q = must(await this.supa.db.from('questions').insert({
       room_id: id, author_id: u.id, author_name: member.display_name, text: body.text, anchor: body.anchor ?? null, segment: room.segment,
     }).select('*').single(), 'ask') as QuestionRow;
-    void this.conductor.for(id).questionAsked();
+    this.triage.schedule(id);
     return q;
   }
 

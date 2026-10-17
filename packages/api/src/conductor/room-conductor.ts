@@ -12,12 +12,14 @@ import type { SupabaseService } from '../core/supabase.service';
 import type { EventsService } from '../core/events.service';
 import type { RoomsService } from '../rooms/rooms.service';
 import type { LeadTutorAgent } from '../agents/lead-tutor.agent';
+import type { TriageService } from '../triage/triage.service';
 
 export interface ConductorDeps {
   supa: SupabaseService;
   events: EventsService;
   rooms: RoomsService;
   lead: LeadTutorAgent;
+  triage: TriageService;
 }
 
 export type HostAction = 'skip' | 'hold' | 'resume' | 'slower' | 'end';
@@ -44,13 +46,6 @@ export class RoomConductor {
   membersChanged() { return this.enqueue('gate', () => this.evaluateGate()); }
   host(action: HostAction) { return this.enqueue(`host:${action}`, () => this.doHost(action)); }
   recover() { return this.enqueue('recover', () => this.doRecover()); }
-
-  /**
-   * A learner asked something.
-   * TODO(backend): debounce LIVE.triageDebounceMs, run TriageAgent, apply assign/route to
-   * questions + clusters, offer threads. Always run triage at a gate too (see passGate).
-   */
-  questionAsked() { return Promise.resolve(); }
 
   // -------------------------------------------------------------------------
 
@@ -138,7 +133,8 @@ export class RoomConductor {
     if (this.gateTimer) { clearTimeout(this.gateTimer); this.gateTimer = null; }
     await this.closeChecks(room);
     room = await this.deps.rooms.update(room.id, { phase: 'qa', gate_deadline: null });
-    // TODO(backend): run triage once more here so nothing asked during the check is missed.
+    // everything asked during the check is routed before the Q&A beat reads class clusters
+    await this.deps.triage.runNow(room.id);
     await this.qaBeat(room);
     const next = room.segment + 1;
     if (next >= (room.lesson_plan?.segments.length ?? 0)) return this.end(room);
