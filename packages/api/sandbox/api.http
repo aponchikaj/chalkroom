@@ -1,6 +1,6 @@
 # Chalkroom API: every endpoint, for the VS Code "REST Client" extension (humao.rest-client).
 # 1. npm run db:start && npm run env && npm run dev
-# 2. npm run sandbox:tokens        (writes ./.env with three anonymous users: Ana, Gio, Eve)
+# 2. npm run sandbox:tokens        (signs up three email users Ana, Gio, Eve into ./.env)
 # 3. Click "Send Request" above each block, top to bottom. Ids flow from earlier responses.
 # Tokens expire after 1 hour: run step 2 again on 401.
 
@@ -20,13 +20,17 @@
 ### Health (no token)
 GET {{api}}/health
 
+### My account (profile from the signup trigger, email, 2FA state)
+GET {{api}}/me
+Authorization: Bearer {{ana}}
+
 ### Create a room (Ana hosts)
 # @name create
 POST {{api}}/rooms
 Authorization: Bearer {{ana}}
 Content-Type: application/json
 
-{ "title": "Solana PDAs", "goal": "", "displayName": "Ana", "color": "#f2d16b", "visibility": "private" }
+{ "title": "Solana PDAs", "goal": "", "visibility": "private" }
 
 ### Preview by invite code (no token)
 GET {{api}}/rooms/code/{{code}}
@@ -36,7 +40,7 @@ POST {{api}}/rooms/join
 Authorization: Bearer {{gio}}
 Content-Type: application/json
 
-{ "inviteCode": "{{code}}", "displayName": "Gio", "color": "#8fc7e8" }
+{ "inviteCode": "{{code}}" }
 
 ### Start the class (host only)
 POST {{api}}/rooms/{{roomId}}/start

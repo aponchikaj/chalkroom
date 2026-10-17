@@ -47,7 +47,8 @@ describe('POST /rooms', () => {
   it.each([
     ['an empty title', { title: '', displayName: 'Ana', color: '#f2d16b' }, 'title'],
     ['a title over 80 characters', { title: 'x'.repeat(81), displayName: 'Ana', color: '#f2d16b' }, 'title'],
-    ['a missing display name', { title: 'x', color: '#f2d16b' }, 'displayName'],
+    // a missing display name is fine (the profile's is used); an empty one is not
+    ['an empty display name', { title: 'x', displayName: '  ', color: '#f2d16b' }, 'displayName'],
     ['a color that is not #rrggbb', { title: 'x', displayName: 'Ana', color: 'red' }, 'color'],
     ['an unknown visibility', { title: 'x', displayName: 'Ana', color: '#f2d16b', visibility: 'secret' }, 'visibility'],
   ])('returns 400 for %s', async (_case, body, field) => {

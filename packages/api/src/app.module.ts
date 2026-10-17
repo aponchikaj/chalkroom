@@ -8,6 +8,8 @@ import { ConductorService } from './conductor/conductor.service';
 import { QuestionsController } from './questions/questions.controller';
 import { ThreadsController } from './threads/threads.controller';
 import { SandboxController } from './sandbox/sandbox.controller';
+import { ProfilesService } from './accounts/profiles.service';
+import { MeController } from './accounts/me.controller';
 import { MailModule } from './mail/mail.module';
 import { EmbeddingPort } from './rag/embeddings/embedding.port';
 import { NoEmbeddings } from './rag/embeddings/no.embeddings';
@@ -23,10 +25,10 @@ class HealthController {
   // One module wires every feature: feature modules would import each other in a cycle
   // (threads -> conductor -> triage -> thread offers). Folders, not modules, carry the structure.
   providers: [
-    RoomsService, ConductorService,
+    RoomsService, ConductorService, ProfilesService,
     // B12 swaps in the Voyage adapter when config.embeddings.provider is 'voyage'
     { provide: EmbeddingPort, useClass: NoEmbeddings },
   ],
-  controllers: [HealthController, RoomsController, QuestionsController, ThreadsController, ...(config.sandbox ? [SandboxController] : [])],
+  controllers: [HealthController, MeController, RoomsController, QuestionsController, ThreadsController, ...(config.sandbox ? [SandboxController] : [])],
 })
 export class AppModule {}

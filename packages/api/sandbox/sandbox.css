@@ -7,6 +7,9 @@
 body { margin: 0; font: 13px/1.4 system-ui, sans-serif; background: var(--bg); color: var(--fg); }
 header { display: flex; gap: 16px; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--line); }
 #status { color: var(--muted); }
+.hint { color: var(--muted); font-size: 11px; margin: 2px 0; }
+#login-user { margin-top: 4px; display: flex; gap: 4px; flex-wrap: wrap; }
+#login-user input { width: 120px; }
 main { display: grid; grid-template-columns: 300px 1fr 380px; height: calc(100vh - 37px); }
 section { overflow: auto; padding: 8px 12px; border-right: 1px solid var(--line); }
 h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; margin: 14px 0 6px; }

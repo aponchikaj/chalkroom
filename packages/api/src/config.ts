@@ -16,6 +16,8 @@ export const config = {
   /** delay between scripted steps in mock mode, so the board still "streams" */
   mockDelayMs: Number(process.env.MOCK_DELAY_MS ?? 400),
   /** dev console at /sandbox. On by default only against a local Supabase; SANDBOX=1/0 overrides. */
+  /** resume live rooms at boot. Off for extra instances (tests) so two APIs never drive one room. */
+  resumeRooms: process.env.RESUME_ROOMS !== '0',
   /** accounts required: reject anonymous Supabase users. Off until the web ships login (B9). */
   requireAccount: process.env.REQUIRE_ACCOUNT === '1',
   /** email (2FA codes, B11). Without SMTP_URL mail is logged, not sent. */

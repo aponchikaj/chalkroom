@@ -5,13 +5,21 @@ import { gradeItem, type Api, type MemberRow, type Question, type RoomPreview, t
 import { SupabaseService, must } from '../core/supabase.service';
 import { EventsService } from '../core/events.service';
 import { config } from '../config';
+import { ProfilesService } from '../accounts/profiles.service';
 
 const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const inviteCode = () => Array.from({ length: 6 }, () => CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)]).join('');
 
 @Injectable()
 export class RoomsService {
-  constructor(private supa: SupabaseService, private events: EventsService) {}
+  constructor(private supa: SupabaseService, private events: EventsService, private profiles: ProfilesService) {}
+
+  /** Name and color for a room: the body's if given, else the profile's. */
+  private async identity(userId: string, body: { displayName?: string; color?: string }) {
+    if (body.displayName && body.color) return { displayName: body.displayName, color: body.color };
+    const p = await this.profiles.get(userId);
+    return { displayName: body.displayName ?? p.display_name, color: body.color ?? p.color };
+  }
 
   private get db() { return this.supa.db; }
 
@@ -56,7 +64,7 @@ export class RoomsService {
   }
 
   async create(userId: string, body: z.infer<typeof Api.createRoom>) {
-    await this.db.from('profiles').upsert({ id: userId, display_name: body.displayName, color: body.color });
+    const { displayName, color } = await this.identity(userId, body);
     let room: RoomRow | null = null;
     for (let i = 0; i < 5 && !room; i++) {
       const r = await this.db.from('rooms').insert({
@@ -69,7 +77,7 @@ export class RoomsService {
     if (!room) throw new ConflictException('could not allocate an invite code');
     const streamId = await this.events.createStream(room.id, 'main');
     room = await this.update(room.id, { main_stream_id: streamId });
-    must(await this.db.from('room_members').insert({ room_id: room.id, user_id: userId, role: 'host', display_name: body.displayName, color: body.color }).select('*').single(), 'add host');
+    must(await this.db.from('room_members').insert({ room_id: room.id, user_id: userId, role: 'host', display_name: displayName, color }).select('*').single(), 'add host');
     return { room, inviteUrl: `${config.webUrl}/r/${room.invite_code}` };
   }
 
@@ -88,7 +96,7 @@ export class RoomsService {
 
   async join(userId: string, body: z.infer<typeof Api.joinRoom>) {
     const room = await this.byCode(body.inviteCode);
-    await this.db.from('profiles').upsert({ id: userId, display_name: body.displayName, color: body.color });
+    const { displayName, color } = await this.identity(userId, body);
     const existing = await this.member(room.id, userId);
     if (!existing) {
       const active = await this.activeMembers(room.id);
@@ -96,7 +104,7 @@ export class RoomsService {
     }
     const member = must(await this.db.from('room_members').upsert({
       room_id: room.id, user_id: userId, role: existing?.role ?? 'learner',
-      display_name: body.displayName, color: body.color, left_at: null,
+      display_name: displayName, color, left_at: null,
     }).select('*').single(), 'join') as MemberRow;
     return { room, member };
   }

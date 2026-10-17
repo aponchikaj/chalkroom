@@ -30,15 +30,36 @@ const short = (id) => (id ? String(id).slice(0, 8) : '');
 // Users
 // ---------------------------------------------------------------------------
 
+const PASSWORD = 'Test-password-123';
+
+function client(n) {
+  return window.supabase.createClient(state.cfg.supabaseUrl, state.cfg.anonKey, {
+    auth: { persistSession: false, autoRefreshToken: true, storageKey: `sandbox-${n}-${Date.now()}` },
+  });
+}
+
+/** Sign up a fresh email user (accounts are required; local email confirmations are off). */
 async function addUser(name) {
   const n = state.users.length;
   name = name || NAMES[n % NAMES.length] + (n >= NAMES.length ? n : '');
-  const sb = window.supabase.createClient(state.cfg.supabaseUrl, state.cfg.anonKey, {
-    auth: { persistSession: false, autoRefreshToken: true, storageKey: `sandbox-${n}-${Date.now()}` },
-  });
-  const { data, error } = await sb.auth.signInAnonymously();
-  if (error) return showResponse({ error: `anonymous sign-in failed: ${error.message}` });
-  const user = { name, color: COLORS[n % COLORS.length], sb, id: data.user.id, channel: null };
+  const color = COLORS[n % COLORS.length];
+  const sb = client(n);
+  const email = `${name.toLowerCase().replace(/[^a-z0-9]/g, '') || 'user'}-${Math.random().toString(36).slice(2, 8)}@example.com`;
+  const { data, error } = await sb.auth.signUp({ email, password: PASSWORD, options: { data: { display_name: name, color } } });
+  if (error || !data.session) return showResponse({ error: `sign-up failed: ${error?.message ?? 'no session (email confirmations on?)'}` });
+  return remember({ name, color, email, sb, id: data.user.id, channel: null });
+}
+
+/** Log in an existing account (e.g. one made in the web app). */
+async function loginUser(email, password) {
+  const sb = client(state.users.length);
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  if (error) return showResponse({ error: `log in failed: ${error.message}` });
+  const p = await sb.from('profiles').select('display_name, color').eq('id', data.user.id).single();
+  return remember({ name: p.data?.display_name ?? email, color: p.data?.color ?? COLORS[0], email, sb, id: data.user.id, channel: null });
+}
+
+function remember(user) {
   state.users.push(user);
   state.active = user;
   renderUsers();
@@ -55,7 +76,7 @@ function renderUsers() {
   list.replaceChildren(...state.users.map((u) => el('li', { className: u === state.active ? 'active' : '' },
     el('span', { className: 'dot', style: `background:${u.color}` }),
     el('button', { textContent: u.name, title: 'make active', onclick: () => { state.active = u; renderUsers(); } }),
-    el('span', { className: 'id', textContent: short(u.id) }),
+    el('span', { className: 'id', textContent: u.email ?? short(u.id), title: u.id }),
     el('span', { className: 'id', textContent: u.channel ? 'subscribed' : '' }),
     el('button', { textContent: 'copy token', onclick: async () => navigator.clipboard.writeText(await tokenOf(u)) }),
   )));
@@ -293,6 +314,7 @@ async function init() {
   renderEndpoints();
   selectEndpoint(ENDPOINTS[0]);
   $('#add-user').onsubmit = async (e) => { e.preventDefault(); await addUser($('#user-name').value.trim()); $('#user-name').value = ''; resetBody(); };
+  $('#login-user').onsubmit = async (e) => { e.preventDefault(); await loginUser($('#login-email').value.trim(), $('#login-password').value); resetBody(); };
   $('#send').onclick = send;
   $('#reset-body').onclick = resetBody;
   $('#req-user').onchange = (e) => { state.active = state.users[Number(e.target.value)]; renderUsers(); };

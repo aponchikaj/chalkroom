@@ -15,8 +15,10 @@ const timeout = (ms, what) => new Promise((_, rej) => setTimeout(() => rej(new E
 
 async function user(name, color) {
   const sb = createClient(env.VITE_SUPABASE_URL, env.VITE_SUPABASE_ANON_KEY, { auth: { persistSession: false } });
-  const { data, error } = await sb.auth.signInAnonymously();
-  if (error) fail(`anonymous sign-in: ${error.message} (is enable_anonymous_sign_ins on?)`);
+  // accounts are required: a fresh email user (local email confirmations are off)
+  const email = `${name.toLowerCase()}-${Math.random().toString(36).slice(2, 10)}@example.com`;
+  const { data, error } = await sb.auth.signUp({ email, password: 'Test-password-123', options: { data: { display_name: name, color } } });
+  if (error || !data.session) fail(`sign-up: ${error?.message ?? 'no session (are local email confirmations off?)'}`);
   const token = data.session.access_token;
   const call = async (method, path, body) => {
     const r = await fetch(`${API}${path}`, { method, headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` }, body: body && JSON.stringify(body) });
@@ -53,7 +55,7 @@ try {
   step('Gio joined');
 
   // RLS: a stranger must not read the room
-  const eve = await user('Eve', '#f4a6c8');
+  const eve = await user('Eve', '#f4a6c8'); // a stranger
   const peek = await eve.sb.from('rooms').select('id').eq('id', room.id);
   if (peek.data?.length) fail('RLS: a non-member could read the room');
   step('RLS hides the room from non-members');

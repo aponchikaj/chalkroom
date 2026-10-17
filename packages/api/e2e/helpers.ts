@@ -23,6 +23,7 @@ let made = 0;
 export interface TestUser {
   name: string;
   color: string;
+  email: string;
   id: string;
   token: string;
   sb: SupabaseClient;
@@ -31,11 +32,16 @@ export interface TestUser {
   channel?: RealtimeChannel;
 }
 
+export const TEST_PASSWORD = 'Test-password-123';
+
+/** A fresh email account (accounts are required). Local email confirmations are off, so signup returns a session. */
 export async function newUser(name = 'User'): Promise<TestUser> {
   const sb = createClient(env.VITE_SUPABASE_URL!, env.VITE_SUPABASE_ANON_KEY!, { auth: { persistSession: false, autoRefreshToken: false } });
-  const { data, error } = await sb.auth.signInAnonymously();
-  if (error || !data.session || !data.user) throw new Error(`anonymous sign-in: ${error?.message ?? 'no session'}`);
-  return { name, color: COLORS[made++ % COLORS.length], id: data.user.id, token: data.session.access_token, sb, events: [], rows: [] };
+  const color = COLORS[made++ % COLORS.length];
+  const email = `${name.toLowerCase().replace(/[^a-z0-9]/g, '')}-${crypto.randomUUID().slice(0, 8)}@example.com`;
+  const { data, error } = await sb.auth.signUp({ email, password: TEST_PASSWORD, options: { data: { display_name: name, color } } });
+  if (error || !data.session || !data.user) throw new Error(`sign-up: ${error?.message ?? 'no session (are local email confirmations off?)'}`);
+  return { name, color, email, id: data.user.id, token: data.session.access_token, sb, events: [], rows: [] };
 }
 
 export interface ApiResult<T = any> { status: number; body: T }
