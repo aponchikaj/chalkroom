@@ -26,6 +26,8 @@ export class Player {
   paused = false;
   /** playback speed multiplier (2 = "Replay at 2×") */
   pace = 1;
+  /** the learner's voice speed preference; spoken rate = pace x voiceRate */
+  voiceRate = 1;
   /** page the learner is looking at; null follows the tutor */
   viewPage: number | null = null;
   /** highest seq whose steps have finished playing on this device */
@@ -148,7 +150,7 @@ export class Player {
         this.caption = sentences[i];
         this.emit();
         if (sentences[i + 1]) this.speaker.prefetch(sentences[i + 1]);
-        this.speaker.settings.rate = this.pace;
+        this.speaker.settings.rate = this.pace * this.voiceRate;
         await this.speaker.speak(sentences[i]);
         if (g !== this.gen) return;
         // paused mid-sentence: replay that sentence on resume

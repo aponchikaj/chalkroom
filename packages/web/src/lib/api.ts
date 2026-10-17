@@ -1,6 +1,9 @@
 // REST client for the NestJS API. Request bodies are typed by @chalk/schema's Api contracts.
 import type { z } from 'zod';
-import type { Api, CreateRoomRes, JoinRoomRes, NoteBlockRow, QuestionRow, RoomPreview, ThreadRow } from '@chalk/schema';
+import type {
+  Api, AvatarUploadRes, CardReviewRow, CreateRoomRes, JoinRoomRes, MeRes, NoteBlockRow, ProfileRow, QuestionRow, RoomPreview, SourceRow,
+  SourceUploadRes, ThreadRow, TwoFactorState, UserSettings,
+} from '@chalk/schema';
 import { ensureSession, supabase } from './supabase';
 
 const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:3001';
@@ -8,7 +11,8 @@ const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://loc
 type In<K extends keyof typeof Api> = z.input<(typeof Api)[K]>;
 
 export class ApiError extends Error {
-  constructor(public status: number, message: string) { super(message); }
+  /** machine code from the API body, e.g. "mfa_required" */
+  constructor(public status: number, message: string, public code?: string) { super(message); }
 }
 
 async function call<T>(method: string, path: string, body?: unknown, auth = true): Promise<T> {
@@ -21,7 +25,7 @@ async function call<T>(method: string, path: string, body?: unknown, auth = true
   const r = await fetch(`${BASE}${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
   if (!r.ok) {
     const j = await r.json().catch(() => ({}));
-    throw new ApiError(r.status, Array.isArray(j.message) ? j.message.join('; ') : j.message ?? r.statusText);
+    throw new ApiError(r.status, Array.isArray(j.message) ? j.message.join('; ') : j.message ?? r.statusText, j.code);
   }
   return (r.status === 204 ? undefined : await r.json()) as T;
 }
@@ -43,5 +47,25 @@ export const api = {
   threadMessage: (threadId: string, b: In<'threadMessage'>) => call<void>('POST', `/threads/${threadId}/messages`, b),
   closeThread: (threadId: string) => call<void>('POST', `/threads/${threadId}/close`, {}),
   shareThread: (threadId: string, b: In<'shareThread'>) => call<void>('POST', `/threads/${threadId}/share`, b),
+  moderate: (roomId: string, b: In<'moderate'>) => call<void>('POST', `/rooms/${roomId}/moderate`, b),
+  reviewCard: (cardId: string, b: In<'reviewCard'>) => call<CardReviewRow>('POST', `/cards/${cardId}/review`, b),
+  // account (B9-B11)
+  me: () => call<MeRes>('GET', '/me'),
+  updateProfile: (b: In<'updateProfile'>) => call<ProfileRow>('PATCH', '/me', b),
+  deleteAccount: () => call<void>('DELETE', '/me'),
+  settings: () => call<UserSettings>('GET', '/me/settings'),
+  updateSettings: (b: In<'updateSettings'>) => call<UserSettings>('PATCH', '/me/settings', b),
+  avatarUploadUrl: (b: In<'avatarUploadUrl'>) => call<AvatarUploadRes>('POST', '/me/avatar/upload-url', b),
+  avatarCommit: (b: In<'avatarCommit'>) => call<MeRes>('POST', '/me/avatar', b),
+  avatarDelete: () => call<void>('DELETE', '/me/avatar'),
+  twoFactor: () => call<TwoFactorState>('GET', '/me/2fa'),
+  emailCodeSend: (b: In<'emailCodeSend'>) => call<void>('POST', '/me/2fa/email/send', b),
+  emailCodeVerify: (b: In<'emailCodeVerify'>) => call<TwoFactorState>('POST', '/me/2fa/email/verify', b),
+  // class materials (B12)
+  sources: (roomId: string) => call<SourceRow[]>('GET', `/rooms/${roomId}/sources`),
+  addSourceUrl: (roomId: string, b: In<'addSourceUrl'>) => call<SourceRow>('POST', `/rooms/${roomId}/sources/url`, b),
+  sourceUploadUrl: (roomId: string, b: In<'sourceUploadUrl'>) => call<SourceUploadRes>('POST', `/rooms/${roomId}/sources/upload-url`, b),
+  addSourceFile: (roomId: string, b: In<'addSourceFile'>) => call<SourceRow>('POST', `/rooms/${roomId}/sources`, b),
+  deleteSource: (sourceId: string) => call<void>('DELETE', `/sources/${sourceId}`),
   editNote: (roomId: string, blockId: string, b: In<'editNote'>) => call<NoteBlockRow>('PUT', `/rooms/${roomId}/notes/${blockId}`, b),
 };

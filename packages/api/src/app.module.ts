@@ -18,6 +18,7 @@ import { ThreadStore } from './threads/thread-store';
 import { TriageService } from './triage/triage.service';
 import { ThreadsService } from './threads/threads.service';
 import { NotesController } from './notes/notes.controller';
+import { CardsController } from './cards/cards.controller';
 import { PresenceService } from './presence/presence.service';
 import { SourcesService } from './rag/sources.service';
 import { SourcesController } from './rag/sources.controller';
@@ -42,6 +43,6 @@ class HealthController {
     // B12 swaps in the Voyage adapter when config.embeddings.provider is 'voyage'
     { provide: EmbeddingPort, useClass: NoEmbeddings },
   ],
-  controllers: [HealthController, MeController, TwoFactorController, UsersController, RoomsController, QuestionsController, ThreadsController, NotesController, SourcesController, ...(config.sandbox ? [SandboxController] : [])],
+  controllers: [HealthController, MeController, TwoFactorController, UsersController, RoomsController, QuestionsController, ThreadsController, NotesController, SourcesController, CardsController, ...(config.sandbox ? [SandboxController] : [])],
 })
 export class AppModule {}

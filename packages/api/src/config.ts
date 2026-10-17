@@ -39,8 +39,8 @@ export const config = {
   /** this instance's id for room leases; stable across its own restarts (host + port) */
   instanceId: process.env.INSTANCE_ID ?? `${hostname()}:${process.env.PORT ?? process.env.API_PORT ?? 3001}`,
   resumeRooms: process.env.RESUME_ROOMS !== '0',
-  /** accounts required: reject anonymous Supabase users. Off until the web ships login (B9). */
-  requireAccount: process.env.REQUIRE_ACCOUNT === '1',
+  /** accounts required (B9): anonymous Supabase sessions are refused. REQUIRE_ACCOUNT=0 opts out. */
+  requireAccount: process.env.REQUIRE_ACCOUNT !== '0',
   /** email (2FA codes, B11). Without SMTP_URL mail is logged, not sent. */
   mail: {
     smtpUrl: process.env.SMTP_URL || null,

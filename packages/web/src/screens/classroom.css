@@ -82,6 +82,7 @@
   padding: 7px 14px 6px; margin-bottom: -1.5px; cursor: pointer;
   font-size: var(--t-xs); font-weight: 750; font-stretch: 80%; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-2);
 }
+.rail-tab:hover { color: var(--ink); background: var(--paper-2); }
 .rail-tab[aria-selected='true'] { background: var(--leaf); color: var(--ink); padding-top: 10px; }
 .rail-body { flex: 1; background: var(--leaf); }
 
@@ -170,3 +171,8 @@
   .live.phase-ended .recap-sec { border-left: 0; padding-left: 0; }
   .live.phase-ended .captions, .live.phase-ended .pagestrip { display: none; }
 }
+
+/* removed by the host */
+.removed { height: 100%; display: grid; place-items: center; padding: 20px; }
+.removed .leaf { max-width: 440px; }
+.removed .btn { align-self: flex-start; }

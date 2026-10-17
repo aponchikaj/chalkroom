@@ -1,0 +1,15 @@
+/* People on the binding edge: the host's moderation menu and the muted mark. */
+.binding-person { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 2px; border: 0; background: none; border-radius: var(--r); color: inherit; font: inherit; }
+button.binding-person { cursor: pointer; }
+button.binding-person:hover .punch-hole { box-shadow: inset 0 2px 3px rgba(40, 30, 10, 0.35), 0 0 0 3px var(--who), 0 0 0 5px var(--ink); }
+.binding-muted { font-size: 10px; font-weight: 700; font-stretch: 80%; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
+.binding li { position: relative; }
+.moderate {
+  position: absolute; left: calc(100% + 8px); top: 0; z-index: 40; width: 220px;
+  display: flex; flex-direction: column; gap: 6px; padding: 10px;
+  background: var(--leaf); border: 1.5px solid var(--ink); border-radius: var(--r); box-shadow: var(--shadow-leaf);
+}
+.moderate .btn { justify-content: flex-start; }
+.moderate-name { font-size: var(--t-sm); font-weight: 750; font-stretch: 82%; }
+.moderate-warn { font-size: var(--t-sm); color: var(--ink); }
+.binding-horizontal .moderate { left: 0; top: calc(100% + 6px); }

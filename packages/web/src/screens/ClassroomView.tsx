@@ -34,6 +34,18 @@ export function ClassroomView() {
   const selection = useRoom(useShallow((s) => s.selection));
   const checkOpen = useRoom((s) => !!s.check);
 
+  if (conn === 'removed') {
+    return (
+      <div className="removed" role="alert">
+        <div className="leaf col">
+          <h2>You were removed from this class</h2>
+          <p className="muted">The host removed you, so this class is closed to you. You can start a class of your own.</p>
+          <a className="btn primary" href="/">Back home</a>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`live phase-${room.phase}`} style={{ ['--section' as string]: sectionHue(room.segment) }}>
       <Masthead />

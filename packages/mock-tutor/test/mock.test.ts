@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { LessonPlan, PublicQuestion, TeachSegment, TriageResult, parseEventData } from '@chalk/schema';
+import { LessonPlan, ProposedCards, PublicQuestion, TeachSegment, TriageResult, parseEventData } from '@chalk/schema';
 import { applySteps, emptyBoard } from '@chalk/board';
-import { PDA_SEGMENTS, mockClusterAnswer, mockPlan, mockTriage } from '../src/index';
+import { PDA_SEGMENTS, mockCards, mockClusterAnswer, mockPlan, mockTriage } from '../src/index';
 
 describe('scripted lesson', () => {
   it('matches the contracts the API validates against', () => {
@@ -39,5 +39,20 @@ describe('mock triage', () => {
       history: { u3: ['what is a bump seed', 'why does the bump seed start at 255'] },
     });
     expect(r.route[0]).toMatchObject({ to: 'thread', user: 'u3' });
+  });
+});
+
+describe('mock cards', () => {
+  it('gives the scripted lesson a PDA deck that matches ProposedCards', () => {
+    const deck = ProposedCards.parse(mockCards(mockPlan()));
+    expect(deck.cards.length).toBeGreaterThanOrEqual(4);
+    expect(deck.cards.length).toBeLessThanOrEqual(6);
+    expect(deck.cards.some((c) => /PDA/.test(c.front))).toBe(true);
+  });
+
+  it('builds generic cards from any plan, even a one-segment one', () => {
+    const deck = ProposedCards.parse(mockCards({ topic: 'Binary search', segments: [{ title: 'Halving', objective: 'Explain why each step halves the range.' }] }));
+    expect(deck.cards.length).toBeGreaterThanOrEqual(3);
+    expect(deck.cards[0]).toEqual({ front: 'Halving: what was the goal?', back: 'Explain why each step halves the range.' });
   });
 });
