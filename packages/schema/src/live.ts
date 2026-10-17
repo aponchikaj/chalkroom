@@ -268,6 +268,8 @@ export type ReactionKind = z.infer<typeof ReactionKind>;
 
 export const DisplayName = z.string().trim().min(1).max(32);
 export const Color = z.string().regex(/^#[0-9a-fA-F]{6}$/);
+/** Same rule as the profiles_username_format check; unique ignoring case. */
+export const Username = z.string().trim().regex(/^[A-Za-z0-9_]{3,24}$/, 'use 3 to 24 letters, digits or _');
 
 export const Api = {
   /** POST /rooms → CreateRoomRes */
@@ -276,12 +278,14 @@ export const Api = {
     courseId: z.string().uuid().optional(),
     topicId: z.string().optional(),
     goal: z.string().max(500).optional(),
-    displayName: DisplayName,
-    color: Color,
+    /** defaults to the caller's profile */
+    displayName: DisplayName.optional(),
+    /** defaults to the caller's profile */
+    color: Color.optional(),
     visibility: z.enum(['private', 'public']).default('private'),
   }),
   /** POST /rooms/join → JoinRoomRes */
-  joinRoom: z.object({ inviteCode: z.string().trim().min(4).max(12), displayName: DisplayName, color: Color }),
+  joinRoom: z.object({ inviteCode: z.string().trim().min(4).max(12), displayName: DisplayName.optional(), color: Color.optional() }),
   /** POST /rooms/:id/start (host) */
   start: z.object({}),
   /** POST /rooms/:id/ready */
@@ -304,14 +308,60 @@ export const Api = {
   closeThread: z.object({}),
   /** POST /threads/:id/share → posts the thread's best answer to the question rail */
   shareThread: z.object({ markdown: z.string().max(2000).optional() }),
+  /** PATCH /me -> ProfileRow (409 when the username is taken) */
+  updateProfile: z.object({
+    username: Username.optional(),
+    displayName: DisplayName.optional(),
+    color: Color.optional(),
+    bio: z.string().max(280).optional(),
+  }).refine((b) => Object.values(b).some((v) => v !== undefined), 'nothing to update'),
   /** PUT /rooms/:id/notes/:blockId */
   editNote: z.object({ markdown: z.string().max(5000), version: z.number().int() }),
 } as const;
 
 export type CreateRoomReq = z.input<typeof Api.createRoom>;
+export type UpdateProfileReq = z.input<typeof Api.updateProfile>;
 export type JoinRoomReq = z.input<typeof Api.joinRoom>;
 export interface CreateRoomRes { room: RoomRow; inviteUrl: string }
 export interface JoinRoomRes { room: RoomRow; member: MemberRow }
+// ---------------------------------------------------------------------------
+// Accounts (accounts are required; signup, login and password reset are Supabase Auth)
+// ---------------------------------------------------------------------------
+
+/** Row of `profiles`: public information only, readable by any signed-in user. */
+export interface ProfileRow {
+  id: string;
+  username: string;
+  display_name: string;
+  color: string;
+  /** object key in the public `avatars` bucket */
+  avatar_path: string | null;
+  bio: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/** GET /me */
+export interface MeRes {
+  profile: ProfileRow;
+  /** public URL of the profile picture, or null */
+  avatarUrl: string | null;
+  email: string | null;
+  security: TwoFactorState;
+}
+
+/** Second-factor state of the caller and this session (2FA lands in B11). */
+export interface TwoFactorState {
+  /** an authenticator app (TOTP) is verified */
+  totp: boolean;
+  /** email codes are turned on */
+  email2fa: boolean;
+  /** assurance level of this session's token */
+  aal: 'aal1' | 'aal2';
+  /** this session passed the second factor, or none is required */
+  mfaPassed: boolean;
+}
+
 /** GET /rooms/code/:code (no membership needed) — for the pre-join screen */
 export interface RoomPreview { id: string; title: string; phase: Phase; seats: number; taken: number; hostName: string }
 
