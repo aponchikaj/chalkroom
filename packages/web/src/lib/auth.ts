@@ -69,12 +69,6 @@ export async function signOut() {
   useAuth.setState({ status: 'signedOut', me: null, error: null });
 }
 
-/** Email a reset link that lands on /reset/new. */
-export async function requestPasswordReset(email: string) {
-  const r = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${location.origin}/reset/new` });
-  fail(r.error);
-}
-
 export async function updatePassword(password: string) {
   const r = await supabase.auth.updateUser({ password });
   fail(r.error);
