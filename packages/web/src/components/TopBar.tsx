@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
+import { Timer, Volume2, VolumeX } from 'lucide-react';
 import { mainPlayer, selectActiveMembers, useRoom } from '../room/store';
 import { usePlayer } from '../board/Board';
 import { navigate } from '../lib/router';
@@ -28,7 +29,7 @@ export function TopBar() {
       <span className={`chip phase-${room.phase}`}>{PHASE_LABEL[room.phase]}</span>
       <GateTimer deadline={room.gate_deadline} held={room.gate_held} />
       <button className="btn ghost icon-btn" aria-pressed={muted} aria-label={muted ? 'Unmute tutor voice' : 'Mute tutor voice'}
-        onClick={() => mainPlayer.setMuted(!muted)}>{muted ? '🔇' : '🔊'}</button>
+        onClick={() => mainPlayer.setMuted(!muted)}>{muted ? <VolumeX size={18} aria-hidden /> : <Volume2 size={18} aria-hidden />}</button>
     </header>
   );
 }
@@ -43,5 +44,5 @@ function GateTimer({ deadline, held }: { deadline: string | null; held: boolean 
   if (held) return <span className="timer">gate on hold</span>;
   if (!deadline) return null;
   const s = Math.max(0, Math.ceil((new Date(deadline).getTime() - Date.now()) / 1000));
-  return <span className="timer" title="The class moves on when everyone is ready or the timer runs out">⏱ {s}s</span>;
+  return <span className="timer" title="The class moves on when everyone is ready or the timer runs out"><Timer size={14} aria-hidden /> {s}s</span>;
 }

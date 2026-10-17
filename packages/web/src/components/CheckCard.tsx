@@ -2,6 +2,7 @@
 // class sees the answer spread ("3/4 got it") and the correct answer.
 // TODO(frontend): richer spread (bar per option), "you" marker, collapse to a chip.
 import { useEffect, useState } from 'react';
+import { X } from 'lucide-react';
 import type { Question } from '@chalk/schema';
 import { mainPlayer, useRoom } from '../room/store';
 import { usePlayer } from '../board/Board';
@@ -46,7 +47,7 @@ export function CheckCard() {
       <div className="row" style={{ marginBottom: 6 }}>
         <span className="section-title" style={{ margin: 0 }}>{result ? 'Check result' : 'Quick check'}</span>
         <span className="spacer" />
-        {result && <button className="btn ghost small" onClick={() => setDismissed(lastId)} aria-label="Dismiss">✕</button>}
+        {result && <button className="btn ghost small" onClick={() => setDismissed(lastId)} aria-label="Dismiss"><X size={16} aria-hidden /></button>}
       </div>
       <h3><Markdown text={q.prompt} /></h3>
       <QuestionInput q={q} value={value} onChange={setValue} reveal={!!result} disabled={mine || !!result} />

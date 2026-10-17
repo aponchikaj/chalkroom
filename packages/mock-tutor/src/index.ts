@@ -39,7 +39,7 @@ export const PDA_SEGMENTS: TeachSegment[] = [
       { page: { title: 'Finding the bump' } },
       { add: { id: 'code1', kind: 'code', lang: 'rust', code: 'let (pda, bump) = Pubkey::find_program_address(\n    &[b"vault", user.key().as_ref()],\n    program_id,\n);', at: [4, 2] } },
       { say: 'find program address tries bump 255, then 254, and so on, until the hash lands off the curve.' },
-      { add: { id: 'tbl', kind: 'table', rows: [['bump', 'on curve?'], ['255', 'yes'], ['254', 'yes'], ['253', 'no ✓']], at: [9.5, 2.2] } },
+      { add: { id: 'tbl', kind: 'table', rows: [['bump', 'on curve?'], ['255', 'yes'], ['254', 'yes'], ['253', 'no (found)']], at: [9.5, 2.2] } },
       { underline: 'tbl' },
       { add: { id: 'ch', kind: 'chart', chart: { type: 'bar', data: [{ x: '1st', y: 50 }, { x: '2nd', y: 25 }, { x: '3rd', y: 12.5 }, { x: '4th+', y: 12.5 }], yLabel: '% found' }, at: [4, 5.6] } },
       { say: 'About half the time the very first try works.' },

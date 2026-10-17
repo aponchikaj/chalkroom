@@ -1,5 +1,6 @@
 // Inputs for every question type, shared by inline checks and quizzes.
 import { useMemo } from 'react';
+import { Check, X } from 'lucide-react';
 import type { Question } from '@chalk/schema';
 import { Markdown } from './Markdown';
 
@@ -84,7 +85,7 @@ export function QuestionInput({ q, value, onChange, reveal, disabled }: Props) {
                 <option value="" disabled>Choose…</option>
                 {right.map((r, j) => <option key={j} value={j}>{r}</option>)}
               </select>
-              {reveal && <span style={{ color: v[i] === (q.answer as number[])?.[i] ? 'var(--ok)' : 'var(--danger)' }}>{v[i] === (q.answer as number[])?.[i] ? '✓' : '✗'}</span>}
+              {reveal && <span style={{ color: v[i] === (q.answer as number[])?.[i] ? 'var(--ok)' : 'var(--danger)' }}>{v[i] === (q.answer as number[])?.[i] ? <Check size={16} aria-label="correct" /> : <X size={16} aria-label="wrong" />}</span>}
             </div>
           ))}
         </div>
