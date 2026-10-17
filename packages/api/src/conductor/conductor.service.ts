@@ -6,6 +6,7 @@ import { EventsService } from '../core/events.service';
 import { RoomsService } from '../rooms/rooms.service';
 import { LeadTutorAgent } from '../agents/lead-tutor.agent';
 import { RoomConductor } from './room-conductor';
+import { config } from '../config';
 
 @Injectable()
 export class ConductorService implements OnApplicationBootstrap {
@@ -29,6 +30,7 @@ export class ConductorService implements OnApplicationBootstrap {
   }
 
   async onApplicationBootstrap() {
+    if (!config.resumeRooms) return;
     const r = await this.supa.db.from('rooms').select('id').in('phase', ['teaching', 'check', 'qa']);
     if (r.error) { this.log.warn(`could not resume rooms: ${r.error.message}`); return; }
     for (const { id } of r.data ?? []) void this.for(id).recover();
