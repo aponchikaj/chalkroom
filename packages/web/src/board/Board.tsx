@@ -39,9 +39,11 @@ function EffectView({ fx, page }: { fx: ActiveEffect; page: BoardPage }) {
   return <g className="fx draw" style={{ ['--dur' as string]: '600ms' }}><Paths paths={ellipse(key, b.x + b.w / 2, b.y + b.h / 2, b.w * 1.18 + 34, b.h * 1.3 + 30, { strokeWidth: 3 })} color="var(--fig-accent)" width={3} /></g>;
 }
 
-export function PageView({ page, camera, animate, effects, selection, onShapeDown }: {
+export function PageView({ page, camera, animate, effects, selection, onShapeDown, tags = true }: {
   page: BoardPage; camera: Camera; animate?: Map<string, number>; effects?: ActiveEffect[]; selection?: string[];
   onShapeDown?: (e: React.PointerEvent, id: string) => void;
+  /** citation tags on shapes with a `source` (off in page thumbnails) */
+  tags?: boolean;
 }) {
   const pulsing = new Set(effects?.filter((f) => f.kind === 'pulse').flatMap((f) => f.ids));
   const sel = new Set(selection);
@@ -53,7 +55,7 @@ export function PageView({ page, camera, animate, effects, selection, onShapeDow
       {order.map((id) => {
         const s = page.shapes[id];
         if (!s) return null;
-        return <ShapeView key={id} s={s} page={page} animMs={animate?.get(id)} selected={sel.has(id)} pulsing={pulsing.has(id)} onPointerDown={onShapeDown} />;
+        return <ShapeView key={id} s={s} page={page} animMs={animate?.get(id)} selected={sel.has(id)} pulsing={pulsing.has(id)} onPointerDown={onShapeDown} tags={tags} />;
       })}
       {effects?.filter((f) => f.kind === 'underline' || f.kind === 'circle').map((fx) => <EffectView key={fx.key} fx={fx} page={page} />)}
     </g>
@@ -167,7 +169,7 @@ export function PageStrip({ player }: { player: Player }) {
         <button key={p.id} className="thumb" role="tab" aria-current={i === viewing} aria-label={`Page ${i + 1}: ${p.title}`}
           onClick={() => player.setViewPage(i === st.current ? null : i)}>
           <svg className="board-mini" viewBox={`0 0 ${BOARD_W} ${BOARD_H}`} width="108" height="52" aria-hidden>
-            <PageView page={p} camera={{ x: 0, y: 0, zoom: 1 }} />
+            <PageView page={p} camera={{ x: 0, y: 0, zoom: 1 }} tags={false} />
           </svg>
           <span>{i + 1}. {p.title}</span>
         </button>

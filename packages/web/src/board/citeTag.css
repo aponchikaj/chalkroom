@@ -1,0 +1,19 @@
+/* Lane Q: a printed citation tag on a cited shape's corner (Board Script `source`).
+   Board units: the board scales, so sizes here are in the 1:1 board grid. Only the tag
+   itself takes the pointer; the rest of its foreignObject lets clicks through to the board. */
+.cite-tag-fo { overflow: visible; pointer-events: none; }
+.cite-tag-row { display: flex; justify-content: flex-end; align-items: center; height: 100%; pointer-events: none; }
+.cite-tag {
+  pointer-events: auto; cursor: pointer;
+  display: inline-flex; align-items: baseline; gap: 10px; max-width: 100%;
+  height: 34px; padding: 0 11px;
+  font: 600 19px/34px var(--font-ui); font-stretch: 86%; color: var(--ink);
+  background: var(--leaf); border: 1px solid var(--ink); border-radius: var(--r);
+  box-shadow: 2px 2px 0 var(--rule-2);
+}
+.cite-tag:hover { background: var(--paper-2); }
+.cite-tag:active { background: var(--ink); color: var(--paper); }
+.cite-tag:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.cite-tag-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cite-tag-page { flex: none; font: 500 16px/34px var(--font-mono); color: var(--ink-2); }
+.cite-tag:active .cite-tag-page { color: var(--paper); }

@@ -1,10 +1,11 @@
 // Groq (free tier) through its OpenAI-compatible chat completions API: streaming, one forced
-// tool. Request mapping and stream reading live in ./groq.ts (pure, tested). A 429 is retried
-// once after the server's retry-after (capped); anything else throws, and FallbackModel answers
-// from the mock tutor.
+// tool. Request mapping and stream reading live in ./groq.ts (pure, tested). A per-minute 429 is
+// retried once after the server's retry-after (capped). A model out of its daily budget (TPD) is
+// skipped until it is back, and a request above a model's output cap (OTPM) goes to the next
+// spare; anything else throws, and FallbackModel answers from the mock tutor.
 import { Logger } from '@nestjs/common';
 import { ModelPort, type AgentName, type ModelEvent, type ModelRequest } from './model.port';
-import { GroqStream, RateWindow, parseDuration, toGroqBody } from './groq';
+import { GroqStream, RateWindow, dailyLimit, parseDuration, toGroqBody, tooLarge, type ReasoningEffort } from './groq';
 
 const URL = 'https://api.groq.com/openai/v1/chat/completions';
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -17,9 +18,16 @@ const OUTPUT_GUESS = 1_000;
 export class GroqModel extends ModelPort {
   readonly name = 'groq';
   private windows = new Map<string, RateWindow>();
+  /** model -> time its daily budget (TPD) is back */
+  private exhausted = new Map<string, number>();
   private log = new Logger('Groq');
 
-  constructor(private apiKey: string, private modelFor: (agent: AgentName, tool: string) => string) {
+  constructor(private apiKey: string, private modelFor: (agent: AgentName, tool: string) => string,
+    private effortFor: (agent: AgentName, tool: string) => ReasoningEffort | undefined = () => undefined,
+    /** models to try, in order, when an agent's own model has used its daily budget */
+    private spares: string[] = [],
+    /** cap on waiting for per-minute quota; production uses the per-agent caps */
+    private maxWaitFor: (agent: AgentName) => number = (a) => MAX_WAIT_MS[a]) {
     super();
   }
 
@@ -40,7 +48,8 @@ export class GroqModel extends ModelPort {
       remaining: r.headers.get('x-ratelimit-remaining-tokens') === null ? null : Number(r.headers.get('x-ratelimit-remaining-tokens')),
       resetMs: parseDuration(r.headers.get('x-ratelimit-reset-tokens')),
     }, Date.now());
-    if (r.status === 429 && !retried) {
+    // daily budget or output cap: waiting a few seconds will not help, so no retry here
+    if (r.status === 429 && !retried && !(await this.hopeless(r))) {
       const wait = Math.max(1000 * Number(r.headers.get('retry-after') ?? 0), parseDuration(r.headers.get('x-ratelimit-reset-tokens')), 1_000);
       if (wait <= maxWait) {
         this.log.log(`${body.model}: rate limited, retrying in ${Math.round(wait / 1000)} s`);
@@ -51,16 +60,42 @@ export class GroqModel extends ModelPort {
     return r;
   }
 
-  async *stream(req: ModelRequest): AsyncIterable<ModelEvent> {
-    const model = this.modelFor(req.agent, req.tool.name);
-    const body = toGroqBody(req, model, req.maxTokens ?? 8000);
+  private async hopeless(r: Response): Promise<boolean> {
+    const text = await r.clone().text();
+    return dailyLimit(text) !== null || tooLarge(text);
+  }
+
+  async *stream(req: ModelRequest, refused: ReadonlySet<string> = new Set()): AsyncIterable<ModelEvent> {
+    const own = this.modelFor(req.agent, req.tool.name);
+    const now = Date.now();
+    // a model out of daily budget is skipped until Groq says it is back; one that refused this
+    // request's size is skipped for this request only
+    const model = [own, ...this.spares.filter((m) => m !== own)].find((m) => (this.exhausted.get(m) ?? 0) <= now && !refused.has(m));
+    if (!model) throw new Error(`${req.agent}: no groq model can take this request now (daily budgets or output caps)`);
+    const body = toGroqBody(req, model, req.maxTokens ?? 8000, this.effortFor(req.agent, req.tool.name));
     const need = Math.ceil(JSON.stringify(body).length / 4) + OUTPUT_GUESS;
     const w = this.window(model);
     const wait = w.waitMs(need, Date.now());
-    if (wait > MAX_WAIT_MS[req.agent]) throw new Error(`${req.agent}: groq ${model} quota busy for ${Math.round(wait / 1000)} s`);
+    if (wait > this.maxWaitFor(req.agent)) throw new Error(`${req.agent}: groq ${model} quota busy for ${Math.round(wait / 1000)} s`);
     if (wait) { this.log.log(`${req.agent}: waiting ${Math.round(wait / 1000)} s for ${model} quota`); await sleep(wait); }
     w.spend(need);
-    const r = await this.post(body, MAX_WAIT_MS[req.agent]);
+    const r = await this.post(body, this.maxWaitFor(req.agent));
+    if (r.status === 429) {
+      const text = await r.text();
+      const back = dailyLimit(text);
+      if (back !== null) {
+        this.exhausted.set(model, Date.now() + back);
+        this.log.warn(`${model}: daily token budget used up for ${Math.round(back / 60_000)} min; using the next model`);
+        yield* this.stream(req, refused);
+        return;
+      }
+      if (tooLarge(text)) {
+        this.log.warn(`${model}: ${req.agent} request is above its output cap; using the next model`);
+        yield* this.stream(req, new Set([...refused, model]));
+        return;
+      }
+      throw new Error(`${req.agent}: groq 429 ${text.slice(0, 300)}`);
+    }
     if (!r.ok || !r.body) throw new Error(`${req.agent}: groq ${r.status} ${(await r.text()).slice(0, 300)}`);
     const reader = r.body.getReader();
     const decoder = new TextDecoder();

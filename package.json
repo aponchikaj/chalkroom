@@ -28,6 +28,8 @@
     "test": "vitest run --configLoader runner",
     "smoke": "node scripts/smoke.mjs",
     "bench": "node scripts/bench.mjs",
+    "eval": "npm run eval -w @chalk/api --",
+    "eval:retrieval": "npm run eval:retrieval -w @chalk/api",
     "test:api": "vitest run --configLoader runner --config vitest.e2e.config.ts",
     "sandbox:tokens": "node scripts/sandbox-tokens.mjs",
     "e2e:web": "node scripts/e2e-web.mjs"

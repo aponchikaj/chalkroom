@@ -11,7 +11,8 @@ import { RoomsService } from '../rooms/rooms.service';
 import { ConductorService } from '../conductor/conductor.service';
 import { ThreadTutorAgent } from '../agents/thread-tutor.agent';
 import { ThreadStore } from './thread-store';
-import { boardOf, chatHistory } from './thread-context';
+import { boardOf, chatHistory, learnerLine } from './thread-context';
+import { canPost, joinRefusal, withMember } from './thread-access';
 import { RetrieveService } from '../rag/retrieve.service';
 import { keepKnownCitations } from '../rag/citations';
 
@@ -65,19 +66,37 @@ export class ThreadsService {
     return thread;
   }
 
+  /** Lane Q: a classmate who was peeking joins the thread and may post in it from now on. */
+  async join(threadId: string, userId: string): Promise<ThreadRow> {
+    const t = await this.store.get(threadId);
+    const member = await this.rooms.member(t.room_id, userId);
+    const refused = joinRefusal(t, userId, member);
+    if (refused) throw refused[0] === 403 ? new ForbiddenException(refused[1]) : new ConflictException(refused[1]);
+    const members = withMember(t, userId);
+    if (members === t.members) return t;
+    return this.store.update(t.id, { members });
+  }
+
   /** Stores the learner line now; the tutor answers in the background, in order per thread. */
   async message(threadId: string, userId: string, text: string): Promise<void> {
-    const t = await this.owned(threadId, userId);
+    const t = await this.store.get(threadId);
+    if (!canPost(t, userId)) throw new ForbiddenException('join this thread to write in it');
+    if (t.owner_id !== userId) {
+      const m = await this.rooms.member(t.room_id, userId);
+      if (!m || m.banned) throw new ForbiddenException('not a member of this room');
+    }
     if (t.status !== 'open') throw new ConflictException('this thread is not open');
     const asked = await this.events.append(t.stream_id, 'chat', { role: 'learner', markdown: text, authorId: userId }, userId);
     const prev = this.lanes.get(threadId) ?? Promise.resolve();
-    const next = prev.then(() => this.reply(t, text, asked.seq)).catch((e) => this.log.error(`thread ${threadId.slice(0, 8)}: ${(e as Error).stack ?? e}`));
+    const next = prev.then(() => this.reply(t, text, asked.seq, userId)).catch((e) => this.log.error(`thread ${threadId.slice(0, 8)}: ${(e as Error).stack ?? e}`));
     this.lanes.set(threadId, next);
   }
 
-  private async reply(t: ThreadRow, text: string, askedSeq: number) {
+  private async reply(t: ThreadRow, text: string, askedSeq: number, authorId: string) {
     const room = await this.rooms.get(t.room_id);
-    const [main, mine] = await Promise.all([this.events.after(room.main_stream_id), this.events.after(t.stream_id)]);
+    // the row as of now: someone may have joined since the message was posted
+    const now = await this.store.get(t.id);
+    const [main, mine, names] = await Promise.all([this.events.after(room.main_stream_id), this.events.after(t.stream_id), this.writers(now)]);
     try {
       const found = await this.retrieve.context(room, `${t.topic} ${text}`);
       const out = await this.tutor.reply({
@@ -86,14 +105,22 @@ export class ThreadsService {
         prefix: await this.rooms.prefixOf(room),
         mainBoard: describeBoard(boardOf(main)),
         topic: t.topic,
-        history: chatHistory(mine.filter((e) => e.seq < askedSeq)),
-      }, text);
+        history: chatHistory(mine.filter((e) => e.seq < askedSeq), names),
+      }, learnerLine(text, authorId, names));
       await this.events.append(t.stream_id, 'chat', { role: 'tutor', markdown: out.markdown }, 'thread');
       if (out.steps?.length) await this.events.append(t.stream_id, 'board', { steps: keepKnownCitations(out.steps, await this.retrieve.known(room)) }, 'thread');
     } catch (e) {
       this.log.warn(`thread ${t.id.slice(0, 8)}: reply failed (${(e as Error).message})`);
       await this.events.append(t.stream_id, 'chat', { role: 'tutor', markdown: SORRY }, 'thread');
     }
+  }
+
+  /** Display names of the owner and joined members, only when classmates joined (else undefined). */
+  private async writers(t: ThreadRow): Promise<Record<string, string> | undefined> {
+    if (!t.members?.length) return undefined;
+    const ids = [t.owner_id, ...t.members];
+    const r = await this.supa.db.from('room_members').select('user_id, display_name').eq('room_id', t.room_id).in('user_id', ids);
+    return Object.fromEntries((r.data ?? []).map((m) => [m.user_id as string, m.display_name as string]));
   }
 
   /** Back to class (or decline an offer). The client shows the catch-up card from left_main_seq. */

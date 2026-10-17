@@ -9,7 +9,9 @@ import { RoomsService } from '../rooms/rooms.service';
 import { TriageAgent } from '../agents/triage.agent';
 import { ThreadStore } from '../threads/thread-store';
 import { RetrieveService } from '../rag/retrieve.service';
-import { EMPTY_TRIAGE, planTriage, spammers, type TriageCluster, type TriagePlan } from './triage-plan';
+import { EMPTY_TRIAGE, planTriage, spammers, type TriageCluster, type TriagePlan, type TriageQuestion } from './triage-plan';
+import { FAQ_REASON, matchFaq } from './faq-match';
+import type { FaqRow } from '@chalk/schema';
 
 interface Lane { timer: ReturnType<typeof setTimeout> | null; running: Promise<void> }
 
@@ -60,7 +62,10 @@ export class TriageService {
       .in('author_id', authors).order('created_at', { ascending: false }).limit(50), 'asker history') as { author_id: string; text: string }[];
     const history = Object.fromEntries(authors.map((a) => [a, past.filter((p) => p.author_id === a).slice(0, 5).map((p) => p.text)]));
 
-    const questions = pending.map((p) => ({ id: p.id, text: p.text, authorId: p.author_id }));
+    const all = pending.map((p) => ({ id: p.id, text: p.text, authorId: p.author_id }));
+    // FAQ reuse: course rooms answer known questions from the course FAQ, with no model call
+    const questions = room.course_id ? await this.reuseFaq(room, all, clusters) : all;
+    if (!questions.length) return;
     let result = EMPTY_TRIAGE;
     try {
       const found = await this.retrieve.context(room, questions.map((q) => q.text).join(' '));
@@ -75,6 +80,43 @@ export class TriageService {
       this.log.warn(`room ${roomId.slice(0, 8)}: triage failed, answering with the fallback (${(e as Error).message})`);
     }
     await this.apply(room, planTriage(result, questions, clusters));
+  }
+
+  /**
+   * Answers questions that match the course FAQ inline with the stored answer (reason FAQ_REASON
+   * marks them reused). Questions matching one entry share a cluster. Returns the rest.
+   */
+  private async reuseFaq(room: RoomRow, questions: TriageQuestion[], open: TriageCluster[]): Promise<TriageQuestion[]> {
+    const r = await this.db.from('faq').select('id, topic_id, question, answer, askers_total, created_at').eq('course_id', room.course_id!).limit(500);
+    if (r.error) { this.log.warn(`faq: ${r.error.message}`); return questions; }
+    const { hits, rest } = matchFaq(questions, (r.data ?? []) as FaqRow[], room.topic_id);
+    if (!hits.length) return questions;
+    const byFaq = new Map<string, { title: string; answer: string; questionIds: string[]; askers: Set<string> }>();
+    for (const h of hits) {
+      const g = byFaq.get(h.faq.id) ?? { title: h.faq.question, answer: h.faq.answer, questionIds: [], askers: new Set<string>() };
+      g.questionIds.push(h.questionId);
+      g.askers.add(questions.find((q) => q.id === h.questionId)!.authorId);
+      byFaq.set(h.faq.id, g);
+    }
+    for (const g of byFaq.values()) {
+      const same = open.find((c) => c.route === 'inline' && c.title === g.title);
+      let clusterId: string;
+      if (same) {
+        for (const a of same.askerIds) g.askers.add(a);
+        const up = await this.db.from('clusters').update({ asker_count: g.askers.size }).eq('id', same.id);
+        if (up.error) throw new Error(up.error.message);
+        clusterId = same.id;
+      } else {
+        const ins = must(await this.db.from('clusters').insert({
+          room_id: room.id, title: g.title, route: 'inline', reason: FAQ_REASON, target_segment: null, answer: g.answer, asker_count: g.askers.size,
+        }).select('id').single(), 'insert faq cluster') as { id: string };
+        clusterId = ins.id;
+      }
+      const up = await this.db.from('questions').update({ cluster_id: clusterId, status: 'answered' }).in('id', g.questionIds).eq('status', 'pending');
+      if (up.error) throw new Error(up.error.message);
+    }
+    this.log.log(`room ${room.id.slice(0, 8)}: ${hits.length} question(s) answered from the course FAQ`);
+    return rest;
   }
 
   /** Clusters first (so the web has them), then questions, then thread offers. */

@@ -61,3 +61,7 @@
 .qvote[aria-pressed='true']:hover:not(:disabled) { background: var(--ink-2); color: var(--paper); }
 .qvote-n { font-size: 11px; font-weight: 500; }
 .qvote-static { display: inline-flex; align-items: center; gap: 6px; font-size: var(--t-xs); font-weight: 650; color: var(--ink-3); padding: 0 4px; }
+
+/* lane Q: take an over-merged question back out of its group */
+.qcard-split { grid-column: 2; justify-self: start; margin: -2px 0 0 -10px; color: var(--ink-2); font-weight: 600; }
+.qcard-split:hover:not(:disabled) { color: var(--ink); }

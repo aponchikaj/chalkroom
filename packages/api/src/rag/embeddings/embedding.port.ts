@@ -1,9 +1,9 @@
-// EmbeddingPort: the one door to an embedding model (RAG, B12). Anthropic has no embeddings
-// API; the planned adapter is Voyage AI (voyage-3.5 family, 1024 dimensions, matching
-// chunks.embedding). NoEmbeddings returns nulls, and retrieval falls back to full-text search,
-// so RAG works with no key and no network.
+// EmbeddingPort: the one door to an embedding model (RAG, B12). Neither Groq nor Anthropic has
+// an embeddings API, so LocalEmbeddings runs multilingual-e5-small inside the API (384
+// dimensions, matching chunks.embedding; English and Georgian). NoEmbeddings returns nulls, and
+// retrieval falls back to full-text search, so RAG also works with EMBEDDINGS=none.
 
-export const EMBEDDING_DIMS = 1024;
+export const EMBEDDING_DIMS = 384;
 
 /** `document` when indexing chunks, `query` when searching (providers embed them differently). */
 export type EmbedKind = 'document' | 'query';

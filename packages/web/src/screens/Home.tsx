@@ -1,15 +1,14 @@
 // A7 (Dev A): Home, the manual's title page. The big title, then four divider tabs on the fore
-// edge that switch the leaf: start a class, join with a code, your classes, how a class runs.
-// TODO(frontend, P2): lobby of open public rooms + community course catalog.
+// edge that switch the leaf: start a class, join with a code, the lobby of open public classes,
+// the community course catalog (lane C), your classes, how a class runs.
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { ArrowRight } from 'lucide-react';
-import { api } from '../lib/api';
 import { navigate } from '../lib/router';
-import { joined } from '../lib/profile';
 import { AccountMenu } from './auth/AccountMenu';
 import { sectionHue, sectionInk } from '../ui/section';
-import { describe } from './entry';
 import { MyClasses, useMyClasses } from './home/MyClasses';
+import { StartForm } from './home/StartForm';
+import { Lobby } from './home/Lobby';
+import { Courses } from './home/Courses';
 import '../ui/ui.css';
 import './entry.css';
 import './home/home.css';
@@ -26,6 +25,8 @@ const CONTENTS = [
 const TABS = [
   { id: 'start', label: 'Start' },
   { id: 'join', label: 'Join' },
+  { id: 'lobby', label: 'Lobby' },
+  { id: 'courses', label: 'Courses' },
   { id: 'classes', label: 'Your classes' },
   { id: 'how', label: 'How it works' },
 ] as const;
@@ -49,14 +50,10 @@ const usePhone = () => useSyncExternalStore((l) => {
   const m = matchMedia(PHONE); m.addEventListener('change', l); return () => m.removeEventListener('change', l);
 }, () => matchMedia(PHONE).matches);
 
-const ICON = { size: 16, strokeWidth: 2 } as const;
 const cleanCode = (s: string) => s.replace(/[^a-z0-9]/gi, '').toUpperCase();
 
 export function Home() {
-  const [title, setTitle] = useState('Solana PDAs');
   const [code, setCode] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
   const { load, reload } = useMyClasses();
   // an explicit choice (deep link or remembered tab) wins; otherwise the default follows the class list
   const [chosen, setChosen] = useState<Tab | null>(() => hashTab() ?? storedTab());
@@ -86,19 +83,6 @@ export function Home() {
     select(TABS[(next + TABS.length) % TABS.length].id, true);
   };
 
-  const create = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setBusy(true); setError('');
-    try {
-      const { room } = await api.createRoom({ title: title.trim() });
-      joined.add(room.invite_code);
-      navigate(`/r/${room.invite_code}`);
-    } catch (err) {
-      setError(describe(err, 'create').text);
-    } finally {
-      setBusy(false);
-    }
-  };
   const c = cleanCode(code);
   const hue = TABS.findIndex((t) => t.id === tab);
 
@@ -131,20 +115,7 @@ export function Home() {
 
           <div id="home-panel" className="home-panel" role="tabpanel" aria-labelledby={`home-tab-${tab}`} tabIndex={0}
             style={{ ['--hue' as string]: sectionHue(hue) }}>
-            {tab === 'start' && (
-              <form className="entry-form home-section" onSubmit={create} aria-labelledby="start-title">
-                <h2 id="start-title">Start a class</h2>
-                <div className="field">
-                  <label className="field-label" htmlFor="topic">What do you want to learn?</label>
-                  <input id="topic" className="input input-lg" value={title} maxLength={80} placeholder="A topic, e.g. Solana PDAs" onChange={(e) => setTitle(e.target.value)} />
-                </div>
-                {error && <p className="errata" role="alert">{error}</p>}
-                <button className="btn primary btn-lg" disabled={busy || !title.trim()}>
-                  {busy ? 'Opening the room' : <>Start a class <ArrowRight {...ICON} aria-hidden /></>}
-                </button>
-                <p className="form-note">You become the host. Share the code, then press Start class when everyone is in.</p>
-              </form>
-            )}
+            {tab === 'start' && <StartForm />}
 
             {tab === 'join' && (
               <form className="entry-form home-section" aria-labelledby="join-title"
@@ -161,6 +132,10 @@ export function Home() {
                 <p className="form-note">Got a link instead? Open it; it brings you straight to the class.</p>
               </form>
             )}
+
+            {tab === 'lobby' && <Lobby onSwitch={(t) => select(t, true)} />}
+
+            {tab === 'courses' && <Courses />}
 
             {tab === 'classes' && <MyClasses load={load} reload={reload} onSwitch={(t) => select(t, true)} />}
 

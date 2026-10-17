@@ -3,7 +3,7 @@
 // and other people's open threads with a Peek action.
 import { useEffect, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { Eye, FastForward, MessagesSquare } from 'lucide-react';
+import { ArrowUpRight, Eye, FastForward, MessagesSquare } from 'lucide-react';
 import type { StreamEvent, ThreadRow } from '@chalk/schema';
 import { mainPlayer, useRoom } from '../../room/store';
 import { usePlayer } from '../../board/Board';
@@ -137,18 +137,24 @@ function CatchUp() {
 function PeekList() {
   const others = useRoom(useShallow((s) => Object.values(s.threads).filter((t) => t.status === 'open' && t.owner_id !== s.me)));
   const members = useRoom((s) => s.members);
+  const me = useRoom((s) => s.me);
   if (!others.length) return null;
   return (
     <ul className="peek-list" aria-label="Threads in progress">
-      {others.map((t) => (
-        <li key={t.id} className="peek acetate">
-          <span className="peek-text">{members[t.owner_id]?.display_name ?? 'A classmate'} is in a thread on <b>{t.topic}</b></span>
-          <button className="btn ghost small" onClick={() => useRoom.setState({ openThreadId: t.id })}
-            aria-label={`Peek at ${members[t.owner_id]?.display_name ?? 'a classmate'}'s thread on ${t.topic}`}>
-            <Eye {...ICON} />Peek
-          </button>
-        </li>
-      ))}
+      {others.map((t) => {
+        const owner = members[t.owner_id]?.display_name ?? 'a classmate';
+        // lane Q: a classmate who joined goes back in, not to a read-only peek
+        const joined = !!me && (t.members ?? []).includes(me);
+        return (
+          <li key={t.id} className="peek acetate">
+            <span className="peek-text">{joined ? <>You joined {owner}'s thread on <b>{t.topic}</b></> : <>{owner.charAt(0).toUpperCase() + owner.slice(1)} is in a thread on <b>{t.topic}</b></>}</span>
+            <button className="btn ghost small" onClick={() => useRoom.setState({ openThreadId: t.id })}
+              aria-label={joined ? `Go back to ${owner}'s thread on ${t.topic}` : `Peek at ${owner}'s thread on ${t.topic}`}>
+              {joined ? <><ArrowUpRight {...ICON} />Go to thread</> : <><Eye {...ICON} />Peek</>}
+            </button>
+          </li>
+        );
+      })}
     </ul>
   );
 }

@@ -1,7 +1,7 @@
 // Lead tutor: plans the lesson, teaches segments on `main`, answers class clusters.
 import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
-import { BoardStep, LessonPlan, TeachSegment, type CheckSpread } from '@chalk/schema';
+import { BoardStep, LessonPlan, Question, TeachSegment, type CheckSpread } from '@chalk/schema';
 import { mockClusterAnswer, mockPlan, mockTeach } from '@chalk/mock-tutor';
 import { ModelPort } from './model.port';
 import { callValidated, toolFrom } from './agent-utils';
@@ -9,7 +9,11 @@ import { InvalidTeach, bySay, streamTeach, type TeachChunk } from './teach-strea
 import { PROMPTS } from './prompts';
 
 const planTool = toolFrom('plan_lesson', 'Plan the live lesson as 3–6 segments of 2–4 minutes.', LessonPlan);
-const teachTool = toolFrom('teach_segment', 'Teach one segment on the shared board and end with a check.', TeachSegment);
+// The tool asks for the check as required: models (gpt-oss, qwen) skip optional fields, and a
+// segment without a check leaves the gate with nothing to answer. Validation stays lenient
+// (TeachSegment), so a reply without one is still taught rather than thrown away.
+export const TEACH_TOOL = toolFrom('teach_segment', 'Teach one segment on the shared board and end with a check.', TeachSegment.extend({ check: Question }));
+const teachTool = TEACH_TOOL;
 const AnswerCluster = z.object({ steps: z.array(BoardStep).min(1).max(12) });
 const answerTool = toolFrom('answer_cluster', 'Answer a grouped class question on the board, crediting the askers.', AnswerCluster);
 
