@@ -13,6 +13,8 @@ const AnswerCluster = z.object({ steps: z.array(BoardStep).min(1).max(12) });
 const answerTool = toolFrom('answer_cluster', 'Answer a grouped class question on the board, crediting the askers.', AnswerCluster);
 
 export interface TeachContext {
+  /** for usage metering and the room budget */
+  roomId?: string;
   prefix: string;
   plan: LessonPlan;
   segment: number;
@@ -29,9 +31,9 @@ export type TeachChunk = { title: string } | { steps: BoardStep[] } | { check: N
 export class LeadTutorAgent {
   constructor(private model: ModelPort) {}
 
-  plan(prefix: string, title: string): Promise<LessonPlan> {
+  plan(prefix: string, title: string, roomId?: string): Promise<LessonPlan> {
     return callValidated(this.model, {
-      agent: 'lead', prefix, system: PROMPTS.lead, tool: planTool, maxTokens: 2000,
+      agent: 'lead', roomId, prefix, system: PROMPTS.lead, tool: planTool, maxTokens: 2000,
       messages: [{ role: 'user', content: `Plan a live lesson on "${title}" for this class. Call plan_lesson.` }],
       mock: () => mockPlan(),
     }, LessonPlan);
@@ -52,7 +54,7 @@ export class LeadTutorAgent {
       ctx.summaries.length ? `So far:\n${ctx.summaries.join('\n')}` : '',
     ].filter(Boolean).join('\n');
     const out = await callValidated(this.model, {
-      agent: 'lead', prefix: ctx.prefix, system: PROMPTS.lead, tool: teachTool,
+      agent: 'lead', roomId: ctx.roomId, prefix: ctx.prefix, system: PROMPTS.lead, tool: teachTool,
       messages: [{ role: 'user', content: `${notes}\n\nCall teach_segment.` }],
       mock: () => mockTeach(ctx.segment),
     }, TeachSegment);
@@ -66,9 +68,9 @@ export class LeadTutorAgent {
     if (out.check) yield { check: out.check };
   }
 
-  async answerCluster(prefix: string, title: string, questions: string[], askers: string[]): Promise<BoardStep[]> {
+  async answerCluster(prefix: string, title: string, questions: string[], askers: string[], roomId?: string): Promise<BoardStep[]> {
     const out = await callValidated(this.model, {
-      agent: 'lead', prefix, system: PROMPTS.lead, tool: answerTool, maxTokens: 3000,
+      agent: 'lead', roomId, prefix, system: PROMPTS.lead, tool: answerTool, maxTokens: 3000,
       messages: [{ role: 'user', content: `Q&A beat. Cluster "${title}", asked by ${askers.join(', ')}:\n${questions.map((q) => `- ${q}`).join('\n')}\n\nCall answer_cluster.` }],
       mock: () => ({ steps: mockClusterAnswer(title, askers) }),
     }, AnswerCluster);

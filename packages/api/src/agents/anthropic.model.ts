@@ -30,7 +30,10 @@ export class AnthropicModel extends ModelPort {
     yield {
       type: 'done',
       stopReason: msg.stop_reason,
-      usage: { input: msg.usage.input_tokens, output: msg.usage.output_tokens, cacheRead: msg.usage.cache_read_input_tokens ?? 0 },
+      usage: {
+        input: msg.usage.input_tokens, output: msg.usage.output_tokens,
+        cacheRead: msg.usage.cache_read_input_tokens ?? 0, cacheWrite: msg.usage.cache_creation_input_tokens ?? 0,
+      },
     };
   }
 }
@@ -47,7 +50,8 @@ export class FallbackModel extends ModelPort {
     let produced = false;
     try {
       for await (const e of this.primary.stream(req)) {
-        if (e.type === 'tool') produced = true;
+        // partial tool JSON counts: falling back after it would replay a whole mock answer on top
+        if (e.type === 'tool' || e.type === 'tool_delta') produced = true;
         yield e;
       }
       return;

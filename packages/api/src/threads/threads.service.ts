@@ -77,6 +77,7 @@ export class ThreadsService {
     const [main, mine] = await Promise.all([this.events.after(room.main_stream_id), this.events.after(t.stream_id)]);
     try {
       const out = await this.tutor.reply({
+        roomId: t.room_id,
         prefix: await this.rooms.prefixOf(room),
         mainBoard: describeBoard(boardOf(main)),
         topic: t.topic,

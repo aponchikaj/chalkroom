@@ -11,6 +11,7 @@ import { PROMPTS } from './prompts';
 const triageTool = toolFrom('triage', 'Assign new questions to clusters and route each cluster.', TriageResult);
 
 export interface TriageInput extends MockTriageInput {
+  roomId?: string;
   prefix: string;
   segment: number;
   segmentTitle: string;
@@ -28,7 +29,7 @@ export class TriageAgent {
       askerHistory: input.history,
     }, null, 1);
     return callValidated(this.model, {
-      agent: 'triage', prefix: input.prefix, system: PROMPTS.triage, tool: triageTool, maxTokens: 1500,
+      agent: 'triage', roomId: input.roomId, prefix: input.prefix, system: PROMPTS.triage, tool: triageTool, maxTokens: 1500,
       messages: [{ role: 'user', content: `${body}\n\nCall triage.` }],
       mock: () => mockTriage(input),
     }, TriageResult);

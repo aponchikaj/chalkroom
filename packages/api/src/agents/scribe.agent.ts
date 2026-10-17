@@ -12,9 +12,9 @@ const summarizeTool = toolFrom('summarize', 'Summarize a finished segment in 3 s
 export class ScribeAgent {
   constructor(private model: ModelPort) {}
 
-  async summarize(prefix: string, title: string, transcript: string): Promise<string> {
+  async summarize(prefix: string, title: string, transcript: string, roomId?: string): Promise<string> {
     const out = await callValidated(this.model, {
-      agent: 'scribe', prefix, system: PROMPTS.scribe, tool: summarizeTool, maxTokens: 600,
+      agent: 'scribe', roomId, prefix, system: PROMPTS.scribe, tool: summarizeTool, maxTokens: 600,
       messages: [{ role: 'user', content: `Segment "${title}". What happened:\n${transcript}\n\nCall summarize.` }],
       mock: () => ({ summary: mockSummary(title) }),
     }, SegmentSummary);
