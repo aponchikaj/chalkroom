@@ -156,9 +156,9 @@ Indexes: GIN on `tsv`, HNSW (cosine) on `embedding`, a partial queue index on pe
 - Email signup on; email confirmation off locally (on in production), emails land in Mailpit
   (http://127.0.0.1:55424).
 - TOTP MFA enroll and verify on.
-- **Anonymous sign-ins are still on.** The decision is "accounts required", but the web app,
-  the smoke test and the sandbox still sign in anonymously. Turn it off (`enable_anonymous_sign_ins = false`)
-  in the same change that ships login in the web (Dev A) and switches the tests to email users (B9).
+- **Anonymous sign-ins are off** (accounts required). Passwords: at least 10 characters with
+  lowercase, uppercase and digits. The API refuses anonymous sessions too (`REQUIRE_ACCOUNT`,
+  default on). The web needs its login screens (Dev A, A8) to sign anyone in.
 
 ## Still to change in the contract (`packages/schema/src/live.ts`)
 
