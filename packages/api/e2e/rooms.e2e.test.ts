@@ -105,6 +105,30 @@ describe('POST /rooms/join', () => {
   });
 });
 
+describe('seat limit', () => {
+  it('a member who left cannot rejoin a full room', async () => {
+    const host = await user('Host');
+    const { room } = await createRoom(host);
+    const first = await user('First');
+    await joinRoom(first, room.invite_code);
+    for (let i = 2; i <= 4; i++) await joinRoom(await user(`L${i}`), room.invite_code);
+    await api(first, 'POST', `/rooms/${room.id}/leave`);
+    await joinRoom(await user('Late'), room.invite_code);
+    const back = await api(first, 'POST', '/rooms/join', { inviteCode: room.invite_code });
+    expect(back.status).toBe(409);
+    expect(back.body.message).toMatch(/full/);
+  });
+
+  it('two people racing for the last seat: only one gets it', async () => {
+    const host = await user('Host');
+    const { room } = await createRoom(host);
+    for (let i = 1; i <= 3; i++) await joinRoom(await user(`L${i}`), room.invite_code);
+    const [a, b] = [await user('A'), await user('B')];
+    const results = await Promise.all([a, b].map((u) => api(u, 'POST', '/rooms/join', { inviteCode: room.invite_code })));
+    expect(results.map((r) => r.status).sort()).toEqual([201, 409]);
+  });
+});
+
 describe('POST /rooms/:id/leave', () => {
   it('frees the seat', async () => {
     const host = await user('Host');

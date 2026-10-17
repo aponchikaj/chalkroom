@@ -119,8 +119,10 @@ try {
   // a real model may end a segment without a check: wait for the gate itself
   await waitRow(ana, (r) => r.table === 'rooms' && r.row.phase === 'check' && r.row.segment === 1, 'the gate of segment 1');
   await ana.call('POST', `/rooms/${room.id}/ready`, { segment: 1 });
-  await waitFor(ana, (e) => e.kind === 'segment_start' && e.data.segment === 2, 'segment 2 (gate 2 passed without the thread owner)');
-  step('gate passed while Gio was in a thread');
+  // the gate passes without Gio (in a thread): segment 2 starts, or a two-segment plan ends
+  const after = await waitFor(ana, (e) => (e.kind === 'segment_start' && e.data.segment === 2) || (e.kind === 'notice' && /ended/i.test(e.data.text)), 'gate 2 passed without the thread owner');
+  const endedEarly = after.kind === 'notice';
+  step(endedEarly ? 'gate passed while Gio was in a thread; the two-segment plan ended' : 'gate passed while Gio was in a thread');
   await gio.call('POST', `/threads/${thread.id}/close`, {});
   await waitFor(ana, (e) => e.kind === 'segment_summary' && e.data.segment === 0, 'the segment 0 summary');
   step('scribe summarized segment 0');
@@ -130,13 +132,17 @@ try {
   if (ana.rows.some((r) => r.table === 'check_answers' && 'answer' in r.row)) fail('check_answers broadcast leaked an answer');
   step(`row broadcasts received: ${[...tables].join(', ')}`);
 
-  await chA.untrack();
-  await ana.call('POST', `/rooms/${room.id}/leave`, {});
-  await waitRow(gio, (r) => r.table === 'rooms' && r.row.host_id === gio.id, 'host handoff');
-  step('host passed to Gio when Ana left');
-  await gio.call('POST', `/rooms/${room.id}/host`, { action: 'end' });
-  await waitFor(gio, (e) => e.kind === 'notice' && /ended/i.test(e.data.text), 'class end');
-  step('Gio (new host) ended the class');
+  if (endedEarly) {
+    step('host handoff not checked: the class already ended (covered by npm run test:api)');
+  } else {
+    await chA.untrack();
+    await ana.call('POST', `/rooms/${room.id}/leave`, {});
+    await waitRow(gio, (r) => r.table === 'rooms' && r.row.host_id === gio.id, 'host handoff');
+    step('host passed to Gio when Ana left');
+    await gio.call('POST', `/rooms/${room.id}/host`, { action: 'end' });
+    await waitFor(gio, (e) => e.kind === 'notice' && /ended/i.test(e.data.text), 'class end');
+    step('Gio (new host) ended the class');
+  }
   const note = await waitRow(gio, (r) => r.table === 'note_blocks', 'shared notes');
   await gio.call('PUT', `/rooms/${room.id}/notes/${note.row.id}`, { markdown: 'edited', version: note.row.version });
   const stale = await fetch(`${API}/rooms/${room.id}/notes/${note.row.id}`, { method: 'PUT', headers: { 'content-type': 'application/json', authorization: `Bearer ${ana.token}` }, body: JSON.stringify({ markdown: 'late', version: note.row.version }) });

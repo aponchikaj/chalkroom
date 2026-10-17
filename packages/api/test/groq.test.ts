@@ -168,6 +168,8 @@ describe('GroqModel fallback', () => {
       for await (const _ of g.stream(req)) { /* drain */ }
       // big stays skipped for 30 min; mid refused only that one request, so it is asked again
       expect(asked).toEqual(['mid', 'small']);
+      expect(g.availableAt('big')).toBeGreaterThan(Date.now() + 29 * 60_000);
+      expect(g.availableAt('small')).toBeLessThanOrEqual(Date.now());
     } finally {
       globalThis.fetch = realFetch;
     }

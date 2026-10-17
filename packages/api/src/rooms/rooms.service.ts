@@ -1,4 +1,5 @@
 // Rooms, membership and the learner actions that go through REST (validate → DB → broadcast).
+import { randomInt } from 'node:crypto';
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import type { z } from 'zod';
 import { gradeItem, parseSyllabus, type Api, type MemberRow, type Question, type RoomPreview, type RoomRow } from '@chalk/schema';
@@ -10,7 +11,9 @@ import { roomPrefix } from '../agents/prompts';
 import { pickSuccessor } from '../presence/presence-tracker';
 
 const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-const inviteCode = () => Array.from({ length: 6 }, () => CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)]).join('');
+const inviteCode = () => Array.from({ length: 6 }, () => CODE_ALPHABET[randomInt(CODE_ALPHABET.length)]).join('');
+/** The seat trigger (enforce_seats) refuses a member who would make the room overfull. */
+const roomFull = (e: { message?: string; hint?: string } | null) => !!e && (e.hint === 'room_full' || /room is full/.test(e.message ?? ''));
 
 @Injectable()
 export class RoomsService {
@@ -45,6 +48,7 @@ export class RoomsService {
   async requireMember(roomId: string, userId: string): Promise<MemberRow> {
     const m = await this.member(roomId, userId);
     if (!m) throw new ForbiddenException('not a member of this room');
+    if (m.banned) throw new ForbiddenException('you were removed from this room');
     return m;
   }
 
@@ -60,7 +64,8 @@ export class RoomsService {
   }
 
   async setPresence(roomId: string, back: string[], gone: string[]) {
-    if (back.length) await this.db.from('room_members').update({ left_at: null }).eq('room_id', roomId).in('user_id', back);
+    // one at a time: the seat trigger may refuse one member coming back to a full room
+    for (const userId of back) await this.db.from('room_members').update({ left_at: null }).eq('room_id', roomId).eq('user_id', userId).not('left_at', 'is', null);
     if (gone.length) await this.db.from('room_members').update({ left_at: new Date().toISOString() }).eq('room_id', roomId).in('user_id', gone).is('left_at', null);
   }
 
@@ -70,10 +75,10 @@ export class RoomsService {
     if (room.phase === 'ended') return null;
     const active = await this.activeMembers(roomId);
     if (active.some((m) => m.user_id === room.host_id)) return null;
-    const next = pickSuccessor(active, room.host_id);
+    const next = pickSuccessor(active, room.host_id ?? '');
     if (!next) return null;
     await this.update(roomId, { host_id: next.user_id });
-    await this.db.from('room_members').update({ role: 'learner' }).eq('room_id', roomId).eq('user_id', room.host_id);
+    if (room.host_id) await this.db.from('room_members').update({ role: 'learner' }).eq('room_id', roomId).eq('user_id', room.host_id);
     await this.db.from('room_members').update({ role: 'host' }).eq('room_id', roomId).eq('user_id', next.user_id);
     await this.events.append(room.main_stream_id, 'notice', { text: `${next.display_name} is now the host.`, level: 'info' }, 'system');
     return next;
@@ -154,14 +159,13 @@ export class RoomsService {
     const { displayName, color } = await this.identity(userId, body);
     const existing = await this.member(room.id, userId);
     if (existing?.banned) throw new ForbiddenException('you were removed from this room');
-    if (!existing) {
-      const active = await this.activeMembers(room.id);
-      if (active.length >= room.seats) throw new ConflictException('the room is full');
-    }
-    const member = must(await this.db.from('room_members').upsert({
+    // the seat limit itself is the enforce_seats trigger (atomic, also on rejoin)
+    const r = await this.db.from('room_members').upsert({
       room_id: room.id, user_id: userId, role: existing?.role ?? 'learner',
       display_name: displayName, color, left_at: null,
-    }).select('*').single(), 'join') as MemberRow;
+    }).select('*').single();
+    if (roomFull(r.error)) throw new ConflictException('the room is full');
+    const member = must(r, 'join') as MemberRow;
     return { room, member };
   }
 

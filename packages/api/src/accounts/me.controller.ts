@@ -6,6 +6,7 @@ import { AllowWithoutMfa, AuthGuard, CurrentUser, type AuthUser } from '../core/
 import { ZodPipe } from '../core/zod.pipe';
 import { ProfilesService } from './profiles.service';
 import { AvatarsService } from './avatars.service';
+import { RateLimit } from '../core/rate-limit';
 
 @Controller('me')
 @UseGuards(AuthGuard)
@@ -41,6 +42,7 @@ export class MeController {
   }
 
   @Post('avatar/upload-url')
+  @RateLimit('avatar-upload', 20, 3600000)
   avatarUploadUrl(@CurrentUser() u: AuthUser, @Body(new ZodPipe(Api.avatarUploadUrl)) b: z.infer<typeof Api.avatarUploadUrl>): Promise<AvatarUploadRes> {
     return this.avatars.uploadUrl(u.id, b.contentType);
   }

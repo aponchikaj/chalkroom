@@ -1,7 +1,7 @@
 // Profiles, profile pictures, settings, public profiles and account deletion (B10).
 import { afterAll, describe, expect, it } from 'vitest';
 import { DEFAULT_SETTINGS, type AvatarUploadRes, type MeRes, type ProfileRow, type PublicProfile, type UserSettings } from '@chalk/schema';
-import { api, closeAll, createRoom, env, newUser, type TestUser } from './helpers';
+import { api, closeAll, createRoom, env, joinRoom, newUser, type TestUser } from './helpers';
 
 const users: TestUser[] = [];
 const user = async (name: string) => { const u = await newUser(name); users.push(u); return u; };
@@ -137,6 +137,29 @@ describe('DELETE /me', () => {
     const r = await api(ana, 'DELETE', '/me');
     expect(r.status).toBe(409);
     expect(r.body.message).toMatch(/end/);
+  });
+
+  it('keeps an ended class for its learners when the host deletes their account', async () => {
+    const ana = await newUser('Ana');
+    const gio = await user('Gio');
+    const { room } = await createRoom(ana);
+    await joinRoom(gio, room.invite_code);
+    await api(ana, 'POST', `/rooms/${room.id}/host`, { action: 'end' });
+    await new Promise((r) => setTimeout(r, 500));
+    expect((await api(ana, 'DELETE', '/me')).status).toBe(204);
+    const seen = (await gio.sb.from('rooms').select('id, host_id').eq('id', room.id)).data;
+    expect(seen).toEqual([{ id: room.id, host_id: null }]);
+  });
+
+  it('a new avatar upload clears earlier uploads that were never committed', async () => {
+    const ana = await user('Ana');
+    await uploadAvatar(ana);
+    await uploadAvatar(ana);
+    const third = await uploadAvatar(ana);
+    await api(ana, 'POST', '/me/avatar', { path: third.path });
+    const admin = (await import('@supabase/supabase-js')).createClient(env.SUPABASE_URL!, env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
+    const left = (await admin.storage.from('avatars').list(ana.id)).data ?? [];
+    expect(left.map((f) => `${ana.id}/${f.name}`)).toEqual([third.path]);
   });
 
   it('deletes the account, its picture and its data', async () => {

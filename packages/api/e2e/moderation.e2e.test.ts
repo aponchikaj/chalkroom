@@ -38,6 +38,15 @@ describe('POST /rooms/:id/moderate', () => {
     expect((await api(gio, 'POST', `/rooms/${room.id}/questions`, { text: 'hi' })).status).toBe(403);
   });
 
+  it('kick also stops every other room action (reactions, threads, sources, notes)', async () => {
+    const { ana, gio, room } = await setup();
+    await api(ana, 'POST', `/rooms/${room.id}/moderate`, { userId: gio.id, action: 'kick' });
+    expect((await api(gio, 'POST', `/rooms/${room.id}/reactions`, { shapeId: 'pda', kind: 'confused' })).status).toBe(403);
+    expect((await api(gio, 'POST', `/rooms/${room.id}/threads`, { topic: 'why?' })).status).toBe(403);
+    expect((await api(gio, 'POST', `/rooms/${room.id}/sources/url`, { url: 'https://example.com' })).status).toBe(403);
+    expect((await api(gio, 'PUT', `/rooms/${room.id}/notes/${crypto.randomUUID()}`, { markdown: 'x', version: 0 })).status).toBe(403);
+  });
+
   it('is host only, never on yourself, and only on members', async () => {
     const { ana, gio, room } = await setup();
     expect((await api(gio, 'POST', `/rooms/${room.id}/moderate`, { userId: ana.id, action: 'mute' })).status).toBe(403);

@@ -9,7 +9,7 @@ export const UNMERGED_REASON = 'unmerged by the asker';
 export interface UnmergeQuestion { id: string; author_id: string; cluster_id: string | null; status: QuestionStatus }
 
 /** Why this unmerge is refused, as [http status, message], or null when it may go ahead. */
-export function unmergeRefusal(q: UnmergeQuestion, actorId: string, hostId: string, siblings: number): [403 | 409, string] | null {
+export function unmergeRefusal(q: UnmergeQuestion, actorId: string, hostId: string | null, siblings: number): [403 | 409, string] | null {
   if (q.author_id !== actorId && hostId !== actorId) return [403, 'only the asker or the host can take a question out of its group'];
   if (!q.cluster_id || q.status === 'pending' || q.status === 'flagged') return [409, 'this question is not in a group'];
   if (q.status === 'thread') return [409, 'this question already went to a thread'];

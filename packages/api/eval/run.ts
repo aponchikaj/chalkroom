@@ -50,11 +50,15 @@ const variant = VARIANTS[variantName];
 if (!variant) throw new Error(`unknown variant ${variantName}; known: ${Object.keys(VARIANTS).join(', ')}`);
 Object.assign(PROMPTS, variant.prompts ?? {});
 
-const key = process.env.GROQ_API_KEY;
-if (!key) throw new Error('GROQ_API_KEY missing (.env.local)');
+// the free tier under test: Gemini when its key is set (or MODEL=gemini), else Groq
+const gemini = config.model === 'gemini';
+const key = gemini ? process.env.GEMINI_API_KEY : process.env.GROQ_API_KEY;
+if (!key) throw new Error(`${gemini ? 'GEMINI_API_KEY' : 'GROQ_API_KEY'} missing (.env.local)`);
+const spares = gemini ? config.geminiSpares : config.groqSpares;
 const modelFor = (agent: string, tool: string) => (tool === 'plan_lesson' || tool === 'answer_cluster' ? config.agentModels.triage : config.agentModels[agent as keyof typeof config.agentModels]);
 // the eval can wait longer for per-minute quota (90 s); spares as in production
-const rec = new Recorder(new GroqModel(key, modelFor as never, (agent, tool) => variant.effort?.(agent, tool), config.groqSpares, () => 90_000), variant.bareSchemas);
+const groq = new GroqModel(key, modelFor as never, (agent, tool) => variant.effort?.(agent, tool), spares, () => 90_000, gemini ? 'gemini' : 'groq', config.geminiRpm);
+const rec = new Recorder(groq, variant.bareSchemas);
 const lead = new LeadTutorAgent(rec), triage = new TriageAgent(rec), scribe = new ScribeAgent(rec), thread = new ThreadTutorAgent(rec);
 
 type Row = Record<string, unknown> & { case: string; calls: Call[] };
@@ -62,7 +66,16 @@ const results: Record<string, Row[]> = {};
 async function run(kind: string, id: string, fn: () => Promise<Record<string, unknown>>) {
   const before = rec.calls.length;
   let out: Record<string, unknown>;
-  try { out = await fn(); } catch (e) { out = { failed: (e as Error).message.slice(0, 200) }; }
+  for (let attempt = 0; ; attempt++) {
+    try { out = await fn(); } catch (e) { out = { failed: (e as Error).message.slice(0, 200) }; }
+    // out of daily budget is not a result: wait until Groq says the model is back, then redo the case
+    if (!String(out.failed ?? '').includes('model can take this request now') || attempt >= 6) break;
+    const back = Math.min(...[...new Set([...(typeof spares === 'function' ? (['lead', 'thread', 'triage', 'scribe'] as const).flatMap((a) => spares(a)) : spares), ...Object.values(config.agentModels)])].map((m) => groq.availableAt(m)).filter((t) => t > Date.now()));
+    const wait = Math.max(30_000, (Number.isFinite(back) ? back : Date.now()) - Date.now() + 5_000);
+    console.log(`${kind}/${id}: daily budget used up, waiting ${Math.round(wait / 60_000)} min`);
+    await new Promise((r) => setTimeout(r, wait));
+    rec.calls.splice(before);
+  }
   const calls = rec.calls.slice(before);
   const row: Row = { case: id, ...out, firstTry: calls.length === 1 && !calls[0].error && !out.failed, calls };
   (results[kind] ??= []).push(row);

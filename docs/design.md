@@ -258,10 +258,26 @@ about 8000 tokens per minute, so the agents use different models: the lead tutor
 `openai/gpt-oss-120b`, the thread tutor `qwen/qwen3.8-27b`, and triage, the scribe, lesson
 planning and Q&A answers `openai/gpt-oss-20b`. The API paces calls from Groq's rate-limit
 headers and falls back to the scripted tutor when quota is not back in time. All three
-produced valid Board Script on the first try in testing. Claude Haiku 4.5 remains supported
-(`ANTHROPIC_API_KEY`), and the original analysis below applies to it.
+produced valid Board Script on the first try in testing. The free tier is for testing only.
 
-**Claude Haiku 4.5 (`claude-haiku-4-5-20251001`) for all four agents.**
+**Testing on Gemini's free tier (decision 2026-10-18).** Same OpenAI-compatible adapter as
+Groq: lead `gemini-3.6-flash` (same lesson quality as 3.8-flash in the eval, 12 s instead of
+19 s per segment), thread `gemini-3.8-flash`, triage, the scribe, planning and Q&A
+`gemini-3.5-flash-lite`. The free tier limits requests per minute and per day per model (Google no
+longer publishes the numbers; about 10 per minute is reported), so calls are paced per model
+(`GEMINI_RPM`), a per-day 429 moves the agent to the next spare (`GEMINI_SPARES`) until the quota
+is back, and the mock answers when nothing is left. Free-tier prompts may be used by Google to
+improve its products: test classes only, never real learners' data.
+
+**Production: Claude Sonnet 5.5 (`claude-sonnet-5-5`) for all four agents (decision
+2026-10-18).** $2 / M input, $10 / M output, cache reads $0.20 / M. Sonnet 5.5 rejects forced
+tool use, so each agent's tool is offered with `tool_choice: auto` and the prompt names it (a reply
+without the call goes through the repair pass, then the mock); thinking stays adaptive, effort is
+`medium` for the lead and thread tutors and `low` for triage and the scribe; refusals use the
+server-side fallback. The original analysis below was written for Claude Haiku 4.5; the needs are
+the same.
+
+**Original choice: Claude Haiku 4.5 for all four agents.**
 
 | Need | Why Haiku 4.5 fits |
 |---|---|

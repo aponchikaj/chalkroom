@@ -23,3 +23,26 @@ describe('chunkPages', () => {
     expect(estimateTokens('x'.repeat(400))).toBe(100);
   });
 });
+
+describe('chunkPages limits', () => {
+  it('splits text with no sentence punctuation into bounded chunks', () => {
+    const text = Array.from({ length: 6000 }, (_, i) => `word${i}`).join(' ');
+    const chunks = chunkPages([{ page: 1, text }]);
+    expect(chunks.length).toBeGreaterThan(5);
+    expect(Math.max(...chunks.map((c) => c.content.length))).toBeLessThanOrEqual(2400);
+  });
+
+  it('does not repeat one huge sentence into every later chunk', () => {
+    const huge = `${'x '.repeat(2500)}.`;
+    const rest = Array.from({ length: 200 }, (_, i) => `Short sentence ${i}.`).join(' ');
+    const chunks = chunkPages([{ page: 1, text: `${huge} ${rest}` }]);
+    expect(chunks.filter((c) => c.content.includes('x x x x x x x x')).length).toBeLessThanOrEqual(3);
+  });
+
+  it('counts Georgian as more tokens per character than English', () => {
+    expect(estimateTokens('ქლოროფილი შთანთქავს სინათლეს')).toBeGreaterThan(estimateTokens('chlorophyll absorbs the light'));
+    // a full Georgian chunk stays inside e5's 512-token window (~3 chars per token measured)
+    const ka = 'ფოთოლი ნახშირორჟანგს სტომებით იღებს. '.repeat(200);
+    for (const c of chunkPages([{ page: null, text: ka }])) expect(c.content.length / 3).toBeLessThanOrEqual(512);
+  });
+});

@@ -114,6 +114,27 @@ describe('email codes', () => {
     expect((await api(ana, 'POST', '/me/2fa/email/send', { purpose: 'login' })).status).toBe(429);
   });
 
+  it('refuse turning email codes on or off before the second factor is passed', async () => {
+    const ana = await user('Ana');
+    const en = await ana.sb.auth.mfa.enroll({ factorType: 'totp' });
+    const ch = await ana.sb.auth.mfa.challenge({ factorId: en.data!.id });
+    await ana.sb.auth.mfa.verify({ factorId: en.data!.id, challengeId: ch.data!.id, code: totp(en.data!.totp.secret) });
+    // a fresh password login (aal1) with TOTP on: email codes must not stand in for the app
+    const aal1 = await newSession(ana);
+    expect((await api(aal1, 'POST', '/me/2fa/email/send', { purpose: 'enable' })).status).toBe(401);
+    expect((await api(aal1, 'POST', '/me/2fa/email/verify', { purpose: 'enable', code: '123456' })).status).toBe(401);
+    expect((await api(aal1, 'GET', '/me/2fa')).status).toBe(200);
+  });
+
+  it('count parallel wrong guesses: 20 at once still lock the code', async () => {
+    const ana = await user('Ana');
+    await api(ana, 'POST', '/me/2fa/email/send', { purpose: 'enable' });
+    const code = await mailedCode(ana.email);
+    const wrong = code === '000000' ? '111111' : '000000';
+    await Promise.all(Array.from({ length: 20 }, () => api(ana, 'POST', '/me/2fa/email/verify', { purpose: 'enable', code: wrong })));
+    expect((await api(ana, 'POST', '/me/2fa/email/verify', { purpose: 'enable', code })).status).toBe(429);
+  });
+
   it('turn email 2FA off; new logins are free again', async () => {
     const gio = await user('Gio');
     await enableEmail2fa(gio);
