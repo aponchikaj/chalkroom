@@ -1,7 +1,7 @@
 // Rooms, membership and the learner actions that go through REST (validate → DB → broadcast).
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import type { z } from 'zod';
-import { gradeItem, type Api, type MemberRow, type Question, type RoomPreview, type RoomRow } from '@chalk/schema';
+import { gradeItem, parseSyllabus, type Api, type MemberRow, type Question, type RoomPreview, type RoomRow } from '@chalk/schema';
 import { SupabaseService, must } from '../core/supabase.service';
 import { EventsService } from '../core/events.service';
 import { config } from '../config';
@@ -95,13 +95,36 @@ export class RoomsService {
     return (r.data?.syllabus_md as string | undefined) || undefined;
   }
 
+  /**
+   * Lane C: a room of a course plans from the chosen syllabus topic. The course must be public or
+   * the caller's; the goal names the topic (and what comes before and after it) for the planner.
+   */
+  private async courseGoal(userId: string, courseId: string, topicId: string | undefined, goal: string | undefined): Promise<string> {
+    const r = await this.db.from('courses').select('title, goal, syllabus_md, visibility, owner_id').eq('id', courseId).maybeSingle();
+    if (r.error) throw new Error(r.error.message);
+    const c = r.data as { title: string; goal: string; syllabus_md: string; visibility: string; owner_id: string | null } | null;
+    if (!c || (c.visibility !== 'public' && c.owner_id !== userId)) throw new NotFoundException('course not found');
+    const topics = parseSyllabus(c.syllabus_md).topics;
+    const i = topicId ? topics.findIndex((t) => t.id === topicId) : -1;
+    if (topicId && i < 0) throw new NotFoundException('no such topic in this course');
+    const parts = [goal?.trim()];
+    if (i >= 0) {
+      parts.push(`This class teaches the topic "${topics[i].title}" of the course "${c.title}".`);
+      if (i > 0) parts.push(`The class already covered: ${topics.slice(Math.max(0, i - 3), i).map((t) => t.title).join('; ')}.`);
+      if (i < topics.length - 1) parts.push(`Next in the course: ${topics[i + 1].title}.`);
+    } else parts.push(`Course: "${c.title}".`);
+    if (c.goal) parts.push(`Course goal: ${c.goal}`);
+    return parts.filter(Boolean).join(' ').slice(0, 1000);
+  }
+
   async create(userId: string, body: z.infer<typeof Api.createRoom>) {
     const { displayName, color } = await this.identity(userId, body);
+    const goal = body.courseId ? await this.courseGoal(userId, body.courseId, body.topicId, body.goal) : body.goal ?? '';
     let room: RoomRow | null = null;
     for (let i = 0; i < 5 && !room; i++) {
       const r = await this.db.from('rooms').insert({
-        title: body.title, goal: body.goal ?? '', course_id: body.courseId ?? null, topic_id: body.topicId ?? null,
-        host_id: userId, visibility: body.visibility, invite_code: inviteCode(),
+        title: body.title, goal, course_id: body.courseId ?? null, topic_id: body.topicId ?? null,
+        host_id: userId, visibility: body.visibility, invite_code: inviteCode(), starts_at: body.startsAt ?? null,
       }).select('*').single();
       if (r.error?.code === '23505') continue; // invite code collision
       room = must(r, 'create room') as RoomRow;

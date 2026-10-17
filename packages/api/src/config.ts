@@ -48,10 +48,13 @@ export const config = {
   },
   /** HMAC key for email 2FA codes (B11). Required before email 2FA is turned on. */
   otpSecret: process.env.OTP_SECRET || null,
-  /** RAG embeddings (B12): 'none' means full-text search only. */
+  /** Groq models to fall back to, in order, when an agent's own model is out of its daily
+   *  budget (TPD) or refuses a request's size. Not qwen3.8-27b: its 1000 output tokens per
+   *  minute cannot hold a teaching segment. */
+  groqSpares: (process.env.GROQ_SPARES ?? 'openai/gpt-oss-20b,openai/gpt-oss-120b').split(',').map((m) => m.trim()).filter(Boolean),
+  /** RAG embeddings (B12): 'local' runs multilingual-e5-small in the API; 'none' is full-text search only. */
   embeddings: {
-    provider: (process.env.EMBEDDINGS ?? (process.env.VOYAGE_API_KEY ? 'voyage' : 'none')) as 'voyage' | 'none',
-    model: process.env.EMBEDDING_MODEL ?? 'voyage-3.5',
+    provider: (process.env.EMBEDDINGS === 'none' ? 'none' : 'local') as 'local' | 'none',
   },
   sandbox: process.env.SANDBOX ? process.env.SANDBOX === '1' : /^http:\/\/(127\.0\.0\.1|localhost)[:/]/.test(process.env.SUPABASE_URL ?? ''),
 };

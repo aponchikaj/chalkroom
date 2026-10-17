@@ -2,7 +2,7 @@
 // the class and my place in it, divider tabs on the fore edge for Notes, Flashcards,
 // Questions, Materials and Checks. Each class keeps its own; nothing here is shared across.
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
-import { ArrowLeft, ArrowRight, RotateCw, TriangleAlert } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Play, RotateCw, TriangleAlert } from 'lucide-react';
 import type { CardReviewRow, NoteBlockRow } from '@chalk/schema';
 import { dueCards, fetchClassLibrary, type ClassLibrary } from '../../lib/library';
 import { navigate } from '../../lib/router';
@@ -14,6 +14,9 @@ import { ShelfQuestions } from './ShelfQuestions';
 import { Materials } from './Materials';
 import { Checks } from './Checks';
 import { dayWords } from './words';
+import { Export } from './Export';
+import { BookNext } from '../library/BookNext';
+import { classKudos } from '../library/files';
 import '../../ui/ui.css';
 import './shelf.css';
 
@@ -94,6 +97,8 @@ function Shelf({ lib, tab, setTab, onReviewed, onNoteSaved }: {
   const mine = members.find((m) => m.user_id === me);
   const amHost = room.host_id === me || mine?.role === 'host';
   const due = useMemo(() => dueCards(lib).length, [lib]);
+  const kudos = useMemo(() => classKudos(me, lib.questions, lib.clusters), [me, lib.questions, lib.clusters]);
+  const ended = room.phase === 'ended';
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const i = TABS.indexOf(tab);
   // phones: the tab row may scroll sideways; keep the open tab in view
@@ -129,13 +134,26 @@ function Shelf({ lib, tab, setTab, onReviewed, onNoteSaved }: {
                 <div><dt className="sr-only">Date</dt><dd>{dayWords(room.started_at ?? room.created_at)}</dd></div>
                 <div><dt>Host</dt><dd>{amHost ? 'You' : host?.display_name ?? 'Unknown'}</dd></div>
                 <div><dt>You are</dt><dd>{amHost ? 'the host' : 'a learner'}</dd></div>
+                {kudos.peopleHelped > 0 && (
+                  <div className="shelf-kudos"><dt>Kudos</dt><dd>Your questions helped <span className="mono">{kudos.peopleHelped}</span> {kudos.peopleHelped === 1 ? 'person' : 'people'}</dd></div>
+                )}
               </dl>
             </div>
-            {room.phase !== 'ended' && (
+            {!ended && (
               <button type="button" className="btn primary btn-lg shelf-rejoin" onClick={() => navigate(`/r/${room.invite_code}`)}>
                 Rejoin the class<ArrowRight {...ICON} aria-hidden />
               </button>
             )}
+            {ended && (
+              <a className="btn primary btn-lg shelf-rejoin" href={`/c/${room.id}/replay`}
+                onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey) return; e.preventDefault(); navigate(`/c/${room.id}/replay`); }}>
+                <Play {...ICON} aria-hidden />Replay this class
+              </a>
+            )}
+          </div>
+          <div className="shelf-actions">
+            {ended && amHost && <BookNext room={room} variant="shelf" />}
+            <Export lib={lib} />
           </div>
         </header>
 

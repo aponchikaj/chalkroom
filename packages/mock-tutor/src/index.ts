@@ -171,3 +171,88 @@ export function mockTriage(input: MockTriageInput): TriageResult {
   });
   return out;
 }
+
+// ---------------------------------------------------------------------------
+// Syllabus: a course outline in the Chalkroom checkbox Markdown (parseSyllabus).
+// ---------------------------------------------------------------------------
+
+/** A course outline drafted from a title and goal: five topics from basics to practice. */
+export function mockSyllabus(title: string, goal?: string): string {
+  const t = title.trim() || 'New course';
+  const topics = [
+    `${t}: the big picture`,
+    `${t}: core ideas`,
+    `${t}: worked examples`,
+    `${t}: common mistakes`,
+    goal?.trim() ? `Practice: ${goal.trim().replace(/[.\s]+$/, '').slice(0, 80)}` : `${t}: practice`,
+  ];
+  const ids = ['big-picture', 'core-ideas', 'worked-examples', 'common-mistakes', 'practice'];
+  const lines = topics.map((x, i) => `- [ ] ${x}  <!-- id: ${ids[i]} -->`);
+  return [`# ${t}`, '', ...(goal?.trim() ? [goal.trim(), ''] : []), ...lines, ''].join('\n');
+}
+
+// ---------------------------------------------------------------------------
+// Live activities (lane M): the quiz duel and the teach-back critique.
+// ---------------------------------------------------------------------------
+
+/** One objective duel question: mcq (answer = option index), tf (boolean) or numeric. */
+export interface MockDuelQuestion {
+  type: 'mcq' | 'tf' | 'numeric';
+  prompt: string;
+  options?: string[];
+  answer: number | boolean;
+  tolerance?: number;
+  /** the concept it tests, named in "The tutor will re-teach: ..." */
+  topic: string;
+  explanation?: string;
+  /** the lesson segment it comes from */
+  segment: number;
+}
+
+const PDA_DUEL: MockDuelQuestion[] = [
+  { segment: 0, type: 'mcq', prompt: 'Who can sign for a PDA?', options: ['Anyone holding its private key', 'Only the program that derived it', 'The wallet that paid its rent'], answer: 1, topic: 'Who signs for a PDA', explanation: 'A PDA has no private key; its program signs with invoke_signed.' },
+  { segment: 0, type: 'tf', prompt: 'A PDA lies on the ed25519 curve.', answer: false, topic: 'PDAs lie off the curve', explanation: 'It is chosen off the curve, so no private key exists for it.' },
+  { segment: 0, type: 'mcq', prompt: 'Which inputs derive a PDA?', options: ['A keypair and a nonce', 'Seeds, the program id and a bump', 'The payer and the slot'], answer: 1, topic: 'What derives a PDA', explanation: 'Seeds, the program id and the bump go into the hash.' },
+  { segment: 1, type: 'numeric', prompt: 'Which bump value does find_program_address try first?', answer: 255, topic: 'The canonical bump', explanation: 'It starts at 255 and counts down.' },
+  { segment: 1, type: 'tf', prompt: 'find_program_address counts the bump upward from 0.', answer: false, topic: 'The canonical bump', explanation: 'It counts down from 255.' },
+  { segment: 1, type: 'mcq', prompt: 'How often does the very first bump work?', options: ['Almost never', 'About half the time', 'Always'], answer: 1, topic: 'Finding the bump', explanation: 'Each try lands off the curve about half the time.' },
+  { segment: 2, type: 'mcq', prompt: 'What does the runtime do in invoke_signed?', options: ['Checks a private key', 'Re-derives the PDA from the seeds', 'Asks the wallet to approve'], answer: 1, topic: 'Signing with invoke_signed', explanation: 'If the re-derived address matches, the PDA counts as a signer.' },
+  { segment: 2, type: 'tf', prompt: 'A program stores the private key of its PDA.', answer: false, topic: 'Signing with invoke_signed', explanation: 'There is no key to store.' },
+];
+
+/**
+ * `count` duel questions on what was taught so far (segments 0..taughtUpTo of the PDA lesson),
+ * topped up from later segments when the class has not seen enough yet.
+ */
+export function mockDuel(count: number, taughtUpTo = 0): { questions: MockDuelQuestion[] } {
+  const seen = PDA_DUEL.filter((q) => q.segment <= taughtUpTo);
+  const rest = PDA_DUEL.filter((q) => q.segment > taughtUpTo);
+  return { questions: [...seen, ...rest].slice(0, Math.max(1, count)) };
+}
+
+const PDA_IDEAS: { idea: string; words: RegExp }[] = [
+  { idea: 'A PDA is derived from seeds and the program id', words: /seed|program id|derive/i },
+  { idea: 'It lies off the ed25519 curve', words: /curve|ed25519/i },
+  { idea: 'So no private key exists for it', words: /private key|no key|keypair/i },
+  { idea: 'Only its program signs for it, with invoke_signed', words: /invoke_signed|invoke signed|program (can )?sign|signs? for/i },
+];
+
+/** The tutor's critique of a teach-back: what was right, what was missing, and one board note. */
+export function mockTeachbackFeedback(concept: string, text: string, name = 'You'): { markdown: string; missing: string[]; steps: BoardStep[] } {
+  const right = PDA_IDEAS.filter((i) => i.words.test(text)).map((i) => i.idea);
+  const missing = PDA_IDEAS.filter((i) => !i.words.test(text)).map((i) => i.idea);
+  const first = name.split(/\s+/)[0] || name;
+  const markdown = [
+    `**(mock tutor)** Thank you, ${first}. ${right.length ? 'You got the heart of it.' : 'Good try; let us fill in the core idea together.'}`,
+    right.length ? `What was right: ${right.join('; ')}.` : '',
+    'In one line: a PDA comes from seeds and the program id and lies off the curve, so it has no key and only its program signs for it.',
+  ].filter(Boolean).join('\n\n');
+  const steps: BoardStep[] = [
+    { page: { title: `Teach-back: ${concept}`.slice(0, 80) } },
+    { add: { id: 'tb-right', kind: 'box', text: right.length ? right.slice(0, 2).join('\n') : 'Seeds + program id\n-> PDA', at: [2.8, 2] } },
+    { say: `${first} explained it. Here is what to add.` },
+    ...(missing.length ? [{ add: { id: 'tb-missing', kind: 'sticky' as const, text: missing.slice(0, 2).join('\n'), at: [2.8, 4.4] } } as BoardStep] : []),
+    { say: missing.length ? `The missing piece: ${missing[0]}.` : 'Nothing important was missing.' },
+  ];
+  return { markdown, missing, steps };
+}

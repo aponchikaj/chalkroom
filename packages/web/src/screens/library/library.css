@@ -1,0 +1,147 @@
+/* Lane L: the replay library and player, booking the next session, the class page's export.
+   One printed leaf on the section board, like the class page; chapters are divider tabs. */
+
+/* ---------- the page and its leaf ---------- */
+.replay { height: 100%; overflow-y: auto; padding: 36px 40px 40px; background: var(--paper); }
+.replay-manual { position: relative; max-width: 1240px; margin: 0 auto; padding: 22px 40px 36px 64px; }
+.replay-lib { max-width: 1040px; }
+.replay-running { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 14px; }
+.replay-back { margin-left: -10px; }
+.replay-brand { font-size: var(--t-sm); font-weight: 800; font-stretch: 75%; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink); }
+.replay-head { padding-bottom: 16px; border-bottom: 1.5px solid var(--ink); }
+.replay-title {
+  font-size: clamp(1.8rem, 3.2vw, 2.7rem); font-weight: 820; font-stretch: 76%; line-height: 1;
+  letter-spacing: -0.015em; text-transform: uppercase; overflow-wrap: anywhere;
+}
+.replay-facts { display: flex; flex-wrap: wrap; gap: 4px 20px; margin-top: 12px; font-size: var(--t-md); font-weight: 600; font-stretch: 88%; color: var(--ink-2); }
+.replay-lede { margin-top: 12px; max-width: 60ch; font-family: var(--font-read); font-size: 1.1rem; line-height: 1.45; color: var(--ink-2); }
+.replay-wait { padding: 18px 0 10px; color: var(--ink-3); font-size: var(--t-sm); }
+.replay-empty { font-size: var(--t-sm); color: var(--ink-3); }
+.replay-empty-lg { padding: 28px 0 8px; max-width: 46ch; font-family: var(--font-read); font-size: 1.15rem; line-height: 1.45; color: var(--ink-2); }
+.replay-errata { margin-top: 18px; max-width: 64ch; }
+.replay-problem { padding-top: 18px; }
+.replay-problem-actions { display: flex; gap: 10px; margin-top: 18px; }
+.replay-bone {
+  display: block; width: min(820px, 100%); aspect-ratio: 1320 / 640; border-radius: 2px;
+  background: repeating-linear-gradient(135deg, var(--paper-2) 0 6px, color-mix(in srgb, var(--rule) 55%, var(--paper-2)) 6px 7px);
+}
+.replay-bone-row { aspect-ratio: auto; height: 64px; margin-top: 14px; }
+
+/* ---------- library rows: one rule each, a divider-tab swatch on the binding side ---------- */
+.replay-list { list-style: none; margin: 8px 0 0; padding: 0; }
+.replay-row {
+  display: grid; grid-template-columns: 10px minmax(0, 1fr) auto 20px; align-items: center; gap: 18px;
+  padding: 16px 6px 16px 0; border-bottom: 1px solid var(--rule); color: var(--ink); text-decoration: none;
+  transition: background var(--step) steps(2);
+}
+.replay-row:hover { background: var(--paper-2); }
+.replay-row:focus-visible { outline-offset: -2px; }
+.replay-row-tab { align-self: stretch; background: var(--hue); border-radius: 0 3px 3px 0; }
+.replay-row-main { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.replay-row-title { font-size: 1.15rem; font-weight: 760; font-stretch: 80%; text-transform: uppercase; letter-spacing: 0.01em; line-height: 1.15; overflow-wrap: anywhere; }
+.replay-row-sub { font-family: var(--font-read); font-size: 0.98rem; color: var(--ink-2); }
+.replay-row-facts { display: flex; gap: 18px; font-size: var(--t-sm); font-weight: 600; font-stretch: 88%; color: var(--ink-2); white-space: nowrap; }
+.replay-row-go { color: var(--ink-2); }
+.replay-row:hover .replay-row-go { color: var(--ink); transform: translateX(2px); }
+
+/* ---------- the player: board leaf and transport, chapters on the fore edge ---------- */
+.replay-body { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 28px; padding-top: 20px; }
+.replay-stage { min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.replay-board { width: 100%; aspect-ratio: 1320 / 640; }
+.replay-board > .board-svg { width: 100%; height: 100%; }
+.replay-captions { min-height: 3.1em; padding: 2px 4px; font-family: var(--font-read); font-size: 1.12rem; line-height: 1.4; color: var(--ink); }
+.replay-captions .faint { font-family: var(--font-ui); font-size: var(--t-sm); }
+:root[data-captions='off'] .replay-captions { visibility: hidden; }
+.replay-transport { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px; padding-top: 12px; border-top: 1.5px solid var(--ink); }
+.replay-play { min-width: 112px; }
+.replay-speed { display: inline-flex; }
+.replay-speed .btn { border-radius: 0; margin-left: -1.5px; min-width: 46px; }
+.replay-speed .btn:first-child { border-radius: var(--r) 0 0 var(--r); margin-left: 0; }
+.replay-speed .btn:last-child { border-radius: 0 var(--r) var(--r) 0; }
+.replay-progress { flex: 1 1 220px; display: flex; align-items: center; gap: 10px; min-width: 180px; }
+.replay-pct { width: 4ch; text-align: right; font-size: var(--t-sm); color: var(--ink-2); }
+.replay-progress input[type='range'] {
+  flex: 1; min-width: 0; height: 28px; margin: 0; background: transparent; cursor: pointer;
+  -webkit-appearance: none; appearance: none;
+}
+.replay-progress input[type='range']::-webkit-slider-runnable-track {
+  height: 8px; border: 1.5px solid var(--ink); border-radius: 1px;
+  background: linear-gradient(90deg, var(--section) var(--pct, 0%), var(--leaf) var(--pct, 0%));
+}
+.replay-progress input[type='range']::-moz-range-track {
+  height: 8px; border: 1.5px solid var(--ink); border-radius: 1px;
+  background: linear-gradient(90deg, var(--section) var(--pct, 0%), var(--leaf) var(--pct, 0%));
+}
+.replay-progress input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; width: 14px; height: 22px; margin-top: -8.5px;
+  background: var(--ink); border: 2px solid var(--leaf); border-radius: 1px;
+}
+.replay-progress input[type='range']::-moz-range-thumb { width: 12px; height: 20px; background: var(--ink); border: 2px solid var(--leaf); border-radius: 1px; }
+
+.replay-chapters { min-width: 0; border-left: 1px solid var(--rule); padding-left: 22px; }
+.replay-ch-h { font-size: var(--t-sm); font-weight: 750; font-stretch: 78%; letter-spacing: 0.16em; text-transform: uppercase; padding-bottom: 8px; border-bottom: 1.5px solid var(--ink); }
+.replay-chapters ol { list-style: none; margin: 0; padding: 0; max-height: min(62vh, 560px); overflow-y: auto; }
+.replay-ch {
+  width: 100%; display: flex; align-items: flex-start; gap: 10px; padding: 10px 6px 10px 0; margin: 0;
+  border: 0; border-bottom: 1px solid var(--rule); background: transparent; color: var(--ink);
+  text-align: left; cursor: pointer; transition: background var(--step) steps(2);
+}
+.replay-ch:hover { background: var(--paper-2); }
+.replay-ch:focus-visible { outline-offset: -2px; }
+.replay-ch[aria-current='step'] { box-shadow: inset 4px 0 0 var(--ink); padding-left: 10px; background: var(--paper-2); }
+.replay-ch-tab {
+  flex: none; display: grid; place-items: center; width: 28px; height: 22px; border-radius: 0 5px 5px 0;
+  background: var(--hue); color: var(--on-hue); font-size: var(--t-xs);
+}
+.replay-ch-q { flex: none; display: grid; place-items: center; width: 28px; height: 22px; color: var(--hue); }
+.replay-ch-question { padding-left: 14px; }
+.replay-ch-question[aria-current='step'] { padding-left: 18px; }
+.replay-ch-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.replay-ch-kind { font-size: 10.5px; font-weight: 750; font-stretch: 80%; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-2); }
+.replay-ch-title { font-family: var(--font-read); font-size: 0.98rem; line-height: 1.3; overflow-wrap: anywhere; }
+.replay-ch-segment .replay-ch-title { font-family: var(--font-ui); font-weight: 700; font-stretch: 84%; }
+
+/* ---------- book the next session ---------- */
+.booknext-open { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+.booknext-h { font-size: var(--t-md); font-weight: 750; font-stretch: 82%; text-transform: uppercase; letter-spacing: 0.04em; }
+.booknext-lede { font-family: var(--font-read); font-size: 0.98rem; color: var(--ink-2); }
+.booknext-fields { display: flex; flex-wrap: wrap; gap: 10px 14px; }
+.booknext-field { display: flex; flex-direction: column; gap: 4px; min-width: 220px; }
+.booknext-field > span { font-size: var(--t-xs); font-weight: 700; font-stretch: 78%; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-2); }
+.booknext-field .input.mono { font-size: var(--t-md); }
+.booknext-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.booknext-link { display: flex; gap: 8px; max-width: 620px; }
+.booknext-link .input { flex: 1; min-width: 0; font-size: var(--t-sm); }
+.booknext-cal { font-size: var(--t-xs); font-weight: 700; font-stretch: 78%; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-2); margin-right: 4px; }
+/* on the class page the slip sits between two rules under the title, never a box on the leaf */
+.booknext-shelf.booknext-open { padding: 14px 0 4px; border-top: 1px solid var(--rule); }
+
+/* ---------- class page header: actions and export ---------- */
+.shelf-actions { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 10px 14px; margin-top: 16px; }
+.shelf-actions:has(.booknext-open) { flex-direction: column; }
+.shelf-export { display: flex; flex-wrap: wrap; gap: 4px; margin-left: -10px; }
+.shelf-actions > .booknext:not(.booknext-open) + .shelf-export { margin-left: 0; }
+.shelf-kudos dd { font-family: var(--font-read); font-weight: 400 !important; font-size: 1rem !important; }
+
+/* ---------- tablet and phone ---------- */
+@media (max-width: 1080px) {
+  .replay-body { grid-template-columns: minmax(0, 1fr); }
+  .replay-chapters { border-left: 0; padding-left: 0; }
+  .replay-chapters ol { max-height: none; }
+}
+@media (max-width: 760px) {
+  .replay { padding: 0; }
+  .replay-manual { padding: 12px 16px 32px; min-height: 100%; border: 0; border-radius: 0; box-shadow: none; }
+  .replay-manual.punched::before, .replay-manual.punched::after { display: none; }
+  .replay-body { padding-top: 14px; gap: 20px; }
+  .replay-captions { font-size: 1rem; min-height: 2.8em; }
+  .replay-transport { gap: 10px; }
+  .replay-play { flex: 1 1 100%; }
+  .replay-progress { flex-basis: 100%; }
+  .replay-row { grid-template-columns: 8px minmax(0, 1fr) 18px; gap: 12px; }
+  .replay-row-facts { grid-column: 2; grid-row: 2; gap: 12px; flex-wrap: wrap; white-space: normal; }
+  .replay-row-go { grid-column: 3; grid-row: 1 / span 2; }
+  .replay-row-tab { grid-row: 1 / span 2; }
+  .booknext-field { min-width: 0; width: 100%; }
+  .booknext-link { flex-direction: column; }
+}

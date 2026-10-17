@@ -249,3 +249,6 @@ $RECYCLE.BIN/
 .impeccable/review/
 .impeccable/ref/*.png
 .impeccable/e2e/
+
+# agent eval raw results (summaries go in docs/PLAN_QUALITY.md)
+packages/api/eval/results/
