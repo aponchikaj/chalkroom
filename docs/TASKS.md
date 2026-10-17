@@ -33,7 +33,7 @@ Done = built and tested. Next = being built. Todo = planned.
 | **Questions** | Ask, anonymous +1, rate limit 6/min; triage: clusters, the four routes, thread offers, every question routed within ~4.5 s; web: question rail and ask bar (text only) | Connect the rail to real statuses (Dev A) | A1, A2 done on fixtures | B2 done |
 | **Threads** | Open, accept an offer, message (tutor chat + mini board on the thread stream), close, share as an answered cluster; owners excused at the gate; catch-up from `segment_summary`; web: thread drawer, offer, catch-up | | A3 done on fixtures | B4 done |
 | **Notes and recap** | Segment summaries (`segment_summary`), notes at class end (segments, takeaways, class questions), `PUT /rooms/:id/notes/:blockId` with version check, course FAQ; web: notes and recap, one editor per block | | A5 done on fixtures | B3 done |
-| **AI tutor** | ModelPort, mock tutor, Claude adapter with fallback, four agents callable | Real model, streaming steps, pipelining (todo, needs `ANTHROPIC_API_KEY`) | | B1 todo |
+| **AI tutor** | ModelPort, mock tutor, Claude adapter with fallback, all four agents wired in, usage metering per room, steps streamed as written, next segment pipelined | Run with a real key, measure caching, tune prompts (needs `ANTHROPIC_API_KEY`) | | B1 built |
 | **Knowledge (RAG)** | Schema: sources, chunks, hybrid search, resources bucket; `EmbeddingPort` | Ingest, retrieval, citations (todo) | A11 sources panel, citations | B12 todo |
 | **Reliability** | Mute/ban columns in the schema | Token budget, simple-mode retry, moderation routes (todo) | buttons | B6 todo |
 
@@ -63,8 +63,9 @@ Done = built and tested. Next = being built. Todo = planned.
 | `POST /rooms/:id/questions` | 8 | 10 | 10 | |
 | Start to first board event | 841 | | | mock waits 400 ms per call (plan + teach) |
 | Start to the first check | 869 | | | the whole first segment |
-| Last ready vote to `check_closed` | 64 | | | gate pass, over realtime |
-| Last ready vote to next segment | 76 | | | includes the Q&A beat |
+| Last ready vote to `check_closed` | 33 | | | gate pass, over realtime |
+| Last ready vote to next segment | 473 | | | includes triage of questions still pending (one mock call, 400 ms) and the Q&A beat; 76 ms with nothing pending |
+| Next segment start to its first board event | 5 | | | pipelined: written while the class was at the gate (was at least one tutor call) |
 
 With the real model (B1) the class timings depend on Claude; the target is the first board
 shape within about 2 s. Re-run `npm run bench` after each milestone and update this table.
@@ -228,7 +229,7 @@ Detail: [`DEVB_TASKS.md`](DEVB_TASKS.md). Steps, code and tests: [`PLANS_DEVB.md
 | B4 Threads | done | open (or accept an offer), message with tutor replies, close, share |
 | B3 Scribe and notes | done | segment summaries, notes, edit route with version check, course FAQ |
 | B5 Presence and host handoff | done | gate counts present learners (15 s), host handoff on leave or drop |
-| B1 Real model | todo | Claude, streaming steps, pipelining (needs `ANTHROPIC_API_KEY`) |
+| B1 Real model | built, needs a key to verify | per-room usage metering, steps streamed as written, next segment pipelined; left: run with `ANTHROPIC_API_KEY`, measure caching, tune prompts |
 | B12 RAG | todo | ingest, retrieval, citations |
 | B6 Reliability | todo | budget, retry, moderation routes |
 | B7 Deploy | todo | hosted Supabase, API host, Vercel |

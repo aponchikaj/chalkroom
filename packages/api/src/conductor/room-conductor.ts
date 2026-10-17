@@ -16,6 +16,8 @@ import type { TriageService } from '../triage/triage.service';
 import type { ScribeAgent } from '../agents/scribe.agent';
 import { checkResults, segmentTranscript, summariesOf } from './narration';
 import { buildNotes } from '../notes/notes';
+import { prefetch, type ChunkBuffer } from './prefetch';
+import type { TeachChunk } from '../agents/lead-tutor.agent';
 
 export interface ConductorDeps {
   supa: SupabaseService;
@@ -38,6 +40,8 @@ export class RoomConductor {
   private lastCheck?: { prompt: string; spread: CheckSpread; answerText: string };
   /** the scribe's summary of the last finished segment; awaited before the next segment */
   private pendingSummary: Promise<void> = Promise.resolve();
+  /** the next segment, written while the class is at the gate (pipelining) */
+  private next: { segment: number; chunks: ChunkBuffer<TeachChunk> } | null = null;
 
   constructor(readonly roomId: string, private deps: ConductorDeps) {
     this.log = new Logger(`Room ${roomId.slice(0, 8)}`);
@@ -85,7 +89,8 @@ export class RoomConductor {
     const slower = this.slower;
     this.slower = false;
     try {
-      for await (const chunk of this.deps.lead.teach({ roomId: room.id, prefix: await this.prefix(room), plan, segment, slower, lastCheck: this.lastCheck, summaries: this.summaries })) {
+      const source = this.takePrefetch(segment, slower) ?? this.deps.lead.teach(await this.teachContext(room, segment, slower));
+      for await (const chunk of source) {
         if ('steps' in chunk) await this.deps.events.append(main, 'board', { steps: chunk.steps }, 'lead');
         else if ('check' in chunk) {
           const row = await this.db.from('checks').insert({ room_id: room.id, segment, question: chunk.check }).select('id').single();
@@ -100,9 +105,26 @@ export class RoomConductor {
     await this.deps.events.append(main, 'segment_end', { segment }, 'lead');
     // the summary runs beside the gate, never in front of it
     this.pendingSummary = this.summarize(room, segment, plan.segments[segment].title);
-    // TODO(backend, B1): pipelining — start writing segment+1 now so it draws as soon as the gate passes.
+    // pipelining: write the next segment while the class answers the check and votes
+    if (segment + 1 < plan.segments.length) {
+      this.next = { segment: segment + 1, chunks: prefetch(this.deps.lead.teach(await this.teachContext(room, segment + 1, false))) };
+    }
     await this.deps.rooms.update(room.id, { phase: 'check' });
     await this.evaluateGate();
+  }
+
+  private async teachContext(room: RoomRow, segment: number, slower: boolean) {
+    return { roomId: room.id, prefix: await this.prefix(room), plan: room.lesson_plan!, segment, slower, lastCheck: this.lastCheck, summaries: this.summaries };
+  }
+
+  /** The prefetched segment, unless the host asked for Slower or under half the class got the check right. */
+  private takePrefetch(segment: number, slower: boolean): ChunkBuffer<TeachChunk> | null {
+    const p = this.next;
+    this.next = null;
+    if (!p || p.segment !== segment || slower) return null;
+    const s = this.lastCheck?.spread;
+    if (s && s.total > 0 && s.correct / s.total < 0.5) return null;
+    return p.chunks;
   }
 
   private async evaluateGate() {
