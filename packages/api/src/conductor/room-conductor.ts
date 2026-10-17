@@ -12,7 +12,6 @@ import type { SupabaseService } from '../core/supabase.service';
 import type { EventsService } from '../core/events.service';
 import type { RoomsService } from '../rooms/rooms.service';
 import type { LeadTutorAgent } from '../agents/lead-tutor.agent';
-import { roomPrefix } from '../agents/prompts';
 
 export interface ConductorDeps {
   supa: SupabaseService;
@@ -63,9 +62,7 @@ export class RoomConductor {
 
   private get db() { return this.deps.supa.db; }
 
-  private async prefix(room: RoomRow) {
-    return roomPrefix({ title: room.title, goal: room.goal, syllabus: await this.deps.rooms.syllabusOf(room) }, room.lesson_plan);
-  }
+  private prefix(room: RoomRow) { return this.deps.rooms.prefixOf(room); }
 
   private async notice(room: RoomRow, text: string, level: 'info' | 'warn' = 'info') {
     await this.deps.events.append(room.main_stream_id, 'notice', { text, level }, 'system');
