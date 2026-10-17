@@ -1,0 +1,35 @@
+# Render blueprint for the API (one instance: the room conductors live in this process).
+# New > Blueprint > pick this repo. Fill the env vars marked sync: false in the dashboard.
+# The web app goes to Vercel (vercel.json); the database is the hosted Supabase project.
+services:
+  - type: web
+    name: chalkroom-api
+    runtime: node
+    plan: starter
+    region: frankfurt
+    buildCommand: npm ci
+    startCommand: npm start -w @chalk/api
+    healthCheckPath: /health
+    numInstances: 1
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: REQUIRE_ACCOUNT
+        value: "1"
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: WEB_URL
+        sync: false
+      # model: a GROQ_API_KEY runs the agents on Groq's free tier; without any key the scripted
+      # mock tutor runs (free); ANTHROPIC_API_KEY switches to Claude (paid)
+      - key: GROQ_API_KEY
+        sync: false
+      # mail for 2FA codes and account notices
+      - key: SMTP_URL
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      - key: OTP_SECRET
+        generateValue: true

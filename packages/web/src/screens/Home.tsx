@@ -5,8 +5,8 @@ import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { api } from '../lib/api';
 import { navigate } from '../lib/router';
-import { joined, loadProfile, saveProfile } from '../lib/profile';
-import { ProfileFields } from '../components/ProfileFields';
+import { joined } from '../lib/profile';
+import { AccountMenu } from './auth/AccountMenu';
 import { sectionHue, sectionInk } from '../ui/section';
 import { describe } from './entry';
 import { MyClasses, useMyClasses } from './home/MyClasses';
@@ -16,7 +16,7 @@ import './home/home.css';
 
 const CONTENTS = [
   ['Start', 'Name a topic. You get an invite code, a link and a QR code.'],
-  ['Join', 'Up to five people open the link, type a name and pick a colour. No signup.'],
+  ['Join', 'Up to five people open the link or scan the QR code and log in. The class sees your name and colour.'],
   ['Learn', 'The tutor draws on one shared board and talks you through it, in short segments.'],
   ['Ask', 'Type a question at any time, or select a shape on the board to pin it there. Similar questions are grouped into one answer.'],
   ['Check', 'A quick check, then everyone marks ready and the class moves on together.'],
@@ -53,7 +53,6 @@ const ICON = { size: 16, strokeWidth: 2 } as const;
 const cleanCode = (s: string) => s.replace(/[^a-z0-9]/gi, '').toUpperCase();
 
 export function Home() {
-  const [profile, setProfile] = useState(loadProfile);
   const [title, setTitle] = useState('Solana PDAs');
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
@@ -91,8 +90,7 @@ export function Home() {
     e.preventDefault();
     setBusy(true); setError('');
     try {
-      saveProfile(profile);
-      const { room } = await api.createRoom({ title: title.trim(), displayName: profile.name.trim(), color: profile.color });
+      const { room } = await api.createRoom({ title: title.trim() });
       joined.add(room.invite_code);
       navigate(`/r/${room.invite_code}`);
     } catch (err) {
@@ -121,7 +119,8 @@ export function Home() {
 
         <header className="manual-head">
           <span className="manual-brand">Chalkroom Live</span>
-          <span className="manual-meta">Live classes for up to five people</span>
+          <span className="manual-meta home-meta">Live classes for up to five people</span>
+          <AccountMenu onClasses={() => select('classes', true)} />
         </header>
 
         <div className="manual-body home-body">
@@ -139,9 +138,8 @@ export function Home() {
                   <label className="field-label" htmlFor="topic">What do you want to learn?</label>
                   <input id="topic" className="input input-lg" value={title} maxLength={80} placeholder="A topic, e.g. Solana PDAs" onChange={(e) => setTitle(e.target.value)} />
                 </div>
-                <ProfileFields value={profile} onChange={setProfile} autoFocus={false} idPrefix="home" />
                 {error && <p className="errata" role="alert">{error}</p>}
-                <button className="btn primary btn-lg" disabled={busy || !title.trim() || !profile.name.trim()}>
+                <button className="btn primary btn-lg" disabled={busy || !title.trim()}>
                   {busy ? 'Opening the room' : <>Start a class <ArrowRight {...ICON} aria-hidden /></>}
                 </button>
                 <p className="form-note">You become the host. Share the code, then press Start class when everyone is in.</p>

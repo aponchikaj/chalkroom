@@ -44,10 +44,21 @@ const nika = await person('nika');
 const gio = await person('gio', { width: 390, height: 844 }); // the phone in the demo
 let code = '';
 
-await step('Ana creates a class', async () => {
-  await ana.page.goto(BASE);
+// accounts are required: everyone signs up (local email confirmation is off)
+const stamp = Date.now().toString(36);
+const PASSWORD = 'Test-password-123';
+async function fillSignup(p, name) {
+  await p.page.getByLabel('Display name').fill(name);
+  await p.page.getByLabel('Email').fill(`${name.toLowerCase()}-${stamp}@example.com`);
+  await p.page.getByLabel('Password', { exact: true }).fill(PASSWORD);
+  await p.page.getByRole('button', { name: /create (my )?account|sign up/i }).click();
+}
+
+await step('Ana signs up and creates a class', async () => {
+  await ana.page.goto(`${BASE}/signup`);
+  await fillSignup(ana, 'Ana');
+  await ana.page.getByPlaceholder('A topic, e.g. Solana PDAs').waitFor({ timeout: 15000 });
   await ana.page.getByPlaceholder('A topic, e.g. Solana PDAs').fill('Solana PDAs');
-  await ana.page.getByPlaceholder('What the class calls you').first().fill('Ana');
   await ana.page.getByRole('button', { name: /start a class/i }).last().click();
   await ana.page.waitForURL(/\/r\/[A-Z0-9]+/, { timeout: 15000 });
   code = /\/r\/([A-Z0-9]+)/.exec(ana.page.url())[1];
@@ -56,11 +67,16 @@ await step('Ana creates a class', async () => {
   log(`     code ${code}`);
 }, [ana]);
 
+// Nika and Gio come in by the class link (the QR code): the gate asks them to log in, they
+// create an account and land back on the class
 for (const [p, name] of [[nika, 'Nika'], [gio, 'Gio']]) {
-  await step(`${name} joins`, async () => {
+  await step(`${name} opens the class link, signs up and joins`, async () => {
     await p.page.goto(`${BASE}/r/${code}`);
-    await p.page.getByPlaceholder('What the class calls you').fill(name);
-    await p.page.getByRole('button', { name: /join muted/i }).click();
+    await p.page.getByText(/log in to join/i).first().waitFor({ timeout: 15000 });
+    if (name === 'Gio') await snap(p, 'gate');
+    await p.page.getByRole('button', { name: /create an account/i }).click();
+    await fillSignup(p, name);
+    await p.page.getByRole('button', { name: /join muted/i }).click({ timeout: 15000 });
     await p.page.locator('.live').waitFor({ timeout: 15000 });
   }, [p]);
 }
@@ -175,6 +191,57 @@ await step('Class page: Ana studies the deck', async () => {
     await ana.page.waitForTimeout(300);
     await snap(ana, `shelf-${tab}`);
   }
+}, [ana]);
+
+await step('Class page: Ana adds a document to the materials', async () => {
+  await ana.page.getByRole('tab', { name: /materials/i }).click();
+  const md = '# PDA cheat sheet\n\nA PDA is derived from seeds and the program id. It has no private key.\n';
+  await ana.page.locator('input[type=file]').first().setInputFiles({ name: 'pda-cheat-sheet.md', mimeType: 'text/markdown', buffer: Buffer.from(md) });
+  await ana.page.getByText(/^ready$/i).first().waitFor({ timeout: 45000 }); // the API reads it (free, local)
+  await snap(ana, 'materials');
+}, [ana]);
+
+// the code the API emailed (Mailpit catches local mail)
+async function mailedCode(to, after) {
+  for (let i = 0; i < 30; i++) {
+    const list = await fetch(`http://127.0.0.1:55424/api/v1/search?query=${encodeURIComponent(`to:${to}`)}`).then((r) => r.json()).catch(() => ({ messages: [] }));
+    const msg = (list.messages ?? []).find((m) => Date.parse(m.Created) >= after);
+    if (msg) {
+      const full = await fetch(`http://127.0.0.1:55424/api/v1/message/${msg.ID}`).then((r) => r.json());
+      const code = /\b(\d{6})\b/.exec(`${full.Text} ${full.HTML}`)?.[1];
+      if (code) return code;
+    }
+    await new Promise((r) => setTimeout(r, 500));
+  }
+  throw new Error(`no code mailed to ${to}`);
+}
+
+await step('Account: Ana sets a preference and turns on email codes', async () => {
+  const anaEmail = `ana-${stamp}@example.com`;
+  await ana.page.goto(`${BASE}/account#preferences`);
+  await ana.page.getByLabel('Voice speed').fill('1.25').catch(() => {});
+  await ana.page.goto(`${BASE}/account#security`);
+  const sent = Date.now() - 2000;
+  await ana.page.getByRole('button', { name: /^turn on$/i }).last().click();
+  await ana.page.getByLabel('Code from the email').fill(await mailedCode(anaEmail, sent));
+  await ana.page.getByRole('button', { name: /^turn on$/i }).click();
+  await ana.page.getByText(/email codes on/i).first().waitFor({ timeout: 10000 });
+  await snap(ana, 'security');
+}, [ana]);
+
+await step('Login with a second factor: Ana logs out and back in with an email code', async () => {
+  const anaEmail = `ana-${stamp}@example.com`;
+  await ana.page.goto(`${BASE}/account#account`);
+  await ana.page.getByRole('button', { name: /log out/i }).first().click();
+  await ana.page.goto(`${BASE}/login`);
+  await ana.page.getByLabel('Email').fill(anaEmail);
+  await ana.page.getByLabel('Password', { exact: true }).fill(PASSWORD);
+  await ana.page.getByRole('button', { name: /^log in/i }).click();
+  await ana.page.getByRole('button', { name: /email me a code/i }).click({ timeout: 15000 });
+  const sent = Date.now() - 2000;
+  await snap(ana, 'second-factor');
+  await ana.page.getByLabel('6-digit code').fill(await mailedCode(anaEmail, sent));
+  await ana.page.getByPlaceholder('A topic, e.g. Solana PDAs').or(ana.page.getByRole('tab', { name: /your classes/i })).first().waitFor({ timeout: 15000 });
 }, [ana]);
 
 await step('Home: the class is under Your classes, and Gio rejoins a live one', async () => {

@@ -1,5 +1,6 @@
-// A6/A7 (Dev A): /r/:code, the pre-join page (name, colour, mic test, join with voice or muted),
-// then the classroom. The Join click is the gesture that lets the tutor's voice play. A browser
+// A6/A7 (Dev A), AU: /r/:code, the pre-join page (who you join as, join with voice or muted),
+// then the classroom. The class uses your profile name and colour. The Join click is the
+// gesture that lets the tutor's voice play. A browser
 // that already joined this room goes straight back in after a refresh, and is offered one tap
 // to turn the voice back on.
 import { useEffect, useState } from 'react';
@@ -7,11 +8,13 @@ import { ArrowLeft, RotateCw, Volume2, VolumeX } from 'lucide-react';
 import type { RoomPreview } from '@chalk/schema';
 import { api } from '../lib/api';
 import { navigate } from '../lib/router';
-import { joined, loadProfile, saveProfile, type Profile } from '../lib/profile';
+import { joined } from '../lib/profile';
+import { signOut, useAuth } from '../lib/auth';
 import { mainPlayer } from '../room/store';
-import { ProfileFields } from '../components/ProfileFields';
+import { Punch } from '../ui/Punch';
 import { Classroom } from './Classroom';
-import { MicTest } from './MicTest';
+import { AccountMenu } from './auth/AccountMenu';
+import { forgetJoined } from './auth/shared';
 import { describe, joinMuted, unlockVoice, type Problem } from './entry';
 import '../ui/ui.css';
 import './entry.css';
@@ -22,21 +25,19 @@ const PHASE_WORDS = { lobby: 'Starting soon', teaching: 'In class now', check: '
 export function RoomRoute({ code }: { code: string }) {
   const [preview, setPreview] = useState<RoomPreview | null>(null);
   const [loadProblem, setLoadProblem] = useState<Problem | null>(null);
-  const [profile, setProfile] = useState(loadProfile);
-  const [entered, setEntered] = useState<{ roomId: string; profile: Profile; resumed: boolean } | null>(null);
+  const me = useAuth((s) => s.me);
+  const [entered, setEntered] = useState<{ roomId: string; profile: { name: string; color: string }; resumed: boolean } | null>(null);
   const [problem, setProblem] = useState<Problem | null>(null);
   const [busy, setBusy] = useState<'' | 'voice' | 'muted'>('');
   const [attempt, setAttempt] = useState(0);
 
-  const join = async (p: Profile, muted: boolean, resumed = false) => {
+  const join = async (muted: boolean, resumed = false) => {
     setBusy(muted ? 'muted' : 'voice'); setProblem(null);
     try {
-      const clean = { name: p.name.trim(), color: p.color };
-      saveProfile(clean);
-      const { room } = await api.joinRoom({ inviteCode: code, displayName: clean.name, color: clean.color });
+      const { room, member } = await api.joinRoom({ inviteCode: code });
       joined.add(code);
       mainPlayer.setMuted(muted);
-      setEntered({ roomId: room.id, profile: clean, resumed });
+      setEntered({ roomId: room.id, profile: { name: member.display_name, color: member.color }, resumed });
     } catch (err) {
       setProblem(describe(err, 'join'));
     } finally {
@@ -48,8 +49,7 @@ export function RoomRoute({ code }: { code: string }) {
     let alive = true;
     setLoadProblem(null);
     api.preview(code).then((r) => { if (alive) setPreview(r); }).catch((e) => { if (alive) setLoadProblem(describe(e, 'open')); });
-    const p = loadProfile();
-    if (attempt === 0 && joined.has(code) && p.name) void join(p, joinMuted.get(), true);
+    if (attempt === 0 && joined.has(code)) void join(joinMuted.get(), true);
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [code, attempt]);
@@ -67,19 +67,21 @@ export function RoomRoute({ code }: { code: string }) {
     // this click is the user gesture browsers require before speech can play
     joinMuted.set(muted);
     if (!muted) unlockVoice();
-    void join(profile, muted);
+    void join(muted);
   };
   const full = !!preview && preview.taken >= preview.seats;
   const ended = preview?.phase === 'ended';
   const blocked = full || ended;
-  const canJoin = !!preview && !blocked && !!profile.name.trim() && !busy;
+  const canJoin = !!preview && !blocked && !busy;
+  const name = me?.profile.display_name || me?.profile.username || 'you';
 
   return (
     <div className="entry">
       <article className="manual leaf punched">
         <header className="manual-head">
           <button type="button" className="btn ghost small manual-back" onClick={() => navigate('/')}><ArrowLeft {...ICON} aria-hidden /> Chalkroom Live</button>
-          <span className="manual-meta">Invite code <span className="mono">{code}</span></span>
+          <span className="manual-meta prejoin-meta">Invite code <span className="mono">{code}</span></span>
+          <AccountMenu />
         </header>
 
         {loadProblem ? (
@@ -132,9 +134,15 @@ export function RoomRoute({ code }: { code: string }) {
               </div>
             ) : (
               <form className="entry-form" onSubmit={(e) => { e.preventDefault(); if (canJoin) onJoin(false); }} aria-label="Join the class">
-                <h2>Join as</h2>
-                <ProfileFields value={profile} onChange={setProfile} idPrefix="join" autoFocus={!profile.name} />
-                <MicTest />
+                <h2>Join the class</h2>
+                <div className="joining-as">
+                  {me && <Punch name={name} color={me.profile.color} />}
+                  <p>
+                    <span className="joining-label">Joining as</span>
+                    <span className="joining-name">{name}</span>
+                  </p>
+                </div>
+                <p className="form-note">The class sees this name and colour. Change them in <button type="button" className="text-link" onClick={() => navigate('/account')}>Account</button>. Not you? <button type="button" className="text-link" onClick={() => { forgetJoined(); void signOut(); }}>Log out</button></p>
                 {problem && <p className="errata" role="alert">{problem.text}</p>}
                 <div className="join-buttons">
                   <button className="btn primary btn-lg" disabled={!canJoin}>

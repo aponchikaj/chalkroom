@@ -26,6 +26,8 @@ const managed = {
   SMTP_URL: 'smtp://127.0.0.1:55425',
   // HMAC key for email 2FA codes; a fresh one each run is fine locally (codes live 10 minutes)
   OTP_SECRET: randomBytes(32).toString('hex'),
+  // accounts are required: the API refuses anonymous sessions (anonymous sign-in is off in config.toml)
+  REQUIRE_ACCOUNT: '1',
 };
 const keep = existsSync('.env')
   ? readFileSync('.env', 'utf8').split(/\r?\n/).filter((l) => l.trim() && !Object.keys(managed).some((k) => l.startsWith(`${k}=`)))

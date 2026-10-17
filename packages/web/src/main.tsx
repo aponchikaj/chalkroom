@@ -9,6 +9,7 @@ import { Home } from './screens/Home';
 import { RoomRoute } from './screens/RoomRoute';
 import { ClassShelf } from './screens/shelf/ClassShelf';
 import { initAuth, useAuth } from './lib/auth';
+import { loadPreferences } from './lib/preferences';
 import { Login } from './screens/auth/Login';
 import { Signup } from './screens/auth/Signup';
 import { ResetRequest } from './screens/auth/ResetRequest';
@@ -23,6 +24,8 @@ function App() {
   const path = usePath();
   const status = useAuth((s) => s.status);
   useEffect(initAuth, []);
+  // the signed-in learner's preferences (voice, speed, captions, motion) apply on this device
+  useEffect(() => { if (status === 'signedIn') void loadPreferences(); }, [status]);
   if (DevClassroom && path.startsWith('/dev/classroom')) return <Suspense fallback={null}><DevClassroom /></Suspense>;
 
   // public account pages
