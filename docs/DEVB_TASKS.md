@@ -492,7 +492,7 @@ step.
 uploaded files (PDF, PPTX, DOCX, TXT, MD), web pages, the course syllabus plus past notes and
 FAQ, and the live class transcript. How it works: `docs/SCHEMA.md`, "How RAG works".
 
-**Today:** `sources`, `chunks` (full-text `tsv`, `embedding vector(1024)`), `match_chunks()`
+**Today:** `sources`, `chunks` (full-text `tsv`, `embedding vector(384)`), `match_chunks()`
 (hybrid full text + vector, reciprocal rank fusion), the private `resources` bucket, and
 `EmbeddingPort` with the no-embeddings adapter.
 
@@ -510,8 +510,8 @@ FAQ, and the live class transcript. How it works: `docs/SCHEMA.md`, "How RAG wor
    formats the top 6 passages; the lead tutor, thread tutor, triage inline answers and the Q&A
    beat get them after the cached prefix; `citations.ts` drops citations that point at
    missing sources or pages.
-6. **Embeddings:** Voyage adapter (`VOYAGE_API_KEY`, `voyage-3.5`, 1024 dimensions); without a
-   key everything still works on full text.
+6. **Embeddings (built):** `LocalEmbeddings`, multilingual-e5-small in the API (384
+   dimensions, no key); `EMBEDDINGS=none` keeps full text only.
 
 **Decisions and traps:**
 - Retrieved text is untrusted (web pages, uploads): wrap it as reference material, never
