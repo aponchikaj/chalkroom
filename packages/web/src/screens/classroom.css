@@ -158,10 +158,15 @@
 
 /* phone, class over: the recap replaces the board in the page flow, so it never covers the captions */
 @media (max-width: 760px) {
-  .live.phase-ended .board-wrap { container-type: normal; display: block; min-height: 0; overflow: auto; }
+  /* the page scrolls as one: the full recap first, then the notes */
+  .live.phase-ended .live-body { display: block; overflow: auto; }
+  .live.phase-ended .stage { display: block; }
+  .live.phase-ended .live-rail { max-height: none; }
+  .live.phase-ended .board-wrap { container-type: normal; display: block; min-height: 0; aspect-ratio: auto; height: auto; }
   .live.phase-ended .board-wrap > .board-svg { display: none; }
   .live.phase-ended .recap { position: static; inset: auto; padding: 0; background: none; overflow: visible; }
   .live.phase-ended .recap-leaf { max-height: none; }
   .live.phase-ended .recap-grid { grid-template-columns: minmax(0, 1fr); }
+  .live.phase-ended .recap-sec { border-left: 0; padding-left: 0; }
   .live.phase-ended .captions, .live.phase-ended .pagestrip { display: none; }
 }
