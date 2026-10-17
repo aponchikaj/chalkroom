@@ -1,0 +1,114 @@
+/* A3 (Dev A): the thread leaf (milk acetate hinged over the board) and the thread slips over the
+   main board (offer, catch-up, peek). */
+
+/* focus economy: while a thread leaf is open, the class behind it goes back to the page */
+.live-body.with-thread .stage .board-wrap > .board-svg { filter: saturate(0.35); opacity: 0.6; transition: opacity var(--step) steps(2); }
+
+/* ---------- the leaf ---------- */
+.thread-leaf {
+  display: grid; grid-template-rows: auto minmax(120px, 0.9fr) minmax(0, 1fr) auto auto;
+  min-height: 0; height: 100%; padding: 14px 16px 14px 36px; gap: 12px; color: var(--ink);
+  /* milkier than a plain acetate so text behind never ghosts through the reading text */
+  background: color-mix(in srgb, var(--leaf) 97%, transparent);
+}
+.thread-leaf.punched::before { top: 18%; }
+.thread-leaf.punched::after { bottom: 18%; }
+
+.tl-head { display: flex; align-items: flex-start; gap: 14px; min-width: 0; }
+.tl-title { flex: 1; min-width: 0; }
+.tl-title h2 { font-size: var(--t-xl); font-stretch: 80%; font-weight: 750; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tl-who { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; margin-top: 4px; font-size: var(--t-sm); color: var(--ink-2); }
+.tl-back { flex: none; }
+
+/* the class, live and small */
+.tl-pip { flex: none; margin: 0; width: 168px; display: flex; flex-direction: column; gap: 3px; }
+.tl-pip .board-svg { width: 100%; height: auto; aspect-ratio: 1320 / 640; pointer-events: none; box-shadow: 0 1px 0 var(--rule); }
+.tl-pip figcaption {
+  font-size: 10.5px; font-weight: 650; font-stretch: 82%; letter-spacing: 0.03em; color: var(--ink-2);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* the thread's own board */
+.tl-board { min-height: 0; display: flex; align-items: center; justify-content: center; container-type: size; }
+.tl-board > .board-svg { width: min(100cqw, 100cqh * 2.0625); height: auto; aspect-ratio: 1320 / 640; }
+
+/* the transcript: a script, speaker in the margin */
+.tl-log {
+  list-style: none; margin: 0; padding: 4px 4px 4px 0; min-height: 0; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--rule);
+  padding-top: 10px;
+}
+.tl-empty { color: var(--ink-3); font-size: var(--t-sm); padding: 6px 0; }
+.tl-msg { display: grid; grid-template-columns: 58px minmax(0, 1fr); column-gap: 10px; align-items: baseline; }
+.tl-name {
+  grid-column: 1; font-size: 10.5px; font-weight: 750; font-stretch: 78%; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--ink-2); padding-top: 2px;
+}
+.tl-text { grid-column: 2; min-width: 0; overflow-wrap: anywhere; }
+.tl-learner .tl-text {
+  font-size: var(--t-md); font-weight: 520; line-height: 1.4; white-space: pre-wrap;
+  background: var(--paper-2); border: 1px solid var(--rule); border-radius: 2px; padding: 6px 10px; justify-self: start;
+}
+.tl-tutor .tl-text { font-family: var(--font-read); font-size: 1rem; line-height: 1.55; }
+.tl-tutor .tl-name { color: var(--ink); }
+.tl-share { grid-column: 2; margin-top: 6px; }
+.tl-waiting .tl-text { color: var(--ink-3); font-family: var(--font-ui); font-size: var(--t-sm); }
+.tl-waiting .tl-text::after { content: ''; animation: tl-dots 1.2s steps(4) infinite; }
+@keyframes tl-dots { 0% { content: ''; } 25% { content: '.'; } 50% { content: '..'; } 75% { content: '...'; } }
+
+.tl-error { margin: 0; }
+
+.tl-composer { display: flex; gap: 10px; align-items: stretch; }
+.tl-composer .textarea { flex: 1; min-height: 58px; max-height: 140px; resize: none; font-family: var(--font-ui); font-size: var(--t-md); }
+.tl-send { display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; gap: 6px; }
+.tl-hint { font-size: 10.5px; color: var(--ink-3); white-space: nowrap; }
+.tl-hint .kbd { font-size: 10px; }
+.tl-readonly { font-size: var(--t-sm); color: var(--ink-2); padding: 8px 0 2px; border-top: 1px solid var(--rule); }
+
+/* ---------- slips over the main board ---------- */
+.thread-slips {
+  position: absolute; top: 10px; right: 10px; z-index: 15;
+  width: min(360px, calc(100% - 20px)); display: flex; flex-direction: column; gap: 8px;
+  pointer-events: none;
+}
+.thread-slips > * { pointer-events: auto; }
+.slip { padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+.slip-lead { display: flex; gap: 8px; align-items: baseline; font-size: var(--t-md); line-height: 1.4; }
+.slip-lead .lucide { flex: none; position: relative; top: 3px; }
+.slip-title { font-size: var(--t-lg); font-stretch: 82%; font-weight: 750; }
+.slip-actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+
+.catchup-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.catchup-list li { padding: 8px 0; border-top: 1px solid var(--rule); }
+.catchup-list li:last-child { padding-bottom: 0; }
+.catchup-seg { display: block; font-size: var(--t-sm); font-weight: 700; font-stretch: 85%; color: var(--ink); }
+.catchup-seg .mono { color: var(--ink-2); margin-right: 4px; }
+.catchup-sum {
+  margin-top: 3px; font-family: var(--font-read); font-size: 0.95rem; line-height: 1.45; color: var(--ink-2);
+  white-space: pre-line; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+
+.peek-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.peek { display: flex; align-items: center; gap: 8px; padding: 5px 6px 5px 12px; font-size: var(--t-sm); }
+.peek-text { flex: 1; min-width: 0; color: var(--ink-2); }
+.peek-text b { color: var(--ink); font-weight: 650; }
+
+/* ---------- tablet and phone ---------- */
+@media (max-width: 1180px) {
+  .tl-pip { width: 132px; }
+}
+@media (max-width: 760px) {
+  .thread-leaf { padding: 10px 10px 10px 30px; gap: 8px; grid-template-rows: auto minmax(90px, 0.7fr) minmax(0, 1fr) auto auto; border-radius: 0; }
+  .thread-leaf.punched::before, .thread-leaf.punched::after { left: 8px; width: 10px; height: 10px; }
+  .tl-head { flex-wrap: wrap; gap: 8px 10px; }
+  .tl-title { flex-basis: 100%; }
+  .tl-title h2 { font-size: var(--t-lg); }
+  .tl-pip { width: 120px; }
+  .tl-back { margin-left: auto; align-self: flex-end; }
+  .tl-msg { grid-template-columns: 1fr; row-gap: 2px; }
+  .tl-name, .tl-text, .tl-share { grid-column: 1; }
+  .tl-hint { display: none; }
+  .tl-composer .textarea { min-height: 44px; }
+  .thread-slips { top: 6px; right: 6px; width: calc(100% - 12px); }
+  .slip { padding: 10px 12px; gap: 8px; }
+}

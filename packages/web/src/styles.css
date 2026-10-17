@@ -124,6 +124,7 @@ p { margin: 0; }
 .btn.primary { background: var(--action); color: var(--action-ink); }
 .btn.primary:hover:not(:disabled) { background: var(--action-press); }
 .btn.primary:active:not(:disabled) { background: var(--ink); color: var(--action); }
+.btn.primary:disabled { background: transparent; color: var(--ink-3); border-color: var(--rule-2); }
 .btn.ghost { border-color: transparent; background: transparent; }
 .btn.ghost:hover:not(:disabled) { background: var(--paper-2); }
 .btn.small { min-height: 28px; padding: 0 10px; font-size: var(--t-xs); }

@@ -20,6 +20,8 @@
 .masthead-sub { font-size: var(--t-sm); color: var(--ink-2); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .masthead-state { display: flex; align-items: center; gap: 10px; align-self: center; }
 .gate-timer { display: inline-flex; align-items: center; gap: 4px; font-size: var(--t-sm); color: var(--ink); }
+.masthead-voice { min-height: 32px; padding: 0 10px; gap: 6px; }
+.masthead-people { display: none; }
 
 /* ---------- body ---------- */
 .live-body {
@@ -88,22 +90,52 @@
 
 /* ---------- tablet ---------- */
 @media (max-width: 1180px) {
-  .live-body { grid-template-columns: 64px minmax(0, 1fr) 300px 40px; }
+  .live-body { grid-template-columns: 64px minmax(0, 1fr) 280px 48px; }
   .stage { padding: 14px 14px 10px; }
-  .thread-layer { left: 18%; right: 40px; }
+  .thread-layer { left: 18%; right: 48px; }
+  .masthead { gap: 14px; padding: 12px 16px 10px; }
+  .masthead-voice-word { display: none; }
+  .binding-name { max-width: 56px; }
+  .controlbar { padding: 8px 14px; gap: 10px; }
 }
 
-/* ---------- phone: one column; the lesson tabs go across the top ---------- */
+/* ---------- phone: one column. Masthead with people across, lesson tabs across, the board
+   at full width, the rail as the bottom section, and the ask bar on its own row. ---------- */
 @media (max-width: 760px) {
-  .masthead { grid-template-columns: 1fr; padding: 10px 14px 8px; gap: 6px; }
+  .masthead { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'title state' 'people people'; padding: 8px 12px 6px; gap: 4px 10px; align-items: center; }
   .masthead-brand { display: none; }
-  .masthead-state { justify-content: flex-start; flex-wrap: wrap; }
-  .live-tabs-h { display: block; padding: 0 10px; border-bottom: 1.5px solid var(--ink); }
+  .masthead-title { grid-area: title; }
+  .masthead-title h1 { font-size: 1.3rem; }
+  .masthead-sub { font-size: var(--t-xs); margin-top: 0; }
+  .masthead-state { grid-area: state; gap: 6px; }
+  .masthead-voice { min-height: 32px; width: 32px; padding: 0; }
+  .masthead-people { grid-area: people; display: block; margin: 2px -12px 0; overflow-x: auto; }
+  .masthead-people .binding-horizontal { padding: 6px 12px 2px; gap: 10px; justify-content: flex-start; }
+  .masthead-people .binding-horizontal ul { gap: 12px; }
+  .masthead-people .binding-ring { width: 24px; height: 24px; }
+  .masthead-people .binding-count { font-size: var(--t-xs); white-space: nowrap; }
+
+  .live-tabs-h { display: block; padding: 0 8px; border-bottom: 1.5px solid var(--ink); }
   .live-tabs-v, .live-binding { display: none; }
-  .live-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
-  .stage { padding: 10px 10px 6px; }
-  .live-rail { border-left: 0; border-top: 1.5px solid var(--ink); max-height: 42vh; }
-  .thread-layer { left: 0; right: 0; padding: 0; }
-  .controlbar { padding: 8px 10px; gap: 8px; }
-  .host-controls { padding-left: 0; border-left: 0; }
+
+  /* the body scrolls as one page: board first, then the rail */
+  .live-body { display: flex; flex-direction: column; overflow-y: auto; overscroll-behavior: contain; }
+  .stage { flex: none; padding: 8px 8px 4px; gap: 6px; grid-template-rows: auto auto auto; }
+  .board-wrap { width: 100%; aspect-ratio: 1320 / 640; height: auto; }
+  .captions { min-height: 38px; font-size: 1rem; padding: 4px 6px; }
+  .pagestrip { padding-top: 4px; }
+  .live-rail { flex: 1 0 auto; min-height: 58vh; border-left: 0; border-top: 1.5px solid var(--ink); }
+
+  /* overlays that need room (lobby, recap) take the board's place and grow with their content */
+  .board-wrap:has(> .board-overlay) { aspect-ratio: auto; container-type: normal; display: block; }
+  .board-wrap:has(> .board-overlay) > .board-svg { display: none; }
+  .board-wrap > .board-overlay { position: relative; inset: auto; padding: 0; background: none; }
+
+  .thread-layer { position: fixed; top: 0; left: 0; right: 0; bottom: 0; padding: 0; z-index: 40; }
+
+  .controlbar { padding: 6px 8px calc(6px + env(safe-area-inset-bottom)); gap: 6px 8px; }
+  .controlbar > .ready-strip, .controlbar > .host-controls { flex: 0 1 auto; }
+  .controlbar > .askbar { order: 3; flex: 1 1 100%; min-width: 0; }
+  .host-controls { padding-left: 0; border-left: 0; flex-wrap: wrap; }
+  .ready-strip { flex-wrap: wrap; }
 }

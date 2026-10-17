@@ -1,4 +1,4 @@
-// The binding edge: everyone in the class as punched holes, in arrival order. Seats left are
+// A7 (Dev A): the binding edge: everyone in the class as punched holes, in arrival order. Seats left are
 // unpunched rings, so "4 of 5 here" is visible without a number.
 import { useShallow } from 'zustand/react/shallow';
 import { selectActiveMembers, selectReadyIds, useRoom } from '../../room/store';
@@ -19,7 +19,7 @@ export function Binding({ orientation = 'vertical' }: { orientation?: 'vertical'
         {members.map((m) => (
           <li key={m.user_id}>
             <Punch name={m.display_name} color={m.color} me={m.user_id === me} host={m.user_id === room.host_id}
-              present={!!presence[m.user_id]} inThread={!!presence[m.user_id]?.threadId}
+              size={orientation === 'horizontal' ? 'sm' : 'md'} present={!!presence[m.user_id]} inThread={!!presence[m.user_id]?.threadId}
               ready={room.phase === 'check' && ready.includes(m.user_id)} />
             <span className="binding-name">{m.user_id === me ? 'You' : m.display_name}</span>
           </li>
@@ -28,7 +28,7 @@ export function Binding({ orientation = 'vertical' }: { orientation?: 'vertical'
           <li key={`open${i}`} className="binding-open" aria-hidden><span className="binding-ring" /></li>
         ))}
       </ul>
-      <p className="binding-count mono">{here}/{room.seats}</p>
+      <p className="binding-count"><span className="mono">{here}/{room.seats}</span> here</p>
     </section>
   );
 }

@@ -21,7 +21,7 @@ export function Classroom({ roomId, profile }: { roomId: string; profile: Profil
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId, profile.name, profile.color]);
 
-  if (fatal) return <div className="empty">Could not open the classroom: {fatal}</div>;
+  if (fatal) return <div className="empty" role="alert">Could not open the classroom ({fatal}). Reload the page to try again.</div>;
   if (!conn || !ready) return <div className="empty">Opening the class</div>;
   return <RoomConnContext.Provider value={conn}><ClassroomView /></RoomConnContext.Provider>;
 }

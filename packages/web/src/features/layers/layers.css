@@ -1,0 +1,63 @@
+/* A6 (Dev A): layers laid over the main board: confusion heat, the react bar, laser pointers.
+   Each layer frame sits exactly on the board svg and lets the pointer through. */
+
+.layer-frame { position: absolute; pointer-events: none; }
+
+/* ---------- confusion heat ---------- */
+.heat { position: absolute; }
+.heat-1, .heat-2 { margin: -6px; padding: 6px; box-sizing: content-box; border-radius: var(--r); }
+.heat-1 { outline: 1.5px solid color-mix(in srgb, var(--warn) 45%, transparent); }
+.heat-2 {
+  outline: 2px solid var(--warn);
+  background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--warn) 16%, transparent) 0 2px, transparent 2px 9px);
+}
+.heat-tag {
+  position: absolute; left: -1px; bottom: calc(100% + 4px);
+  display: inline-flex; gap: 8px; align-items: center; white-space: nowrap;
+  padding: 2px 7px; border-radius: 2px; background: var(--leaf); border: 1px solid var(--rule-2);
+  box-shadow: 0 6px 12px -8px rgba(60, 45, 15, 0.5);
+  font-size: var(--t-xs); font-weight: 650; font-stretch: 85%; letter-spacing: 0.02em; color: var(--ink-2);
+}
+.heat-1 .heat-tag, .heat-2 .heat-tag { left: 5px; bottom: calc(100% - 2px); }
+.heat-2 .heat-tag { border-color: var(--warn); }
+.heat .heat-tag.flip { left: auto; right: 5px; }
+.heat-tag > span { display: inline-flex; align-items: center; gap: 4px; }
+.heat-tag b { font-weight: 600; color: var(--ink); }
+.heat-confused { color: var(--warn); }
+.heat-got { color: var(--ok); }
+
+/* ---------- react bar: near the selection ---------- */
+.reactbar {
+  position: absolute; transform: translate(-50%, calc(-100% - 10px)); pointer-events: auto;
+  display: flex; gap: 6px; align-items: center; padding: 6px;
+  background: var(--leaf); border: 1px solid var(--leaf-edge); border-radius: var(--r);
+  box-shadow: 0 1px 0 var(--rule), 0 12px 22px -12px rgba(60, 45, 15, 0.55);
+
+}
+.reactbar.below { transform: translate(-50%, 10px); }
+.reactbar .btn[aria-pressed='true'] { background: var(--ink); color: var(--paper); }
+.reactbar-error { font-size: var(--t-xs); color: var(--errata); max-width: 180px; white-space: normal; }
+
+/* ---------- laser ---------- */
+.laser { position: absolute; display: flex; align-items: center; gap: 6px; transform: translate(-7px, -7px); }
+.laser-dot {
+  width: 14px; height: 14px; border-radius: 50%; background: var(--who);
+  box-shadow: 0 0 0 2px var(--ink), 0 0 0 6px color-mix(in srgb, var(--who) 40%, transparent);
+}
+.laser-name {
+  padding: 1px 6px; border-radius: 2px; background: var(--ink); color: var(--paper);
+  font-size: var(--t-xs); font-weight: 650; font-stretch: 85%; letter-spacing: 0.03em; white-space: nowrap;
+}
+.laser.mine .laser-dot { box-shadow: 0 0 0 2px var(--ink); }
+body[data-laser='on'] #chalk-board, body[data-laser='on'] #chalk-board .shape { cursor: none; }
+
+.laser-hint {
+  position: absolute; right: 8px; bottom: 8px; padding: 2px 7px; border-radius: 2px;
+  background: color-mix(in srgb, var(--leaf) 88%, transparent);
+  font-size: var(--t-xs); color: var(--ink-3); display: none;
+}
+.laser-hint.on { color: var(--ink); }
+@media (hover: hover) and (pointer: fine) {
+  .board-wrap:hover .laser-hint, .laser-hint.on { display: inline-flex; gap: 4px; align-items: center; }
+}
+.phase-lobby .laser-hint, .phase-ended .laser-hint { display: none !important; }
