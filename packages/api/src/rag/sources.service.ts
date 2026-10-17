@@ -8,12 +8,13 @@ import type { Api, RoomRow, SourceRow, SourceUploadRes } from '@chalk/schema';
 import { SupabaseService } from '../core/supabase.service';
 import { RoomsService } from '../rooms/rooms.service';
 import { guardUrl } from './fetch-page';
+import { IngestWorker } from './ingest.worker';
 
 type Scope = 'room' | 'course';
 
 @Injectable()
 export class SourcesService {
-  constructor(private supa: SupabaseService, private rooms: RoomsService) {}
+  constructor(private supa: SupabaseService, private rooms: RoomsService, private worker: IngestWorker) {}
 
   private get db() { return this.supa.db; }
   private get bucket() { return this.supa.db.storage.from('resources'); }
@@ -56,11 +57,19 @@ export class SourcesService {
     const scope = await this.scopeOf(room, userId, b.scope);
     const dup = await this.db.from('sources').select('*').eq('checksum', checksum)
       .match(scope.room_id ? { room_id: scope.room_id } : { course_id: scope.course_id! }).maybeSingle();
-    if (dup.data) { await this.bucket.remove([b.path]); return dup.data as SourceRow; }
+    if (dup.data) {
+      await this.bucket.remove([b.path]);
+      // the same file failed before: try it again instead of returning the failure
+      if ((dup.data as SourceRow).status !== 'failed') return dup.data as SourceRow;
+      const again = await this.db.from('sources').update({ status: 'pending', error: null, attempts: 0 }).eq('id', dup.data.id).select('*').single();
+      this.worker.wake();
+      return again.data as SourceRow;
+    }
     const r = await this.db.from('sources').insert({
       ...scope, kind: 'file', title: b.title, uri: b.path, mime: dl.data.type || null, checksum, created_by: userId,
     }).select('*').single();
     if (r.error) throw new BadRequestException(r.error.message);
+    this.worker.wake();
     return r.data as SourceRow;
   }
 
@@ -73,6 +82,7 @@ export class SourcesService {
     // no title given: the worker replaces the URL with the page title
     const r = await this.db.from('sources').insert({ ...scope, kind: 'url', title: (b.title ?? url.toString()).slice(0, 200), uri: url.toString(), mime: 'text/html', created_by: userId }).select('*').single();
     if (r.error) throw new BadRequestException(r.error.message);
+    this.worker.wake();
     return r.data as SourceRow;
   }
 

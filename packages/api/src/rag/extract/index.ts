@@ -7,7 +7,16 @@ import { htmlPages } from './html';
 
 export interface Page { page: number | null; text: string; heading: string }
 
+import { LIMITS } from './limits';
+
 export async function extract(buf: Buffer, mime: string): Promise<Page[]> {
+  const pages = await extractPages(buf, mime);
+  const chars = pages.reduce((n, p) => n + p.text.length, 0);
+  if (chars > LIMITS.textChars) throw new Error(`the file has too much text (${chars} characters; the limit is ${LIMITS.textChars})`);
+  return pages;
+}
+
+async function extractPages(buf: Buffer, mime: string): Promise<Page[]> {
   switch (mime) {
     case 'application/pdf': return pdfPages(buf);
     case 'application/vnd.openxmlformats-officedocument.presentationml.presentation': return pptxPages(buf);

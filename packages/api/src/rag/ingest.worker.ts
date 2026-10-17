@@ -12,31 +12,58 @@ import { fetchPage } from './fetch-page';
 
 @Injectable()
 export class IngestWorker implements OnApplicationBootstrap, OnModuleDestroy {
-  private timer: ReturnType<typeof setInterval> | null = null;
+  private timer: ReturnType<typeof setTimeout> | null = null;
   private busy = false;
+  private stopped = false;
+  /** the work in progress, awaited on shutdown so a source is not left half-indexed */
+  private current: Promise<void> = Promise.resolve();
+  /** poll delay: 1 s while there is work, doubling to 15 s while idle; wake() resets it */
+  private delay = 1000;
+  /** backfill paused until then after the embedder failed */
+  private backfillAfter = 0;
   private log = new Logger('Ingest');
 
   constructor(private supa: SupabaseService, private embeddings: EmbeddingPort) {}
 
-  onApplicationBootstrap() { this.timer = setInterval(() => void this.tick(), 1000); }
-  onModuleDestroy() { if (this.timer) clearInterval(this.timer); }
+  onApplicationBootstrap() { this.schedule(0); }
+  async onModuleDestroy() {
+    this.stopped = true;
+    if (this.timer) clearTimeout(this.timer);
+    await this.current;
+  }
+
+  /** A source was added: look at the queue now instead of after the idle delay. */
+  wake() {
+    this.delay = 1000;
+    if (!this.busy) this.schedule(0);
+  }
+
+  private schedule(ms: number) {
+    if (this.stopped) return;
+    if (this.timer) clearTimeout(this.timer);
+    this.timer = setTimeout(() => { this.current = this.tick(); }, ms);
+  }
 
   private get db() { return this.supa.db; }
 
   private async tick() {
     if (this.busy) return;
     this.busy = true;
+    let worked = false;
     try {
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < 5 && !this.stopped; i++) {
         const r = await this.db.rpc('claim_source');
         const s = (r.data as SourceRow[] | null)?.[0];
-        if (!s) { await this.backfill(); break; }
+        if (!s) { worked = (await this.backfill()) || worked; break; }
         await this.ingest(s);
+        worked = true;
       }
     } catch (e) {
       this.log.warn(`queue: ${(e as Error).message}`);
     } finally {
       this.busy = false;
+      this.delay = worked ? 1000 : Math.min(this.delay * 2, 15_000);
+      this.schedule(this.delay);
     }
   }
 
@@ -51,25 +78,50 @@ export class IngestWorker implements OnApplicationBootstrap, OnModuleDestroy {
     return { pages: await extract(Buffer.from(await dl.data.arrayBuffer()), s.mime ?? dl.data.type) };
   }
 
-  /** Up to 32 chunks without a vector get one. Updates are idempotent, so two instances doing
-   *  this at once only waste a little work. */
-  private async backfill() {
-    if (this.embeddings.name === 'none') return;
+  /** Up to 32 chunks without a vector get one (partial index chunks_needs_embedding). Updates
+   *  are idempotent, so two instances doing this at once only waste a little work. When the
+   *  embedder fails it pauses for 5 minutes instead of retrying every tick. Returns whether
+   *  it did any work. */
+  private async backfill(): Promise<boolean> {
+    if (this.embeddings.name === 'none' || Date.now() < this.backfillAfter) return false;
     const r = await this.db.from('chunks').select('id, content').is('embedding', null).limit(32);
     const rows = (r.data ?? []) as { id: number; content: string }[];
-    if (!rows.length) return;
-    const vectors = await this.embeddings.embed(rows.map((c) => c.content), 'document');
-    for (let i = 0; i < rows.length; i++) {
-      if (vectors[i]) await this.db.from('chunks').update({ embedding: `[${vectors[i]!.join(',')}]` }).eq('id', rows[i].id);
+    if (!rows.length) return false;
+    let vectors: (number[] | null)[];
+    try {
+      vectors = await this.embeddings.embed(rows.map((c) => c.content), 'document');
+    } catch (e) {
+      this.backfillAfter = Date.now() + 5 * 60_000;
+      this.log.warn(`backfill paused for 5 min: ${(e as Error).message}`);
+      return false;
     }
-    this.log.log(`gave vectors to ${rows.length} older chunk(s)`);
+    let done = 0;
+    for (let i = 0; i < rows.length; i++) {
+      if (!vectors[i]) continue;
+      const u = await this.db.from('chunks').update({ embedding: `[${vectors[i]!.join(',')}]` }).eq('id', rows[i].id);
+      if (u.error) this.log.warn(`backfill chunk ${rows[i].id}: ${u.error.message}`);
+      else done++;
+    }
+    if (done) this.log.log(`gave vectors to ${done} older chunk(s)`);
+    // nothing could be stored: stop hammering the same rows
+    if (!done) this.backfillAfter = Date.now() + 5 * 60_000;
+    return done > 0;
   }
 
   /** Chunk, embed and store pages for a source; returns the counts. */
   async store(sourceId: string, pages: Page[]) {
     const drafts = chunkPages(pages);
     if (!drafts.length) throw new Error('no text found');
-    const vectors = await this.embeddings.embed(drafts.map((d) => d.content), 'document');
+    // no vectors (the model failed to load, an embedder error): keyword search still works, and
+    // backfill() adds the vectors later
+    let vectors: (number[] | null)[] = drafts.map(() => null);
+    try {
+      vectors = await this.embeddings.embed(drafts.map((d) => d.content), 'document');
+    } catch (e) {
+      this.log.warn(`embedding ${sourceId.slice(0, 8)} failed, stored without vectors: ${(e as Error).message}`);
+    }
+    // keep the claim fresh: a long ingest must not look abandoned to claim_source()
+    await this.db.from('sources').update({ updated_at: new Date().toISOString() }).eq('id', sourceId);
     await this.db.from('chunks').delete().eq('source_id', sourceId);
     for (let i = 0; i < drafts.length; i += 200) {
       const rows = drafts.slice(i, i + 200).map((d, j) => ({
@@ -85,13 +137,18 @@ export class IngestWorker implements OnApplicationBootstrap, OnModuleDestroy {
 
   /** Generated material (syllabus, transcript, notes, FAQ): indexed at once, no queue. Never rejects. */
   async indexNow(scope: { room_id?: string; course_id?: string }, kind: 'syllabus' | 'notes' | 'faq' | 'transcript', title: string, pages: Page[]) {
+    let id: string | null = null;
     try {
       const ins = await this.db.from('sources').insert({ room_id: scope.room_id ?? null, course_id: scope.course_id ?? null, kind, title: title.slice(0, 200), status: 'processing' }).select('id').single();
       if (ins.error) throw new Error(ins.error.message);
-      const counts = await this.store(ins.data.id as string, pages);
-      await this.db.from('sources').update({ status: 'ready', ...counts }).eq('id', ins.data.id);
+      id = ins.data.id as string;
+      const counts = await this.store(id, pages);
+      await this.db.from('sources').update({ status: 'ready', ...counts }).eq('id', id);
     } catch (e) {
-      this.log.warn(`index ${kind}: ${(e as Error).message}`);
+      const message = (e as Error).message.slice(0, 500);
+      this.log.warn(`index ${kind}: ${message}`);
+      // never leave it `processing`: claim_source() would retry it with no file to read
+      if (id) await this.db.from('sources').update({ status: 'failed', error: message }).eq('id', id);
     }
   }
 

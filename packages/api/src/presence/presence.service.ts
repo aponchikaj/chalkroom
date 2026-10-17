@@ -9,7 +9,8 @@ import { RoomsService } from '../rooms/rooms.service';
 import { NotFoundException } from '@nestjs/common';
 import { PresenceTracker, shouldUnwatch } from './presence-tracker';
 
-interface Watch { channel: RealtimeChannel; tracker: PresenceTracker; timer: ReturnType<typeof setInterval>; subscribed: boolean; busy: boolean }
+interface Watch { channel: RealtimeChannel; tracker: PresenceTracker; timer: ReturnType<typeof setInterval>; subscribed: boolean; busy: boolean;
+  /** members may have changed through the API */ dirty: boolean; lastPresent: string; lastRead: number }
 
 @Injectable()
 export class PresenceService implements OnModuleDestroy {
@@ -23,16 +24,22 @@ export class PresenceService implements OnModuleDestroy {
   onMembersChanged(fn: (roomId: string) => void) { this.listeners.push(fn); }
 
   watch(roomId: string) {
-    if (this.watches.has(roomId)) return;
+    const known = this.watches.get(roomId);
+    // the API just changed this room's members (join, leave, thread): read them on the next tick
+    if (known) { known.dirty = true; return; }
     const channel = this.supa.db.channel(roomTopic(roomId), { config: { private: true } });
-    const w: Watch = { channel, tracker: new PresenceTracker(LIVE.presenceLeaveMs), timer: setInterval(() => void this.check(roomId), 5_000), subscribed: false, busy: false };
+    const w: Watch = { channel, tracker: new PresenceTracker(LIVE.presenceLeaveMs), timer: setInterval(() => void this.check(roomId), 5_000), subscribed: false, busy: false, dirty: true, lastPresent: '', lastRead: 0 };
     this.watches.set(roomId, w);
     channel
       .on('presence', { event: 'sync' }, () => void this.check(roomId))
       .subscribe((status, err) => {
         // count absences only once the channel is live, or an empty first state marks everyone gone
-        if (status === 'SUBSCRIBED') w.subscribed = true;
-        else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') this.log.warn(`room ${roomId.slice(0, 8)}: ${status} ${err?.message ?? ''}`);
+        if (status === 'SUBSCRIBED') { w.subscribed = true; w.dirty = true; }
+        else {
+          // a dropped channel has an empty presence state: never count absences from it
+          w.subscribed = false;
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') this.log.warn(`room ${roomId.slice(0, 8)}: ${status} ${err?.message ?? ''}`);
+        }
       });
   }
 
@@ -47,10 +54,16 @@ export class PresenceService implements OnModuleDestroy {
   private async check(roomId: string) {
     const w = this.watches.get(roomId);
     if (!w || !w.subscribed || w.busy) return;
+    const present = new Set(Object.keys(w.channel.presenceState()));
+    const key = [...present].sort().join(',');
+    // nothing to learn: same people present, nobody counting down, no API change, read < 30 s ago
+    if (key === w.lastPresent && !w.dirty && !w.tracker.waiting() && Date.now() - w.lastRead < 30_000) return;
     w.busy = true;
+    w.lastPresent = key;
+    w.dirty = false;
+    w.lastRead = Date.now();
     try {
       const room = await this.rooms.get(roomId).catch((e) => { if (e instanceof NotFoundException) return null; throw e; });
-      const present = new Set(Object.keys(w.channel.presenceState()));
       const members = room ? (await this.rooms.allMembers(roomId)).map((m) => ({ userId: m.user_id, active: m.left_at === null })) : [];
       if (shouldUnwatch(room?.phase ?? null, members, present)) { await this.unwatch(roomId); return; }
       const { leave, back } = w.tracker.sync(present, members, Date.now());

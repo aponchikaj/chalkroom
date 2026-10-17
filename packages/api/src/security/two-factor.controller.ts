@@ -6,6 +6,7 @@ import { Api, type TwoFactorState } from '@chalk/schema';
 import { AllowWithoutMfa, AuthGuard, CurrentUser, type AuthUser } from '../core/auth.guard';
 import { ZodPipe } from '../core/zod.pipe';
 import { TwoFactorService } from './two-factor.service';
+import { RateLimit } from '../core/rate-limit';
 
 @Controller('me/2fa')
 @UseGuards(AuthGuard)
@@ -26,6 +27,7 @@ export class TwoFactorController {
   }
 
   @Post('email/verify')
+  @RateLimit('otp-verify', 10, 60000)
   @HttpCode(200)
   verify(@CurrentUser() u: AuthUser, @Body(new ZodPipe(Api.emailCodeVerify)) b: z.infer<typeof Api.emailCodeVerify>): Promise<TwoFactorState> {
     return this.twoFactor.verify(u, b.purpose, b.code);

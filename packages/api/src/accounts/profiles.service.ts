@@ -72,6 +72,7 @@ export class ProfilesService {
   /** Deletes the account and everything it owns. Refused while the user hosts a room that has not ended. */
   async deleteAccount(userId: string): Promise<void> {
     const live = await this.db.from('rooms').select('id').eq('host_id', userId).neq('phase', 'ended').limit(1);
+    if (live.error) throw new Error(live.error.message); // never delete on an unknown answer
     if (live.data?.length) throw new ConflictException('end the classes you host before deleting your account');
     const files = await this.db.storage.from('avatars').list(userId);
     if (files.data?.length) await this.db.storage.from('avatars').remove(files.data.map((f) => `${userId}/${f.name}`));

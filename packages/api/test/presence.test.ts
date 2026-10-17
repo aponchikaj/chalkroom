@@ -24,6 +24,18 @@ describe('PresenceTracker', () => {
   });
 });
 
+describe('PresenceTracker.waiting', () => {
+  it('is true only while someone is counting down to "left"', () => {
+    const t = new PresenceTracker(15_000);
+    const members = [{ userId: 'a', active: true }];
+    expect(t.waiting()).toBe(false);
+    t.sync(new Set(), members, 0);
+    expect(t.waiting()).toBe(true);
+    t.sync(new Set(), members, 15_000);
+    expect(t.waiting()).toBe(false);
+  });
+});
+
 describe('pickSuccessor', () => {
   const m = (user_id: string, joined_at: string) => ({ user_id, joined_at } as MemberRow);
   it('picks the longest-present member who is not the host', () => {
