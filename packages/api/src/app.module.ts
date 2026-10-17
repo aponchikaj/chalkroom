@@ -17,6 +17,7 @@ import { TwoFactorController } from './security/two-factor.controller';
 import { ThreadStore } from './threads/thread-store';
 import { TriageService } from './triage/triage.service';
 import { ThreadsService } from './threads/threads.service';
+import { NotesController } from './notes/notes.controller';
 import { MailModule } from './mail/mail.module';
 import { EmbeddingPort } from './rag/embeddings/embedding.port';
 import { NoEmbeddings } from './rag/embeddings/no.embeddings';
@@ -36,6 +37,6 @@ class HealthController {
     // B12 swaps in the Voyage adapter when config.embeddings.provider is 'voyage'
     { provide: EmbeddingPort, useClass: NoEmbeddings },
   ],
-  controllers: [HealthController, MeController, TwoFactorController, UsersController, RoomsController, QuestionsController, ThreadsController, ...(config.sandbox ? [SandboxController] : [])],
+  controllers: [HealthController, MeController, TwoFactorController, UsersController, RoomsController, QuestionsController, ThreadsController, NotesController, ...(config.sandbox ? [SandboxController] : [])],
 })
 export class AppModule {}

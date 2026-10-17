@@ -104,6 +104,8 @@ try {
   await waitFor(ana, (e) => e.kind === 'check_closed' && e.data.checkId === check2.data.checkId, 'gate 2 without the thread owner');
   step('gate passed while Gio was in a thread');
   await gio.call('POST', `/threads/${thread.id}/close`, {});
+  await waitFor(ana, (e) => e.kind === 'segment_summary' && e.data.segment === 0, 'the segment 0 summary');
+  step('scribe summarized segment 0');
 
   const tables = new Set(ana.rows.map((r) => r.table));
   for (const t of ['rooms', 'ready_votes', 'questions', 'check_answers']) if (!tables.has(t)) fail(`no "${t}" row broadcast received`);
@@ -113,6 +115,11 @@ try {
   await ana.call('POST', `/rooms/${room.id}/host`, { action: 'end' });
   await waitFor(gio, (e) => e.kind === 'notice' && /ended/i.test(e.data.text), 'class end');
   step('host ended the class');
+  const note = await waitRow(gio, (r) => r.table === 'note_blocks', 'shared notes');
+  await gio.call('PUT', `/rooms/${room.id}/notes/${note.row.id}`, { markdown: 'edited', version: note.row.version });
+  const stale = await fetch(`${API}/rooms/${room.id}/notes/${note.row.id}`, { method: 'PUT', headers: { 'content-type': 'application/json', authorization: `Bearer ${ana.token}` }, body: JSON.stringify({ markdown: 'late', version: note.row.version }) });
+  if (stale.status !== 409) fail(`stale note edit returned ${stale.status}, expected 409`);
+  step('notes written; a stale edit is rejected');
   await Promise.all([ana.sb.removeChannel(chA), gio.sb.removeChannel(chG)]);
   console.log('PASSED: smoke test');
   process.exit(0);

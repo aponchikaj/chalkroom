@@ -31,8 +31,8 @@ Done = built and tested. Next = being built. Todo = planned.
 | **Accounts and security** | Schema for profiles, settings, 2FA, moderation; signup trigger; `GET /me`; rooms use the profile; `PATCH /me`, settings, profile picture, public profiles, account deletion; 2FA: authenticator app enforcement and email codes (`/me/2fa`), gated in the API and in RLS; email users in every test; `REQUIRE_ACCOUNT` switch | Switch off anonymous sign-in with the web login (next) | A8 login, A9 profile and settings, A10 2FA (todo) | B9 done except the switch, B10 done, B11 done |
 | **Live class** | Rooms (max 5), join by code, gate (all ready / 60 s / skip), hold, resume, slower, end, checks with spread, reactions, Q&A beat, resume after restart; web: classroom in the Acetate Manual design, check card, gate, laser, confusion heat | Presence-aware gate, host handoff (todo) | A4, A6, A7 done on fixtures | B5 todo |
 | **Questions** | Ask, anonymous +1, rate limit 6/min; triage: clusters, the four routes, thread offers, every question routed within ~4.5 s; web: question rail and ask bar (text only) | Connect the rail to real statuses (Dev A) | A1, A2 done on fixtures | B2 done |
-| **Threads** | Open, accept an offer, message (tutor chat + mini board on the thread stream), close, share as an answered cluster; owners excused at the gate; web: thread drawer, offer, catch-up | Catch-up summaries (B3) | A3 done on fixtures | B4 done |
-| **Notes and recap** | `note_blocks` table and broadcast; web: notes and recap, one editor per block | Scribe summaries, notes, edit route (todo) | A5 done on fixtures | B3 todo |
+| **Threads** | Open, accept an offer, message (tutor chat + mini board on the thread stream), close, share as an answered cluster; owners excused at the gate; catch-up from `segment_summary`; web: thread drawer, offer, catch-up | | A3 done on fixtures | B4 done |
+| **Notes and recap** | Segment summaries (`segment_summary`), notes at class end (segments, takeaways, class questions), `PUT /rooms/:id/notes/:blockId` with version check, course FAQ; web: notes and recap, one editor per block | | A5 done on fixtures | B3 done |
 | **AI tutor** | ModelPort, mock tutor, Claude adapter with fallback, four agents callable | Real model, streaming steps, pipelining (todo, needs `ANTHROPIC_API_KEY`) | | B1 todo |
 | **Knowledge (RAG)** | Schema: sources, chunks, hybrid search, resources bucket; `EmbeddingPort` | Ingest, retrieval, citations (todo) | A11 sources panel, citations | B12 todo |
 | **Reliability** | Mute/ban columns in the schema | Token budget, simple-mode retry, moderation routes (todo) | buttons | B6 todo |
@@ -226,7 +226,7 @@ Detail: [`DEVB_TASKS.md`](DEVB_TASKS.md). Steps, code and tests: [`PLANS_DEVB.md
 | B11 Two-factor authentication | done | TOTP enforcement (API + RLS), email codes via Mailpit/SMTP |
 | B2 Triage | done | clusters and the four routes, thread offers, at every gate |
 | B4 Threads | done | open (or accept an offer), message with tutor replies, close, share |
-| B3 Scribe and notes | todo | summaries, notes, edit route |
+| B3 Scribe and notes | done | segment summaries, notes, edit route with version check, course FAQ |
 | B5 Presence and host handoff | todo | gate counts present learners |
 | B1 Real model | todo | Claude, streaming steps, pipelining (needs `ANTHROPIC_API_KEY`) |
 | B12 RAG | todo | ingest, retrieval, citations |

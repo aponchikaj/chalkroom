@@ -13,6 +13,9 @@ import type { EventsService } from '../core/events.service';
 import type { RoomsService } from '../rooms/rooms.service';
 import type { LeadTutorAgent } from '../agents/lead-tutor.agent';
 import type { TriageService } from '../triage/triage.service';
+import type { ScribeAgent } from '../agents/scribe.agent';
+import { checkResults, segmentTranscript, summariesOf } from './narration';
+import { buildNotes } from '../notes/notes';
 
 export interface ConductorDeps {
   supa: SupabaseService;
@@ -20,6 +23,7 @@ export interface ConductorDeps {
   rooms: RoomsService;
   lead: LeadTutorAgent;
   triage: TriageService;
+  scribe: ScribeAgent;
 }
 
 export type HostAction = 'skip' | 'hold' | 'resume' | 'slower' | 'end';
@@ -32,6 +36,8 @@ export class RoomConductor {
   private slower = false;
   private summaries: string[] = [];
   private lastCheck?: { prompt: string; spread: CheckSpread; answerText: string };
+  /** the scribe's summary of the last finished segment; awaited before the next segment */
+  private pendingSummary: Promise<void> = Promise.resolve();
 
   constructor(readonly roomId: string, private deps: ConductorDeps) {
     this.log = new Logger(`Room ${roomId.slice(0, 8)}`);
@@ -92,8 +98,9 @@ export class RoomConductor {
       await this.notice(room, 'The tutor had trouble with this segment. Ask a question, or the host can skip ahead.', 'warn');
     }
     await this.deps.events.append(main, 'segment_end', { segment }, 'lead');
-    // TODO(backend): ScribeAgent.summarize → segment_summary event + this.summaries.push(...)
-    // TODO(backend): pipelining — start writing segment+1 now so it draws as soon as the gate passes.
+    // the summary runs beside the gate, never in front of it
+    this.pendingSummary = this.summarize(room, segment, plan.segments[segment].title);
+    // TODO(backend, B1): pipelining — start writing segment+1 now so it draws as soon as the gate passes.
     await this.deps.rooms.update(room.id, { phase: 'check' });
     await this.evaluateGate();
   }
@@ -138,6 +145,7 @@ export class RoomConductor {
     await this.qaBeat(room);
     const next = room.segment + 1;
     if (next >= (room.lesson_plan?.segments.length ?? 0)) return this.end(room);
+    await this.pendingSummary; // the lead tutor sees the summary of the segment just finished
     await this.teach(room, next);
   }
 
@@ -172,7 +180,8 @@ export class RoomConductor {
       try {
         const steps = await this.deps.lead.answerCluster(prefix, c.title, (qs.data ?? []).map((q) => q.text as string), askers);
         await this.deps.events.append(room.main_stream_id, 'answer_cluster', { clusterId: c.id, title: c.title, askers, steps }, 'lead');
-        await this.db.from('clusters').update({ answered: true }).eq('id', c.id);
+        const said = steps.flatMap((s) => ('say' in s ? [s.say] : [])).join(' ');
+        await this.db.from('clusters').update({ answered: true, answer: said || null }).eq('id', c.id);
       } catch (e) {
         this.log.error(`answer cluster ${c.id}: ${(e as Error).message}`);
       }
@@ -185,7 +194,41 @@ export class RoomConductor {
     await this.closeChecks(room);
     await this.deps.rooms.update(room.id, { phase: 'ended', ended_at: new Date().toISOString(), gate_deadline: null });
     await this.notice(room, 'Class ended. Thanks for learning together!');
-    // TODO(backend): ScribeAgent final notes → note_blocks; cards; FAQ entries from clusters.
+    await this.pendingSummary;
+    await this.writeNotes(room);
+  }
+
+  /** Never rejects: a missing summary must not break the class. */
+  private async summarize(room: RoomRow, segment: number, title: string) {
+    try {
+      const events = await this.deps.events.after(room.main_stream_id);
+      const asked = await this.db.from('questions').select('text').eq('room_id', room.id).eq('segment', segment);
+      const questions = (asked.data ?? []).map((q) => `- ${q.text as string}`).join('\n');
+      const transcript = [segmentTranscript(events, segment), questions && `Learners asked:\n${questions}`].filter(Boolean).join('\n\n');
+      const summary = await this.deps.scribe.summarize(await this.prefix(room), title, transcript);
+      await this.deps.events.append(room.main_stream_id, 'segment_summary', { segment, title, summary }, 'scribe');
+      this.summaries.push(summary);
+    } catch (e) {
+      this.log.warn(`summary ${segment}: ${(e as Error).message}`);
+    }
+  }
+
+  /** Shared notes from what the class produced (no extra model call); FAQ rows for course rooms. */
+  private async writeNotes(room: RoomRow) {
+    if (!room.lesson_plan) return; // ended from the lobby: nothing was taught
+    const existing = await this.db.from('note_blocks').select('id', { count: 'exact', head: true }).eq('room_id', room.id);
+    if (existing.count) return;
+    const events = await this.deps.events.after(room.main_stream_id);
+    const rows = await this.db.from('clusters').select('title, answer, asker_count').eq('room_id', room.id).or('answered.eq.true,route.eq.inline');
+    const clusters = (rows.data ?? []).map((c) => ({ title: c.title as string, answer: c.answer as string | null, askers: c.asker_count as number }));
+    const blocks = buildNotes({ plan: room.lesson_plan, summaries: summariesOf(events), checks: checkResults(events), clusters });
+    const ins = await this.db.from('note_blocks').insert(blocks.map((markdown, idx) => ({ room_id: room.id, idx, markdown })));
+    if (ins.error) this.log.error(`notes: ${ins.error.message}`);
+    const faq = clusters.filter((c) => c.answer);
+    if (room.course_id && faq.length) {
+      const f = await this.db.from('faq').insert(faq.map((c) => ({ course_id: room.course_id, topic_id: room.topic_id, question: c.title, answer: c.answer, askers_total: c.askers })));
+      if (f.error) this.log.warn(`faq: ${f.error.message}`);
+    }
   }
 
   private async doHost(action: HostAction) {
@@ -212,6 +255,7 @@ export class RoomConductor {
   /** After an API restart: finish whatever phase the room was in. */
   private async doRecover() {
     const room = await this.deps.rooms.get(this.roomId);
+    this.summaries = summariesOf(await this.deps.events.after(room.main_stream_id)).map((s) => s.summary);
     if (room.phase === 'teaching' || room.phase === 'qa') {
       // the segment may be half-written; let the class move on from its gate
       await this.notice(room, 'The tutor reconnected.', 'info');

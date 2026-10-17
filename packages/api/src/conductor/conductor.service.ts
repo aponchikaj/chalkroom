@@ -6,6 +6,7 @@ import { EventsService } from '../core/events.service';
 import { RoomsService } from '../rooms/rooms.service';
 import { LeadTutorAgent } from '../agents/lead-tutor.agent';
 import { TriageService } from '../triage/triage.service';
+import { ScribeAgent } from '../agents/scribe.agent';
 import { RoomConductor } from './room-conductor';
 import { config } from '../config';
 
@@ -20,12 +21,13 @@ export class ConductorService implements OnApplicationBootstrap {
     private roomsService: RoomsService,
     private lead: LeadTutorAgent,
     private triage: TriageService,
+    private scribe: ScribeAgent,
   ) {}
 
   for(roomId: string): RoomConductor {
     let c = this.rooms.get(roomId);
     if (!c) {
-      c = new RoomConductor(roomId, { supa: this.supa, events: this.events, rooms: this.roomsService, lead: this.lead, triage: this.triage });
+      c = new RoomConductor(roomId, { supa: this.supa, events: this.events, rooms: this.roomsService, lead: this.lead, triage: this.triage, scribe: this.scribe });
       this.rooms.set(roomId, c);
     }
     return c;
