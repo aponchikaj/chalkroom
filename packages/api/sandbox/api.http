@@ -42,6 +42,24 @@ Content-Type: application/json
 
 { "theme": "dark", "voiceRate": 1.25 }
 
+### 2FA state (works before the second factor is passed)
+GET {{api}}/me/2fa
+Authorization: Bearer {{ana}}
+
+### Email 2FA: send a code (purpose: enable | disable | login); read it at http://127.0.0.1:55424
+POST {{api}}/me/2fa/email/send
+Authorization: Bearer {{ana}}
+Content-Type: application/json
+
+{ "purpose": "enable" }
+
+### Email 2FA: verify the code
+POST {{api}}/me/2fa/email/verify
+Authorization: Bearer {{ana}}
+Content-Type: application/json
+
+{ "purpose": "enable", "code": "123456" }
+
 ### Profile picture, step 1: signed upload URL (then upload the file to Storage, then commit)
 POST {{api}}/me/avatar/upload-url
 Authorization: Bearer {{ana}}

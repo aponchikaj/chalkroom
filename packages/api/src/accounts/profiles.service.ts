@@ -32,8 +32,7 @@ export class ProfilesService {
       avatarUrl: avatarUrl(profile.avatar_path),
       email: auth.data.user?.email ?? null,
       settings,
-      // second factors arrive with B11; until then none can be on
-      security: { totp: false, email2fa: false, aal: 'aal1', mfaPassed: true },
+      security: { totp: user.mfa.totpVerified, email2fa: user.mfa.email2fa, aal: user.mfa.aal, mfaPassed: user.mfaPassed },
     };
   }
 

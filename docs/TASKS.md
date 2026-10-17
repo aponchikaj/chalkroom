@@ -28,7 +28,7 @@ Done = built and tested. Next = being built. Todo = planned.
 | Area | Done | Next / todo | Dev A | Dev B |
 |---|---|---|---|---|
 | **Platform** | Monorepo, CI, contracts, board engine, local Supabase (Postgres 17), env split local/prod, backend folder structure, sandbox console, e2e + pgTAP + smoke + bench | Deploy (todo) | | B0 done, B7 todo |
-| **Accounts and security** | Schema for profiles, settings, 2FA, moderation; signup trigger; `GET /me`; rooms use the profile; `PATCH /me`, settings, profile picture, public profiles, account deletion; email users in every test; `REQUIRE_ACCOUNT` switch | Switch off anonymous sign-in with the web login (next); 2FA API (next) | A8 login, A9 profile and settings, A10 2FA (todo) | B9 done except the switch, B10 done, B11 next |
+| **Accounts and security** | Schema for profiles, settings, 2FA, moderation; signup trigger; `GET /me`; rooms use the profile; `PATCH /me`, settings, profile picture, public profiles, account deletion; 2FA: authenticator app enforcement and email codes (`/me/2fa`), gated in the API and in RLS; email users in every test; `REQUIRE_ACCOUNT` switch | Switch off anonymous sign-in with the web login (next) | A8 login, A9 profile and settings, A10 2FA (todo) | B9 done except the switch, B10 done, B11 done |
 | **Live class** | Rooms (max 5), join by code, gate (all ready / 60 s / skip), hold, resume, slower, end, checks with spread, reactions, Q&A beat, resume after restart | Presence-aware gate, host handoff (todo) | A4 polish | B5 todo |
 | **Questions** | Ask, anonymous +1, rate limit 6/min | Triage: clusters and routes (todo) | A1 rail, A2 ask UX | B2 todo |
 | **Threads** | Routes in the contract (501) | Thread service (todo) | A3 drawer | B4 todo |
@@ -43,28 +43,28 @@ Done = built and tested. Next = being built. Todo = planned.
 
 | Layer | Command | Count | Covers |
 |---|---|---|---|
-| Unit | `npm test` | 31 tests, 8 files | pure modules: tool schemas, board, sync, mock tutor, username, settings mapping, mail and embedding adapters |
-| API end to end | `npm run test:api` | 67 tests + 11 todo, 7 files | every route: happy path, 400/401/403/404/409/429, RLS, realtime, a full class, accounts, profiles, avatars, settings, mail |
-| Database | `npm run test:db` | 39 pgTAP checks, 4 files | signup trigger, usernames, RLS, 2FA rule, bans, settings, deletion cascade, hybrid search |
+| Unit | `npm test` | 40 tests, 9 files | pure modules: tool schemas, board, sync, mock tutor, username, settings mapping, email codes, the MFA rule, mail and embedding adapters |
+| API end to end | `npm run test:api` | 75 tests + 11 todo, 8 files | every route: happy path, 400/401/403/404/409/429, RLS, realtime, a full class, accounts, profiles, avatars, settings, 2FA (Mailpit codes, TOTP), mail |
+| Database | `npm run test:db` | 43 pgTAP checks, 4 files | signup trigger, usernames, RLS, 2FA rule and `mfa_facts()`, bans, settings, deletion cascade, hybrid search |
 | Smoke | `npm run smoke` | 1 two-user class | join, stream, check, gate, next segment, end |
 
 **Latency** (`npm run bench`; MacBook, local Docker; p50 / p95 / max in ms)
 
 | Measure | p50 | p95 | max | Note |
 |---|---|---|---|---|
-| Sign up (Supabase Auth) | 75 | 138 | 138 | email + password |
-| `GET /health` | 0 | 2 | 2 | |
-| `GET /me` | 4 | 44 | 44 | profile + settings + email |
-| `PATCH /me` | 3 | 4 | 4 | |
-| `PATCH /me/settings` | 4 | 7 | 7 | |
-| `POST /rooms` | 12 | 25 | 25 | room + main stream + host |
-| `GET /rooms/code/:code` | 4 | 7 | 7 | |
-| `POST /rooms/join` | 9 | 17 | 17 | |
-| `POST /rooms/:id/questions` | 7 | 8 | 8 | |
-| Start to first board event | 854 | | | mock waits 400 ms per call (plan + teach) |
-| Start to the first check | 882 | | | the whole first segment |
-| Last ready vote to `check_closed` | 58 | | | gate pass, over realtime |
-| Last ready vote to next segment | 75 | | | includes the Q&A beat |
+| Sign up (Supabase Auth) | 87 | 107 | 107 | email + password |
+| `GET /health` | 1 | 5 | 5 | no auth |
+| `GET /me` | 7 | 26 | 26 | profile + settings + email; every signed-in route includes the 2FA check (`mfa_facts()`, about 2-3 ms) |
+| `PATCH /me` | 5 | 9 | 9 | |
+| `PATCH /me/settings` | 6 | 12 | 12 | |
+| `POST /rooms` | 15 | 30 | 30 | room + main stream + host |
+| `GET /rooms/code/:code` | 5 | 17 | 17 | no auth |
+| `POST /rooms/join` | 13 | 28 | 28 | |
+| `POST /rooms/:id/questions` | 8 | 10 | 10 | |
+| Start to first board event | 841 | | | mock waits 400 ms per call (plan + teach) |
+| Start to the first check | 869 | | | the whole first segment |
+| Last ready vote to `check_closed` | 64 | | | gate pass, over realtime |
+| Last ready vote to next segment | 76 | | | includes the Q&A beat |
 
 With the real model (B1) the class timings depend on Claude; the target is the first board
 shape within about 2 s. Re-run `npm run bench` after each milestone and update this table.
@@ -194,9 +194,10 @@ B1 (real model) can start any time; the mock speaks the same contract.
   language, email notifications); apply them in the player and the theme.
 - Delete account: `DELETE /me` (409 while hosting a live room).
 
-### A10 Two-factor authentication (P1) · needs B11
+### A10 Two-factor authentication (P1) · API ready (B11)
 - Authenticator app: `mfa.enroll` (show the QR), `mfa.challenge` + `mfa.verify`.
-- Email codes: settings toggle and the second login step (`/me/2fa/...` routes, B11).
+- Email codes: `POST /me/2fa/email/send` and `/verify` with `purpose` `enable`, `disable` or `login`;
+  `GET /me/2fa` for the state. Codes: 6 digits, 10 minutes, 5 tries, 5 sends per hour.
 - A 401 `{ code: "mfa_required" }` from the API means: show the second-factor step.
 
 ### A11 Sources and citations (P1) · needs B12
@@ -214,7 +215,7 @@ Detail: [`DEVB_TASKS.md`](DEVB_TASKS.md). Steps, code and tests: [`PLANS_DEVB.md
 | B0 Foundation | done | sandbox, schema for every planned feature, folder structure, mail and embedding ports |
 | B9 Accounts | done (switch pending A8) | `GET /me`, rooms use the profile, email users in tests, `REQUIRE_ACCOUNT` |
 | B10 Profiles and settings | done | `PATCH /me`, settings, profile picture, public profiles, account deletion |
-| B11 Two-factor authentication | next | TOTP enforcement, email codes |
+| B11 Two-factor authentication | done | TOTP enforcement (API + RLS), email codes via Mailpit/SMTP |
 | B2 Triage | todo | clusters and the four routes |
 | B4 Threads | todo | open, message, close, share |
 | B3 Scribe and notes | todo | summaries, notes, edit route |
