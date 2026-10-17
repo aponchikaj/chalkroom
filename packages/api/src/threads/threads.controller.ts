@@ -6,6 +6,7 @@ import { Api, type ClusterRow, type ThreadRow } from '@chalk/schema';
 import { AuthGuard, CurrentUser, type AuthUser } from '../core/auth.guard';
 import { ZodPipe } from '../core/zod.pipe';
 import { ThreadsService } from './threads.service';
+import { RateLimit } from '../core/rate-limit';
 
 @Controller()
 @UseGuards(AuthGuard)
@@ -13,11 +14,13 @@ export class ThreadsController {
   constructor(private threads: ThreadsService) {}
 
   @Post('rooms/:id/threads')
+  @RateLimit('open-thread', 10, 60000)
   open(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(Api.openThread)) b: z.infer<typeof Api.openThread>): Promise<ThreadRow> {
     return this.threads.open(id, u.id, b);
   }
 
   @Post('threads/:id/messages')
+  @RateLimit('thread-message', 20, 60000)
   @HttpCode(202)
   async message(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(Api.threadMessage)) b: z.infer<typeof Api.threadMessage>) {
     await this.threads.message(id, u.id, b.text);

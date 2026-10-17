@@ -5,6 +5,7 @@ import { Api, type SourceRow, type SourceUploadRes } from '@chalk/schema';
 import { AuthGuard, CurrentUser, type AuthUser } from '../core/auth.guard';
 import { ZodPipe } from '../core/zod.pipe';
 import { SourcesService } from './sources.service';
+import { RateLimit } from '../core/rate-limit';
 
 @Controller()
 @UseGuards(AuthGuard)
@@ -17,6 +18,7 @@ export class SourcesController {
   }
 
   @Post('rooms/:id/sources/upload-url')
+  @RateLimit('source-upload', 30, 3600000)
   uploadUrl(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(Api.sourceUploadUrl)) b: z.infer<typeof Api.sourceUploadUrl>): Promise<SourceUploadRes> {
     return this.sources.uploadUrl(id, u.id, b);
   }
@@ -27,6 +29,7 @@ export class SourcesController {
   }
 
   @Post('rooms/:id/sources/url')
+  @RateLimit('source-url', 30, 3600000)
   addUrl(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(Api.addSourceUrl)) b: z.infer<typeof Api.addSourceUrl>): Promise<SourceRow> {
     return this.sources.addUrl(id, u.id, b);
   }
