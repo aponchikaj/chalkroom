@@ -53,7 +53,7 @@ Q&A answers `openai/gpt-oss-20b`. When a call would exceed the quota the API wai
 one class at a time comfortably. Override models with `MODEL_ID` (all) or `MODEL_ID_LEAD`,
 `MODEL_ID_THREAD`, `MODEL_ID_TRIAGE`, `MODEL_ID_SCRIBE`.
 
-Production runs on Claude: `ANTHROPIC_API_KEY=sk-ant-...` runs all agents on `claude-sonnet-5-5`
+Production runs on Claude: `ANTHROPIC_API_KEY=sk-ant-...` runs all agents on `claude-haiku-5-5`
 (it wins over the free tier when both keys are set; `MODEL=groq` forces the free tier). Effort per
 agent: lead and thread `medium`, triage and scribe `low` (`ANTHROPIC_EFFORT_<AGENT>` overrides).
 Force the scripted tutor with `MODEL=mock`.

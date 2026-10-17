@@ -1,7 +1,7 @@
 // AS: Security: change the password, and two-step sign-in with an authenticator app (Supabase
-// MFA, TOTP) or with codes sent to the account email (our API, purpose enable / disable).
+// MFA, TOTP). No email codes: the app sends no email.
 import { useEffect, useState } from 'react';
-import { Check, Copy, Circle, KeyRound, Mail } from 'lucide-react';
+import { Check, Copy, Circle, KeyRound } from 'lucide-react';
 import type { MeRes, TwoFactorState } from '@chalk/schema';
 import { api } from '../../lib/api';
 import { refreshMe, updatePassword } from '../../lib/auth';
@@ -95,18 +95,15 @@ const CODE = /^\d{6}$/;
 const cleanCode = (s: string) => s.replace(/\D/g, '').slice(0, 6);
 
 type Totp = { step: 'idle' } | { step: 'busy' } | { step: 'enroll'; factorId: string; qr: string; secret: string } | { step: 'confirmRemove' };
-type Mailer = { step: 'idle' } | { step: 'sending' } | { step: 'code'; purpose: 'enable' | 'disable' };
 
 function TwoFactor({ initial }: { initial: TwoFactorState }) {
   const [state, setState] = useState<TwoFactorState | null>(null);
   const [loadError, setLoadError] = useState('');
   const [totp, setTotp] = useState<Totp>({ step: 'idle' });
-  const [mail, setMail] = useState<Mailer>({ step: 'idle' });
   const [code, setCode] = useState('');
-  const [mailCode, setMailCode] = useState('');
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<{ where: 'totp' | 'mail'; text: string } | null>(null);
-  const [done, setDone] = useState<{ where: 'totp' | 'mail'; text: string } | null>(null);
+  const [error, setError] = useState<{ where: 'totp'; text: string } | null>(null);
+  const [done, setDone] = useState<{ where: 'totp'; text: string } | null>(null);
   const [copied, setCopied] = useState(false);
 
   const load = async () => {
@@ -115,7 +112,7 @@ function TwoFactor({ initial }: { initial: TwoFactorState }) {
   };
   useEffect(() => { void load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const fail = (where: 'totp' | 'mail', e: unknown, fallback?: string) => setError({ where, text: say(e, fallback) });
+  const fail = (where: 'totp', e: unknown, fallback?: string) => setError({ where, text: say(e, fallback) });
 
   // ---- authenticator app ----
   const startTotp = async () => {
@@ -164,39 +161,17 @@ function TwoFactor({ initial }: { initial: TwoFactorState }) {
     try { await navigator.clipboard.writeText(secret); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { setCopied(false); }
   };
 
-  // ---- email codes ----
-  const sendMail = async (purpose: 'enable' | 'disable') => {
-    setError(null); setDone(null); setMailCode(''); setMail({ step: 'sending' });
-    try {
-      await api.emailCodeSend({ purpose });
-      setMail({ step: 'code', purpose });
-    } catch (e) { setMail({ step: 'idle' }); fail('mail', e, 'The code was not sent. Try again.'); }
-  };
-  const verifyMail = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (mail.step !== 'code' || !CODE.test(mailCode)) return;
-    setBusy(true); setError(null);
-    try {
-      const s = await api.emailCodeVerify({ purpose: mail.purpose, code: mailCode });
-      setState(s);
-      setDone({ where: 'mail', text: mail.purpose === 'enable' ? 'Email codes on. Each sign-in sends a code to your email.' : 'Email codes off.' });
-      setMail({ step: 'idle' }); setMailCode('');
-      await refreshMe();
-    } catch (err) { fail('mail', err, 'That code did not work.'); } finally { setBusy(false); }
-  };
-
   if (!state) {
     return (
       <div className="acct-block" aria-busy="true">
         <h3 className="acct-subhead">Two-step sign-in</h3>
         <p className="acct-note" role="status">Reading your sign-in steps</p>
         <div className="acct-factor" aria-hidden><span className="acct-sk acct-sk-title" /><span className="acct-sk acct-sk-switch" /></div>
-        <div className="acct-factor" aria-hidden><span className="acct-sk acct-sk-title" /><span className="acct-sk acct-sk-switch" /></div>
       </div>
     );
   }
 
-  const anyOn = state.totp || state.email2fa;
+  const anyOn = state.totp;
   const stamp = (on: boolean) => <span className={`stamp ${on ? 'stamp-ok' : 'stamp-muted'}`}>{on ? 'On' : 'Off'}</span>;
 
   return (
@@ -204,7 +179,7 @@ function TwoFactor({ initial }: { initial: TwoFactorState }) {
       <h3 id="acct-2fa-title" className="acct-subhead">Two-step sign-in</h3>
       <p className="acct-note">
         {anyOn ? 'After your password, you also give a code.' : 'Off. Add a second step so a stolen password is not enough to get in.'}
-        {' '}There are no recovery codes: if you lose every second step, you need support to get back in.
+        {' '}There are no recovery codes: if you lose your authenticator app, you need support to get back in.
       </p>
       {loadError && <Errata onDismiss={() => setLoadError('')}>{loadError}</Errata>}
 
@@ -242,7 +217,7 @@ function TwoFactor({ initial }: { initial: TwoFactorState }) {
           </form>
         ) : totp.step === 'confirmRemove' ? (
           <div className="acct-confirm" role="group" aria-label="Remove the authenticator app">
-            <p>Remove the authenticator app? {state.email2fa ? 'Email codes stay on.' : 'Signing in will only need your password.'}</p>
+            <p>Remove the authenticator app? Signing in will only need your password.</p>
             <div className="acct-actions">
               <button type="button" className="btn danger" onClick={removeTotp} disabled={busy}>{busy ? 'Removing' : 'Remove'}</button>
               <button type="button" className="btn" onClick={() => setTotp({ step: 'idle' })} disabled={busy}>Keep it</button>
@@ -257,37 +232,6 @@ function TwoFactor({ initial }: { initial: TwoFactorState }) {
         )}
         {error?.where === 'totp' && <Errata onDismiss={() => setError(null)}>{error.text}</Errata>}
         {done?.where === 'totp' && <Done>{done.text}</Done>}
-      </div>
-
-      <div className="acct-factor">
-        <div className="acct-factor-head">
-          <span className="acct-factor-name"><Mail {...ICON} aria-hidden />Email codes</span>
-          {stamp(state.email2fa)}
-        </div>
-        <p className="acct-note">A 6-digit code sent to your account email each time you sign in.</p>
-        {mail.step === 'code' ? (
-          <form className="acct-form" onSubmit={verifyMail} noValidate>
-            <p className="acct-note">We sent a code to your email. It works for 10 minutes. Type it to turn email codes {mail.purpose === 'enable' ? 'on' : 'off'}.</p>
-            <div className="field">
-              <label className="field-label" htmlFor="acct-mail-code">Code from the email</label>
-              <input id="acct-mail-code" className="input mono acct-code" inputMode="numeric" autoComplete="one-time-code" maxLength={6}
-                placeholder="000000" value={mailCode} onChange={(e) => setMailCode(cleanCode(e.target.value))} autoFocus />
-            </div>
-            <div className="acct-actions">
-              <button className="btn primary" disabled={busy || !CODE.test(mailCode)}>{busy ? 'Checking' : mail.purpose === 'enable' ? 'Turn on' : 'Turn off'}</button>
-              <button type="button" className="btn" onClick={() => { setMail({ step: 'idle' }); setError(null); }} disabled={busy}>Cancel</button>
-              <button type="button" className="text-link" onClick={() => sendMail(mail.purpose)} disabled={busy}>Send a new code</button>
-            </div>
-          </form>
-        ) : (
-          <div className="acct-actions">
-            <button type="button" className="btn" disabled={mail.step === 'sending'} onClick={() => sendMail(state.email2fa ? 'disable' : 'enable')}>
-              {mail.step === 'sending' ? 'Sending a code' : state.email2fa ? 'Turn off' : 'Turn on'}
-            </button>
-          </div>
-        )}
-        {error?.where === 'mail' && <Errata onDismiss={() => setError(null)}>{error.text}</Errata>}
-        {done?.where === 'mail' && <Done>{done.text}</Done>}
       </div>
     </div>
   );

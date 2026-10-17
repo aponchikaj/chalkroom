@@ -201,35 +201,15 @@ await step('Class page: Ana adds a document to the materials', async () => {
   await snap(ana, 'materials');
 }, [ana]);
 
-// the code the API emailed (Mailpit catches local mail)
-async function mailedCode(to, after) {
-  for (let i = 0; i < 30; i++) {
-    const list = await fetch(`http://127.0.0.1:55424/api/v1/search?query=${encodeURIComponent(`to:${to}`)}`).then((r) => r.json()).catch(() => ({ messages: [] }));
-    const msg = (list.messages ?? []).find((m) => Date.parse(m.Created) >= after);
-    if (msg) {
-      const full = await fetch(`http://127.0.0.1:55424/api/v1/message/${msg.ID}`).then((r) => r.json());
-      const code = /\b(\d{6})\b/.exec(`${full.Text} ${full.HTML}`)?.[1];
-      if (code) return code;
-    }
-    await new Promise((r) => setTimeout(r, 500));
-  }
-  throw new Error(`no code mailed to ${to}`);
-}
-
-await step('Account: Ana sets a preference and turns on email codes', async () => {
-  const anaEmail = `ana-${stamp}@example.com`;
+await step('Account: Ana sets a preference', async () => {
   await ana.page.goto(`${BASE}/account#preferences`);
   await ana.page.getByLabel('Voice speed').fill('1.25').catch(() => {});
   await ana.page.goto(`${BASE}/account#security`);
-  const sent = Date.now() - 2000;
-  await ana.page.getByRole('button', { name: /^turn on$/i }).last().click();
-  await ana.page.getByLabel('Code from the email').fill(await mailedCode(anaEmail, sent));
-  await ana.page.getByRole('button', { name: /^turn on$/i }).click();
-  await ana.page.getByText(/email codes on/i).first().waitFor({ timeout: 10000 });
+  await ana.page.getByText(/authenticator app/i).first().waitFor({ timeout: 10000 });
   await snap(ana, 'security');
 }, [ana]);
 
-await step('Login with a second factor: Ana logs out and back in with an email code', async () => {
+await step('Login: Ana logs out and back in', async () => {
   const anaEmail = `ana-${stamp}@example.com`;
   await ana.page.goto(`${BASE}/account#account`);
   await ana.page.getByRole('button', { name: /log out/i }).first().click();
@@ -237,10 +217,6 @@ await step('Login with a second factor: Ana logs out and back in with an email c
   await ana.page.getByLabel('Email').fill(anaEmail);
   await ana.page.getByLabel('Password', { exact: true }).fill(PASSWORD);
   await ana.page.getByRole('button', { name: /^log in/i }).click();
-  await ana.page.getByRole('button', { name: /email me a code/i }).click({ timeout: 15000 });
-  const sent = Date.now() - 2000;
-  await snap(ana, 'second-factor');
-  await ana.page.getByLabel('6-digit code').fill(await mailedCode(anaEmail, sent));
   await ana.page.getByPlaceholder('A topic, e.g. Solana PDAs').or(ana.page.getByRole('tab', { name: /your classes/i })).first().waitFor({ timeout: 15000 });
 }, [ana]);
 

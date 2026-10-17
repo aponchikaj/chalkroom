@@ -67,8 +67,7 @@ export function Login({ next: gateNext }: { next?: string }) {
             inputMode="email" autoCapitalize="none" spellCheck={false} aria-invalid={!!error || undefined} onChange={(e) => setEmail(e.target.value)} />
         </div>
         <PasswordField id="login-password" label="Password" value={password} onChange={setPassword} autoComplete="current-password"
-          invalid={!!error && !unconfirmed}
-          labelAside={<button type="button" className="text-link auth-small" onClick={() => navigate('/reset')}>Forgot password?</button>} />
+          invalid={!!error && !unconfirmed} />
         {error && (
           <div className="errata" role="alert">
             <AlertTriangle {...ICON} aria-hidden />
