@@ -1,7 +1,7 @@
 -- Moderation and 2FA: is_member() honours bans and requires a passed second factor.
 -- Run: npm run test:db
 begin;
-select plan(9);
+select plan(13);
 
 insert into auth.users (id, email) values
   ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'host@example.com'),
@@ -47,6 +47,26 @@ reset role;
 update public.room_members set banned = true where user_id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 set local role authenticated;
 select ok(not public.is_member('cccccccc-cccc-4ccc-8ccc-cccccccccccc'), 'banned members cannot read the room');
+reset role;
+
+-- mfa_facts(): the API's single query
+select results_eq(
+  $$ select totp_verified, email_2fa, session_passed_email from public.mfa_facts('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'dddddddd-dddd-4ddd-8ddd-dddddddddddd') $$,
+  $$ values (false, true, true) $$,
+  'mfa_facts sees email 2FA and the passed session'
+);
+select results_eq(
+  $$ select session_passed_email from public.mfa_facts('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', null) $$,
+  $$ values (false) $$,
+  'no session id: not passed'
+);
+select results_eq(
+  $$ select totp_verified, email_2fa, session_passed_email from public.mfa_facts('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', null) $$,
+  $$ values (false, false, false) $$,
+  'a user without factors'
+);
+set local role authenticated;
+select throws_ok($$ select * from public.mfa_facts('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', null) $$, '42501', null, 'clients cannot call mfa_facts');
 reset role;
 
 select * from finish();

@@ -2,6 +2,7 @@
 // Keeps any lines you added yourself (ANTHROPIC_API_KEY, MODEL, …).
 // For a hosted Supabase project, copy .env.example to .env and fill it in by hand instead.
 import { execSync } from 'node:child_process';
+import { randomBytes } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 
 const raw = execSync('npx supabase status -o env', { encoding: 'utf8' });
@@ -23,6 +24,8 @@ const managed = {
   VITE_API_URL: 'http://localhost:3001',
   // Mailpit SMTP (supabase/config.toml local_smtp.smtp_port); view mail at http://127.0.0.1:55424
   SMTP_URL: 'smtp://127.0.0.1:55425',
+  // HMAC key for email 2FA codes; a fresh one each run is fine locally (codes live 10 minutes)
+  OTP_SECRET: randomBytes(32).toString('hex'),
 };
 const keep = existsSync('.env')
   ? readFileSync('.env', 'utf8').split(/\r?\n/).filter((l) => l.trim() && !Object.keys(managed).some((k) => l.startsWith(`${k}=`)))

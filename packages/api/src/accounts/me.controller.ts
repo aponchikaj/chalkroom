@@ -2,7 +2,7 @@
 import { Body, Controller, Delete, Get, HttpCode, Patch, Post, UseGuards } from '@nestjs/common';
 import { z } from 'zod';
 import { Api, type AvatarUploadRes, type MeRes, type ProfileRow, type UserSettings } from '@chalk/schema';
-import { AuthGuard, CurrentUser, type AuthUser } from '../core/auth.guard';
+import { AllowWithoutMfa, AuthGuard, CurrentUser, type AuthUser } from '../core/auth.guard';
 import { ZodPipe } from '../core/zod.pipe';
 import { ProfilesService } from './profiles.service';
 import { AvatarsService } from './avatars.service';
@@ -12,7 +12,9 @@ import { AvatarsService } from './avatars.service';
 export class MeController {
   constructor(private profiles: ProfilesService, private avatars: AvatarsService) {}
 
+  /** allowed before the second factor: the web needs it to show the 2FA step */
   @Get()
+  @AllowWithoutMfa()
   me(@CurrentUser() u: AuthUser): Promise<MeRes> {
     return this.profiles.me(u);
   }
