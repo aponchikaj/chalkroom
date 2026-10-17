@@ -6,6 +6,7 @@ import { SupabaseService, must } from '../core/supabase.service';
 import { EventsService } from '../core/events.service';
 import { config } from '../config';
 import { ProfilesService } from '../accounts/profiles.service';
+import { roomPrefix } from '../agents/prompts';
 
 const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const inviteCode = () => Array.from({ length: 6 }, () => CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)]).join('');
@@ -55,6 +56,11 @@ export class RoomsService {
   /** Members currently in the room (joined, not left). */
   async activeMembers(roomId: string): Promise<MemberRow[]> {
     return must(await this.db.from('room_members').select('*').eq('room_id', roomId).is('left_at', null), 'members') as MemberRow[];
+  }
+
+  /** The cached prefix every agent of this room shares. Byte-stable across calls. */
+  async prefixOf(room: RoomRow): Promise<string> {
+    return roomPrefix({ title: room.title, goal: room.goal, syllabus: await this.syllabusOf(room) }, room.lesson_plan);
   }
 
   async syllabusOf(room: RoomRow): Promise<string | undefined> {
