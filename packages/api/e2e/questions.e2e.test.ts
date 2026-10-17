@@ -50,9 +50,6 @@ describe('POST /rooms/:id/questions', () => {
     const r = await api(host, 'POST', `/rooms/${room.id}/questions`, { text: 'one more' });
     expect(r.status).toBe(429);
   });
-
-  it.todo('B2: every question leaves pending within about 5 s (status + cluster)');
-  it.todo('B2: two similar questions from two learners form one class cluster with asker_count 2');
 });
 
 describe('POST /questions/:id/vote', () => {

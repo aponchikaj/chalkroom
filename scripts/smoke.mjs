@@ -11,6 +11,10 @@ const env = Object.fromEntries(readFileSync('.env', 'utf8').split(/\r?\n/).filte
 const API = env.VITE_API_URL ?? 'http://localhost:3001';
 const step = (m) => console.log(`• ${m}`);
 const fail = (m) => { console.error(`FAILED: ${m}`); process.exit(1); };
+const waitRow = (u, pred, what, ms = 15000) => Promise.race([
+  new Promise((resolve) => { const t = setInterval(() => { const hit = u.rows.find(pred); if (hit) { clearInterval(t); resolve(hit); } }, 100); }),
+  timeout(ms, `${u.name}: ${what}`),
+]);
 const timeout = (ms, what) => new Promise((_, rej) => setTimeout(() => rej(new Error(`timed out waiting for ${what}`)), ms));
 
 async function user(name, color) {
@@ -76,12 +80,17 @@ try {
   await ana.call('POST', `/rooms/${room.id}/checks/${check.data.checkId}/answer`, { answer: 1 });
   await gio.call('POST', `/rooms/${room.id}/checks/${check.data.checkId}/answer`, { answer: 0 });
   await gio.call('POST', `/rooms/${room.id}/questions`, { text: 'Why can a PDA not sign?' });
+  await ana.call('POST', `/rooms/${room.id}/questions`, { text: "Why can't a PDA sign transactions?" });
   if (!gio.rows.length) await new Promise((r) => setTimeout(r, 500));
   await ana.call('POST', `/rooms/${room.id}/ready`, { segment: 0 });
   await gio.call('POST', `/rooms/${room.id}/ready`, { segment: 0 });
   const closed = await waitFor(ana, (e) => e.kind === 'check_closed', 'check_closed');
   if (closed.data.spread.total !== 2 || closed.data.spread.correct !== 1) fail(`unexpected spread ${JSON.stringify(closed.data.spread)}`);
   step(`gate passed: ${closed.data.spread.correct}/${closed.data.spread.total} got it`);
+  await waitRow(ana, (r) => r.table === 'clusters' && r.row.route === 'class' && r.row.asker_count === 2, 'a grouped class cluster');
+  const qa = await waitFor(gio, (e) => e.kind === 'answer_cluster', 'the Q&A beat answer');
+  if (!['Ana', 'Gio'].every((n) => qa.data.askers.includes(n))) fail(`Q&A credit missing an asker: ${qa.data.askers.join(', ')}`);
+  step(`triage grouped 2 questions; Q&A credited ${qa.data.askers.join(' and ')}`);
   await waitFor(ana, (e) => e.kind === 'segment_start' && e.data.segment === 1, 'segment 1');
   step('segment 1 started');
 

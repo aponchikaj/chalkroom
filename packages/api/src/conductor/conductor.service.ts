@@ -5,6 +5,7 @@ import { SupabaseService } from '../core/supabase.service';
 import { EventsService } from '../core/events.service';
 import { RoomsService } from '../rooms/rooms.service';
 import { LeadTutorAgent } from '../agents/lead-tutor.agent';
+import { TriageService } from '../triage/triage.service';
 import { RoomConductor } from './room-conductor';
 import { config } from '../config';
 
@@ -18,12 +19,13 @@ export class ConductorService implements OnApplicationBootstrap {
     private events: EventsService,
     private roomsService: RoomsService,
     private lead: LeadTutorAgent,
+    private triage: TriageService,
   ) {}
 
   for(roomId: string): RoomConductor {
     let c = this.rooms.get(roomId);
     if (!c) {
-      c = new RoomConductor(roomId, { supa: this.supa, events: this.events, rooms: this.roomsService, lead: this.lead });
+      c = new RoomConductor(roomId, { supa: this.supa, events: this.events, rooms: this.roomsService, lead: this.lead, triage: this.triage });
       this.rooms.set(roomId, c);
     }
     return c;
@@ -33,7 +35,7 @@ export class ConductorService implements OnApplicationBootstrap {
     if (!config.resumeRooms) return;
     const r = await this.supa.db.from('rooms').select('id').in('phase', ['teaching', 'check', 'qa']);
     if (r.error) { this.log.warn(`could not resume rooms: ${r.error.message}`); return; }
-    for (const { id } of r.data ?? []) void this.for(id).recover();
+    for (const { id } of r.data ?? []) { void this.for(id).recover(); this.triage.schedule(id); }
     if (r.data?.length) this.log.log(`resuming ${r.data.length} live room(s)`);
   }
 }
