@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { connectRoom, Superseded, type RoomConnection } from '../room/connection';
 import { RoomConnContext } from '../room/context';
-import { useRoom } from '../room/store';
+import { mainPlayer, useRoom } from '../room/store';
 import type { Profile } from '../lib/profile';
 import { ClassroomView } from './ClassroomView';
 
@@ -17,7 +17,8 @@ export function Classroom({ roomId, profile }: { roomId: string; profile: Profil
     connectRoom(roomId, profile)
       .then((x) => { if (alive) { c = x; setConn(x); } else x.close(); })
       .catch((e) => { if (!(e instanceof Superseded)) setFatal((e as Error).message); });
-    return () => { alive = false; c?.close(); };
+    // leaving the class always silences it, even if the connection is still opening
+    return () => { alive = false; c?.close(); mainPlayer.reset(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId, profile.name, profile.color]);
 

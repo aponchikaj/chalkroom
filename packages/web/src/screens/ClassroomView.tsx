@@ -5,6 +5,7 @@
 //   control bar: ready strip | host controls | ask bar ...............................
 //
 // Every region below is owned by one feature (docs/TASKS.md A1-A7); this file only places them.
+import { useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { mainPlayer, useRoom } from '../room/store';
 import { Board, PageStrip, usePlayer } from '../board/Board';
@@ -35,6 +36,15 @@ export function ClassroomView() {
   const openThreadId = useRoom((s) => s.openThreadId);
   const selection = useRoom(useShallow((s) => s.selection));
   const checkOpen = useRoom((s) => !!s.check);
+  const ended = room.phase === 'ended';
+
+  // the class voice is for the class: silent while this person reads a side thread, and after the
+  // class ends (the board jumps to its end instead of narrating under the recap)
+  useEffect(() => {
+    mainPlayer.setSilenced(!!openThreadId || ended);
+    if (ended) mainPlayer.interrupt();
+  }, [openThreadId, ended]);
+  useEffect(() => () => mainPlayer.setSilenced(false), []);
 
   if (conn === 'removed') {
     return (
