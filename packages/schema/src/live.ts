@@ -143,6 +143,10 @@ export interface MemberRow {
   color: string;
   joined_at: string;
   left_at: string | null;
+  /** the host muted this member: they cannot ask (always sent by the database) */
+  muted?: boolean;
+  /** the host removed this member: they cannot rejoin or read the room */
+  banned?: boolean;
 }
 
 export const QuestionStatus = z.enum([
@@ -322,6 +326,8 @@ export const Api = {
   ready: z.object({ segment: z.number().int() }),
   /** POST /rooms/:id/host (host) */
   host: z.object({ action: z.enum(['skip', 'hold', 'resume', 'slower', 'end']) }),
+  /** POST /rooms/:id/moderate (host): mute, unmute or remove (kick) a member */
+  moderate: z.object({ userId: z.string().uuid(), action: z.enum(['mute', 'unmute', 'kick']) }),
   /** POST /rooms/:id/checks/:checkId/answer */
   checkAnswer: z.object({ answer: z.unknown() }),
   /** POST /rooms/:id/questions → QuestionRow  (rate limit 6/min/user) */
