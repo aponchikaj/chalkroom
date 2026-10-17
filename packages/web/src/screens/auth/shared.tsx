@@ -48,13 +48,6 @@ export function goNext(next: string) {
   if (location.pathname + location.hash !== next) navigate(next, true);
 }
 
-// a confirmation link may open in another tab: remember where the person was going
-const NEXT_KEY = 'chalkroom.authNext';
-export const pendingNext = {
-  set: (n: string) => { try { localStorage.setItem(NEXT_KEY, n); } catch { /* storage blocked */ } },
-  take: () => { try { const n = localStorage.getItem(NEXT_KEY); localStorage.removeItem(NEXT_KEY); return n; } catch { return null; } },
-};
-
 /** Forget the rooms the last person joined so the next one on this browser is not pulled in. */
 export function forgetJoined() {
   try {
@@ -70,8 +63,7 @@ export function forgetJoined() {
 export function authProblem(err: unknown): string {
   const m = (err instanceof Error ? err.message : String(err)).toLowerCase();
   if (m.includes('invalid login credentials')) return 'Email or password is wrong.';
-  if (m.includes('email not confirmed')) return 'This email is not confirmed yet. Open the link we sent you, then log in.';
-  if (m.includes('already registered') || m.includes('already been registered')) return 'An account with this email already exists. Log in instead, or reset the password.';
+  if (m.includes('already registered') || m.includes('already been registered')) return 'An account with this email already exists. Log in instead.';
   if (m.includes('rate limit') || m.includes('too many') || m.includes('security purposes')) return 'Too many tries in a short time. Wait a minute, then try again.';
   if (m.includes('password')) return 'The password does not meet the rule: at least 10 characters with lowercase and uppercase letters and a digit.';
   if (m.includes('unable to validate email') || m.includes('invalid email') || m.includes('email address')) return 'That email address does not look right. Check it and try again.';

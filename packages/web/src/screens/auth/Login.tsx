@@ -6,8 +6,7 @@ import type { RoomPreview } from '@chalk/schema';
 import { api } from '../../lib/api';
 import { navigate } from '../../lib/router';
 import { signIn, useAuth } from '../../lib/auth';
-import { supabase } from '../../lib/supabase';
-import { AuthLeaf, ICON, PasswordField, authProblem, goNext, inviteOf, pendingNext, queryNext, safeNext, withNext } from './shared';
+import { AuthLeaf, ICON, PasswordField, authProblem, goNext, inviteOf, queryNext, safeNext, withNext } from './shared';
 
 export function Login({ next: gateNext }: { next?: string }) {
   const next = gateNext ? safeNext(gateNext) : queryNext();
@@ -18,8 +17,6 @@ export function Login({ next: gateNext }: { next?: string }) {
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [unconfirmed, setUnconfirmed] = useState(false);
-  const [resent, setResent] = useState(false);
 
   useEffect(() => {
     if (!code) return;
@@ -28,27 +25,21 @@ export function Login({ next: gateNext }: { next?: string }) {
     return () => { alive = false; };
   }, [code]);
 
-  // signed in on /login (already, or just now from an email confirmation link): carry on
+  // already signed in on /login: carry on
   useEffect(() => {
-    if (!gateNext && status === 'signedIn' && !busy) goNext(safeNext(pendingNext.take() ?? next));
+    if (!gateNext && status === 'signedIn' && !busy) goNext(safeNext(next));
   }, [status]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setBusy(true); setError(''); setUnconfirmed(false); setResent(false);
+    setBusy(true); setError('');
     try {
       await signIn(email.trim(), password);
       goNext(next);
     } catch (err) {
       setError(authProblem(err));
-      setUnconfirmed(/not confirmed/i.test((err as Error).message));
       setBusy(false);
     }
-  };
-
-  const resend = async () => {
-    const r = await supabase.auth.resend({ type: 'signup', email: email.trim() });
-    if (r.error) setError(authProblem(r.error)); else { setResent(true); pendingNext.set(next); }
   };
 
   const joining = code ? <>Log in to join {preview ? preview.title : <>the class <span className="mono">{code}</span></>}</> : 'Log in';
@@ -67,11 +58,11 @@ export function Login({ next: gateNext }: { next?: string }) {
             inputMode="email" autoCapitalize="none" spellCheck={false} aria-invalid={!!error || undefined} onChange={(e) => setEmail(e.target.value)} />
         </div>
         <PasswordField id="login-password" label="Password" value={password} onChange={setPassword} autoComplete="current-password"
-          invalid={!!error && !unconfirmed} />
+          invalid={!!error} />
         {error && (
           <div className="errata" role="alert">
             <AlertTriangle {...ICON} aria-hidden />
-            <span>{error}{unconfirmed && <> {resent ? 'A new link is on its way.' : <button type="button" className="text-link" onClick={() => void resend()}>Send the link again</button>}</>}</span>
+            <span>{error}</span>
           </div>
         )}
         <button className="btn primary btn-lg" disabled={busy || !email.trim() || !password}>
