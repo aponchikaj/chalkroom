@@ -90,6 +90,8 @@ const closed = await until(gio, (e) => e.kind === 'check_closed');
 record('Last ready vote -> check_closed (realtime)', [Math.round(closed.at - tReady)], 'gate pass + spread');
 const next = await until(gio, (e) => e.kind === 'segment_start' && e.data.segment === 1);
 record('Last ready vote -> next segment starts', [Math.round(next.at - tReady)], 'includes the Q&A beat');
+const nextBoard = await until(gio, (e) => e.kind === 'board' && e.at > next.at);
+record('Next segment start -> its first board event', [Math.round(nextBoard.at - next.at)], 'pipelined: written during the gate');
 await call(ana, 'POST', `/rooms/${room.id}/host`, { action: 'end' });
 
 for (const r of created) await call(ana, 'POST', `/rooms/${r.id}/host`, { action: 'end' }).catch(() => undefined);
