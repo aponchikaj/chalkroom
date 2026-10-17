@@ -34,7 +34,7 @@ export async function setup() {
 
   child = spawn('npm', ['run', 'start', '-w', '@chalk/api'], {
     cwd: ROOT,
-    env: { ...process.env, MODEL: 'mock', MOCK_DELAY_MS: '50', API_PORT: String(MOCK_PORT), PORT: String(MOCK_PORT), RESUME_ROOMS: '0', SANDBOX: '0' },
+    env: { ...process.env, MODEL: 'mock', MOCK_DELAY_MS: '50', API_PORT: String(MOCK_PORT), PORT: String(MOCK_PORT), RESUME_ROOMS: '0', SANDBOX: '0', INSTANCE_GROUP: 'e2e' },
     stdio: ['ignore', 'ignore', 'inherit'],
     detached: true, // own process group, so teardown stops npm and node together
   });

@@ -33,6 +33,10 @@ export interface ConductorDeps {
   scribe: ScribeAgent;
   retrieve: RetrieveService;
   ingest: IngestWorker;
+  /** this instance holds the room's lease (room_leases): only then may it move the room */
+  owns: (roomId: string) => Promise<boolean>;
+  /** the class ended: the service frees this conductor */
+  ended: (roomId: string) => void;
 }
 
 export type HostAction = 'skip' | 'hold' | 'resume' | 'slower' | 'end';
@@ -61,15 +65,38 @@ export class RoomConductor {
   start() { return this.enqueue('start', () => this.doStart()); }
   readyChanged() { return this.enqueue('gate', () => this.evaluateGate()); }
   membersChanged() { return this.enqueue('gate', () => this.evaluateGate()); }
+  /** heartbeat: votes that reached another instance still move the gate */
+  tick() { return this.enqueue('gate', () => this.evaluateGate()); }
   host(action: HostAction) { return this.enqueue(`host:${action}`, () => this.doHost(action)); }
   recover() { return this.enqueue('recover', () => this.doRecover()); }
 
   // -------------------------------------------------------------------------
 
-  private enqueue<T>(what: string, fn: () => Promise<T>): Promise<T> {
-    const p = this.queue.then(fn);
-    this.queue = p.catch((e) => this.log.error(`${what} failed: ${(e as Error).stack ?? e}`));
+  private enqueue<T>(what: string, fn: () => Promise<T>): Promise<T | undefined> {
+    const p = this.queue.then(async () => {
+      // another instance drives this room: it reads the same rows and moves the room itself
+      if (!(await this.deps.owns(this.roomId))) return undefined;
+      return fn();
+    });
+    this.queue = p.catch(async (e) => {
+      this.log.error(`${what} failed: ${(e as Error).stack ?? e}`);
+      await this.rescue(what).catch((e2) => this.log.error(`rescue failed: ${(e2 as Error).message}`));
+    });
     return p;
+  }
+
+  /** A job threw (a database blip, an invalid event): never leave the class frozen. Teaching or
+   *  Q&A go back to the gate, where ready votes and Skip work again; a failed start stays in the
+   *  lobby so the host can press Start again. */
+  private async rescue(what: string) {
+    const room = await this.deps.rooms.get(this.roomId);
+    if (room.phase === 'lobby' && what === 'start') {
+      return this.notice(room, 'The class could not start. Press Start to try again.', 'warn');
+    }
+    if (room.phase === 'teaching' || room.phase === 'qa') {
+      await this.deps.rooms.update(room.id, { phase: 'check', gate_deadline: null });
+      await this.notice(room, 'The tutor hit a problem; vote ready to go on, or the host can skip.', 'warn');
+    }
   }
 
   private get db() { return this.deps.supa.db; }
@@ -186,7 +213,8 @@ export class RoomConductor {
   private async passGate(room: RoomRow) {
     if (this.gateTimer) { clearTimeout(this.gateTimer); this.gateTimer = null; }
     await this.closeChecks(room);
-    room = await this.deps.rooms.update(room.id, { phase: 'qa', gate_deadline: null });
+    // a Hold ends with the gate it held: the next gate starts free
+    room = await this.deps.rooms.update(room.id, { phase: 'qa', gate_deadline: null, gate_held: false });
     // everything asked during the check is routed before the Q&A beat reads class clusters
     await this.deps.triage.runNow(room.id);
     await this.qaBeat(room);
@@ -248,6 +276,8 @@ export class RoomConductor {
     await this.notice(room, 'Class ended. Thanks for learning together!');
     await this.pendingSummary;
     await this.writeNotes(room);
+    this.next = null;
+    this.deps.ended(room.id);
   }
 
   /** B12: a course's syllabus is searchable once per course. Never rejects. */

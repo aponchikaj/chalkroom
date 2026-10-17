@@ -33,3 +33,23 @@ describe('spammers', () => {
     expect(spammers([], 3)).toEqual([]);
   });
 });
+
+describe('FallbackModel', () => {
+  class Breaks extends ModelPort {
+    readonly name = 'groq';
+    async *stream(): AsyncIterable<ModelEvent> {
+      yield { type: 'tool_delta', partialJson: '{"segm' };
+      throw new Error('groq hit max_tokens');
+    }
+  }
+  it('answers from the fallback when a non-streamed call breaks after partial output', async () => {
+    const { FallbackModel } = await import('../src/agents/fallback.model');
+    const m = new FallbackModel(new Breaks(), new Scripted('mock', { plan: 'mock' }), () => undefined);
+    expect(await m.call(req('r'))).toEqual({ plan: 'mock' });
+  });
+  it('still throws for a live stream, where learners already saw the partial steps', async () => {
+    const { FallbackModel } = await import('../src/agents/fallback.model');
+    const m = new FallbackModel(new Breaks(), new Scripted('mock', { plan: 'mock' }), () => undefined);
+    await expect(m.call({ ...req('r'), streamed: true })).rejects.toThrow(/max_tokens/);
+  });
+});

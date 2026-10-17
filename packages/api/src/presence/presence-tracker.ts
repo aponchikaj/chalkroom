@@ -9,6 +9,9 @@ export class PresenceTracker {
   private missingSince = new Map<string, number>();
   constructor(private leaveMs: number) {}
 
+  /** Someone is missing and counting down to "left": the next sync must read the members. */
+  waiting(): boolean { return this.missingSince.size > 0; }
+
   sync(present: Set<string>, members: PresenceMember[], now: number): { leave: string[]; back: string[] } {
     const leave: string[] = [];
     const back: string[] = [];

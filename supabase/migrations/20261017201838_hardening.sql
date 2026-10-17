@@ -71,8 +71,16 @@ $$;
 revoke execute on function public.otp_attempt(bigint, int) from public, anon, authenticated;
 grant execute on function public.otp_attempt(bigint, int) to service_role;
 
--- 4. Room lease: taken only when free, already ours, or its owner stopped heartbeating (30 s).
---    Returns whether this instance holds it now.
+-- 4. Room lease: taken only when free, already ours, or its owner (in the same instance group)
+--    stopped heartbeating (30 s). Returns whether this instance holds it now. An instance id is
+--    "<group>/<host:port>"; ids without a group share the empty group. Groups keep a test API
+--    from taking over the dev API's rooms and the other way round.
+create or replace function public.lease_group(p_instance text)
+returns text
+language sql
+immutable
+as $$ select case when position('/' in p_instance) > 0 then split_part(p_instance, '/', 1) else '' end $$;
+
 create or replace function public.take_room_lease(p_room uuid, p_instance text)
 returns boolean
 language sql
@@ -83,7 +91,8 @@ as $$
     insert into public.room_leases as l (room_id, conductor_id, seen_at)
     values (p_room, p_instance, now())
     on conflict (room_id) do update set conductor_id = excluded.conductor_id, seen_at = now()
-      where l.conductor_id = excluded.conductor_id or l.seen_at < now() - interval '30 seconds'
+      where l.conductor_id = excluded.conductor_id
+         or (l.seen_at < now() - interval '30 seconds' and public.lease_group(l.conductor_id) = public.lease_group(excluded.conductor_id))
     returning 1
   )
   select exists (select 1 from t);
@@ -91,6 +100,34 @@ $$;
 
 revoke execute on function public.take_room_lease(uuid, text) from public, anon, authenticated;
 grant execute on function public.take_room_lease(uuid, text) to service_role;
+
+-- the heartbeat: refresh many leases in one call; returns the rooms this instance still holds
+create or replace function public.take_room_leases(p_rooms uuid[], p_instance text)
+returns setof uuid
+language sql
+security definer
+set search_path = public
+as $$
+  select r from unnest(p_rooms) r where public.take_room_lease(r, p_instance);
+$$;
+
+revoke execute on function public.take_room_leases(uuid[], text) from public, anon, authenticated;
+grant execute on function public.take_room_leases(uuid[], text) to service_role;
+
+-- live rooms this instance may take over: its own, abandoned ones of its group, unowned ones
+create or replace function public.resumable_rooms(p_instance text)
+returns setof uuid
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select r.id from public.rooms r
+  left join public.room_leases l on l.room_id = r.id
+  where r.phase in ('teaching', 'check', 'qa')
+    and (l.room_id is null or l.conductor_id = p_instance
+         or (l.seen_at < now() - interval '30 seconds' and public.lease_group(l.conductor_id) = public.lease_group(p_instance)));
+$$;
 
 -- 5. Indexes for hot paths and for foreign keys that cascade on account deletion.
 create index chunks_needs_embedding on public.chunks (id) where embedding is null;

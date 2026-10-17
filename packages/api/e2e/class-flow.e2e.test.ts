@@ -96,3 +96,22 @@ describe('ending from the lobby', () => {
     await closeAll([host]);
   });
 });
+
+describe('hold, then skip', () => {
+  it('does not leave the gate held for the next segment', async () => {
+    const host = await newUser('Ana');
+    const { room } = await createRoom(host);
+    await subscribe(host, room.id);
+    await api(host, 'POST', `/rooms/${room.id}/start`);
+    await atCheck(host, 0);
+    await api(host, 'POST', `/rooms/${room.id}/host`, { action: 'hold' });
+    await waitRow(host, (r) => r.table === 'rooms' && r.row.gate_held === true, 'gate held');
+    await api(host, 'POST', `/rooms/${room.id}/host`, { action: 'skip' });
+    await atCheck(host, 1);
+    // the only learner votes ready: the gate must pass by itself, not wait for Resume
+    await api(host, 'POST', `/rooms/${room.id}/ready`, { segment: 1 });
+    await waitEvent(host, (e) => e.kind === 'segment_start' && (e.data as { segment: number }).segment === 2, 'segment 2 without resume');
+    await api(host, 'POST', `/rooms/${room.id}/host`, { action: 'end' });
+    await closeAll([host]);
+  }, 60_000);
+});
