@@ -84,7 +84,8 @@ export async function connectRoom(roomId: string, me: { name: string; color: str
   current();
   const mainStreamId = useRoom.getState().room!.main_stream_id;
   const main = new StreamSync(mainStreamId, (after) => fetchEvents(mainStreamId, after), (ev, live) => {
-    if (gen !== generation) return;
+    // a fetch or broadcast that lands after close() must not play on another page
+    if (gen !== generation || closed) return;
     useRoom.getState().applyMainEvent(ev);
     mainPlayer.push(ev, live);
   });
@@ -127,6 +128,7 @@ export async function connectRoom(roomId: string, me: { name: string; color: str
     channel = ch;
     ch
       .on('broadcast', { event: RT.event }, ({ payload }) => {
+        if (closed) return;
         const ev = payload as StreamEvent;
         main.receive(ev);
         for (const fn of eventListeners) fn(ev);

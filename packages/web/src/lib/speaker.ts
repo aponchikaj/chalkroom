@@ -17,8 +17,10 @@ export class Speaker {
   private stopFns = new Set<() => void>();
   private audioCache = new Map<string, Promise<string>>();
   private generation = 0;
+  /** the class silenced the voice for now (in a side thread, class over); not the person's setting */
+  silenced = false;
 
-  get silent() { return this.settings.muted || this.settings.textOnly; }
+  get silent() { return this.settings.muted || this.settings.textOnly || this.silenced; }
 
   /** Speak one sentence. Resolves when it ends, or when stop() is called. */
   speak(text: string): Promise<void> {
