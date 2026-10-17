@@ -273,6 +273,28 @@ export const AvatarType = z.enum(['image/png', 'image/jpeg', 'image/webp']);
 /** Same rule as the profiles_username_format check; unique ignoring case. */
 export const Username = z.string().trim().regex(/^[A-Za-z0-9_]{3,24}$/, 'use 3 to 24 letters, digits or _');
 
+/** Per-user preferences (row of `user_settings`; defaults until first saved). Text only for
+ *  people: there is no microphone setting, only how the AI tutor's voice plays. */
+export const UserSettings = z.object({
+  /** play the tutor's spoken lines (browser TTS) */
+  tutorVoice: z.boolean(),
+  /** tutor speech rate, 0.5 to 2 */
+  voiceRate: z.number().min(0.5).max(2),
+  /** show captions of the tutor's lines */
+  captions: z.boolean(),
+  /** fewer board animations */
+  reducedMotion: z.boolean(),
+  theme: z.enum(['system', 'light', 'dark']),
+  /** interface language */
+  language: z.enum(['en', 'ka']),
+  /** account emails (class notes, security notices); 2FA codes are always sent */
+  emailNotifications: z.boolean(),
+});
+export type UserSettings = z.infer<typeof UserSettings>;
+export const DEFAULT_SETTINGS: UserSettings = {
+  tutorVoice: true, voiceRate: 1, captions: true, reducedMotion: false, theme: 'system', language: 'en', emailNotifications: true,
+};
+
 export const Api = {
   /** POST /rooms → CreateRoomRes */
   createRoom: z.object({
@@ -317,6 +339,8 @@ export const Api = {
     color: Color.optional(),
     bio: z.string().max(280).optional(),
   }).refine((b) => Object.values(b).some((v) => v !== undefined), 'nothing to update'),
+  /** PATCH /me/settings -> UserSettings (any subset of fields) */
+  updateSettings: UserSettings.partial().refine((b) => Object.keys(b).length > 0, 'nothing to update'),
   /** POST /me/avatar/upload-url -> AvatarUploadRes. Then upload the file to Storage with uploadToSignedUrl. */
   avatarUploadUrl: z.object({ contentType: AvatarType }),
   /** POST /me/avatar -> MeRes. Makes the uploaded file the profile picture (and removes the old one). */
@@ -347,14 +371,16 @@ export interface ProfileRow {
   updated_at: string;
 }
 
-/** GET /me */
+/** GET /me: everything the web needs about the signed-in user, in one call. */
 export interface MeRes {
   profile: ProfileRow;
   /** public URL of the profile picture, or null */
   avatarUrl: string | null;
   email: string | null;
+  settings: UserSettings;
   security: TwoFactorState;
 }
+
 
 /** GET /users/:username: what anyone signed in may see (no email). */
 export interface PublicProfile {
