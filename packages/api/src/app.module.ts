@@ -20,6 +20,10 @@ import { ThreadsService } from './threads/threads.service';
 import { NotesController } from './notes/notes.controller';
 import { CardsController } from './cards/cards.controller';
 import { PresenceService } from './presence/presence.service';
+import { SourcesService } from './rag/sources.service';
+import { SourcesController } from './rag/sources.controller';
+import { IngestWorker } from './rag/ingest.worker';
+import { RetrieveService } from './rag/retrieve.service';
 import { MailModule } from './mail/mail.module';
 import { EmbeddingPort } from './rag/embeddings/embedding.port';
 import { NoEmbeddings } from './rag/embeddings/no.embeddings';
@@ -27,7 +31,7 @@ import { NoEmbeddings } from './rag/embeddings/no.embeddings';
 @Controller()
 class HealthController {
   @Get('health')
-  health() { return { ok: true, model: config.model, modelId: config.model === 'mock' ? null : config.modelId }; }
+  health() { return { ok: true, model: config.model, modelId: config.model === 'mock' ? null : config.agentModels.lead, agents: config.model === 'mock' ? null : config.agentModels }; }
 }
 
 @Module({
@@ -35,10 +39,10 @@ class HealthController {
   // One module wires every feature: feature modules would import each other in a cycle
   // (threads -> conductor -> triage -> thread offers). Folders, not modules, carry the structure.
   providers: [
-    RoomsService, ConductorService, ProfilesService, AvatarsService, TwoFactorService, ThreadStore, TriageService, ThreadsService, PresenceService,
+    RoomsService, ConductorService, ProfilesService, AvatarsService, TwoFactorService, ThreadStore, TriageService, ThreadsService, PresenceService, SourcesService, IngestWorker, RetrieveService,
     // B12 swaps in the Voyage adapter when config.embeddings.provider is 'voyage'
     { provide: EmbeddingPort, useClass: NoEmbeddings },
   ],
-  controllers: [HealthController, MeController, TwoFactorController, UsersController, RoomsController, QuestionsController, ThreadsController, NotesController, CardsController, ...(config.sandbox ? [SandboxController] : [])],
+  controllers: [HealthController, MeController, TwoFactorController, UsersController, RoomsController, QuestionsController, ThreadsController, NotesController, SourcesController, CardsController, ...(config.sandbox ? [SandboxController] : [])],
 })
 export class AppModule {}

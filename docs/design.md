@@ -95,12 +95,12 @@ group, right now:
 │ ● Nika ↗ │            SHARED WHITEBOARD                  │ │ 3 asked      │ │
 │ ● Gio    │      (draws + narrates in sync)               │ │ Why can't a  │ │
 │ ● Mari   │                                               │ │ PDA sign?    │ │
-│          │   🤔🤔 on "PDA" box  (confusion heat)         │ │ coming up    │ │
+│          │   "confused" x2 on "PDA" box (heat)           │ │ coming up    │ │
 │ Syllabus │                                               │ ├──────────────┤ │
-│  ✓ Accts │  ── "A PDA is derived, not generated…" ──     │ │ Gio: what is │ │
+│  + Accts │  ── "A PDA is derived, not generated…" ──     │ │ Gio: what is │ │
 │  ◐ PDAs  │                                               │ │ a bump? ans. │ │
 ├──────────┴───────────────────────────────────────────────┴──────────────────┤
-│ Ready: ✓Ana ✓Gio ·Mari ↗Nika  [I'm ready]  │ 🎤 │ [ ask anything… ]   ⋯ thread │
+│ Ready: +Ana +Gio ·Mari ↗Nika  [I'm ready]  │ [ ask anything… (text) ]  ⋯ thread │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -188,7 +188,7 @@ them. No embedding model or vector database is needed. Anyone can still +1 a que
   pass after the first ready vote, **or** the host presses *Skip*.
 - **Host controls:** Skip, Hold (pause the gate), Slower (the next segment re-explains), and End
   class. If the host leaves, the role passes to the longest-present member.
-- **Anyone:** ready, 🤔 / 👍 on shapes (the confusion heat), ask, +1.
+- **Anyone:** ready, "confused" / "got it" on shapes (the confusion heat), ask, +1.
 - **Pipelining:** the lead tutor starts writing the next segment as soon as the check closes, so
   the board starts drawing as soon as the gate passes.
 
@@ -252,6 +252,14 @@ load.
 | Spam / abuse in public rooms | Question rate limit (6/min); triage flags abuse; host can mute or kick |
 
 ## Model choice
+
+**Groq's free tier (decision 2026-10-17), spread over three models.** Each free model allows
+about 8000 tokens per minute, so the agents use different models: the lead tutor
+`openai/gpt-oss-120b`, the thread tutor `qwen/qwen3.8-27b`, and triage, the scribe, lesson
+planning and Q&A answers `openai/gpt-oss-20b`. The API paces calls from Groq's rate-limit
+headers and falls back to the scripted tutor when quota is not back in time. All three
+produced valid Board Script on the first try in testing. Claude Haiku 4.5 remains supported
+(`ANTHROPIC_API_KEY`), and the original analysis below applies to it.
 
 **Claude Haiku 4.5 (`claude-haiku-4-5-20251001`) for all four agents.**
 
@@ -349,6 +357,15 @@ the agents.
 | `note_blocks` | `room_id`, `idx`, `markdown`, `edited_by`, `version` |
 | `faq` | `course_id`, `topic_id`, `question`, `answer`, `askers_total` |
 | `cards` / `card_reviews` | shared card / per-user FSRS state |
+
+## Accounts, voice and RAG (decisions 2026-10-17)
+
+- **Accounts are required**: email + password, optional 2FA (authenticator app or email codes),
+  profiles with a picture and settings. Joining by QR goes through login.
+- **Text only for people**: no microphone; only the AI tutor speaks (browser TTS).
+- **RAG**: tutors search and cite uploaded files, web pages, the syllabus with past notes and
+  FAQ, and the class transcript (`docs/SCHEMA.md`, "How RAG works").
+- **At most 5 people per room.**
 
 ## What we build by Sunday 12:00 (team of 2–3)
 

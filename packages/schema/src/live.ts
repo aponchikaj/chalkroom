@@ -274,6 +274,27 @@ export type ReactionKind = z.infer<typeof ReactionKind>;
 
 export const DisplayName = z.string().trim().min(1).max(32);
 export const Color = z.string().regex(/^#[0-9a-fA-F]{6}$/);
+// ---------------------------------------------------------------------------
+// Knowledge (RAG): material the tutors search and cite
+// ---------------------------------------------------------------------------
+
+export const SourceKind = z.enum(['file', 'url', 'syllabus', 'notes', 'faq', 'transcript']);
+export type SourceKind = z.infer<typeof SourceKind>;
+export const SourceStatus = z.enum(['pending', 'processing', 'ready', 'failed']);
+export type SourceStatus = z.infer<typeof SourceStatus>;
+/** Upload types; the `resources` bucket also enforces these and a 50 MiB limit. */
+export const SourceFileType = z.enum([
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'text/plain',
+  'text/markdown',
+]);
+export type SourceFileType = z.infer<typeof SourceFileType>;
+
+/** Board Script citation: a shape's `source` is "res:<source id>#p<page>" (page optional). */
+export const citation = (sourceId: string, page?: number | null) => `res:${sourceId}${page ? `#p${page}` : ''}`;
+
 /** What an emailed 2FA code is for. */
 export const OtpPurpose = z.enum(['login', 'enable', 'disable']);
 export type OtpPurpose = z.infer<typeof OtpPurpose>;
@@ -353,6 +374,12 @@ export const Api = {
   }).refine((b) => Object.values(b).some((v) => v !== undefined), 'nothing to update'),
   /** PATCH /me/settings -> UserSettings (any subset of fields) */
   updateSettings: UserSettings.partial().refine((b) => Object.keys(b).length > 0, 'nothing to update'),
+  /** POST /rooms/:id/sources/url -> SourceRow. scope course: the course owner or room host only. */
+  addSourceUrl: z.object({ url: z.string().url().max(2000), title: z.string().trim().min(1).max(200).optional(), scope: z.enum(['room', 'course']).default('room') }),
+  /** POST /rooms/:id/sources/upload-url -> SourceUploadRes. Then upload with storage.from('resources').uploadToSignedUrl. */
+  sourceUploadUrl: z.object({ fileName: z.string().trim().min(1).max(200), contentType: SourceFileType, size: z.number().int().positive().max(52_428_800) }),
+  /** POST /rooms/:id/sources -> SourceRow: index an uploaded file */
+  addSourceFile: z.object({ path: z.string().max(300), title: z.string().trim().min(1).max(200), scope: z.enum(['room', 'course']).default('room') }),
   /** POST /me/2fa/email/send (202): email a 6-digit code. login: unlock this session; enable/disable: toggle email 2FA. */
   emailCodeSend: z.object({ purpose: OtpPurpose }),
   /** POST /me/2fa/email/verify -> TwoFactorState */
@@ -399,6 +426,27 @@ export interface MeRes {
   security: TwoFactorState;
 }
 
+
+/** Row of `sources` (GET /rooms/:id/sources). Ingest moves it pending -> processing -> ready | failed. */
+export interface SourceRow {
+  id: string;
+  course_id: string | null;
+  room_id: string | null;
+  kind: SourceKind;
+  title: string;
+  uri: string | null;
+  mime: string | null;
+  status: SourceStatus;
+  error: string | null;
+  page_count: number | null;
+  chunk_count: number;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** POST /rooms/:id/sources/upload-url */
+export interface SourceUploadRes { path: string; token: string; signedUrl: string }
 
 /** GET /users/:username: what anyone signed in may see (no email). */
 export interface PublicProfile {
@@ -506,22 +554,6 @@ export interface CardRow {
 
 /** Row of `card_reviews`: one learner's own schedule for one card. */
 export interface CardReviewRow { card_id: string; user_id: string; fsrs: FsrsState; updated_at: string }
-
-/** Row of `sources`: a learning material of a room or its course (files and links arrive with RAG). */
-export interface SourceRow {
-  id: string;
-  course_id: string | null;
-  room_id: string | null;
-  kind: 'file' | 'url' | 'syllabus' | 'notes' | 'faq' | 'transcript';
-  title: string;
-  uri: string | null;
-  mime: string | null;
-  status: 'pending' | 'processing' | 'ready' | 'failed';
-  error: string | null;
-  page_count: number | null;
-  chunk_count: number;
-  created_at: string;
-}
 
 /** Scribe tool output at the end of class: the class deck. */
 export const ProposedCards = z.object({
