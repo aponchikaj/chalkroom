@@ -58,15 +58,13 @@ export class TwoFactorService {
     if (purpose === 'enable' && u.mfa.email2fa) throw new ConflictException('email codes are already on');
     if (purpose !== 'enable' && !u.mfa.email2fa) throw new ConflictException('email codes are off');
 
-    const since = new Date(Date.now() - 3_600_000).toISOString();
-    const recent = await this.db.from('email_otp_codes').select('id', { count: 'exact', head: true }).eq('user_id', u.id).gte('created_at', since);
-    if ((recent.count ?? 0) >= OTP.maxSendsPerHour) throw new HttpException('too many codes requested; try again later', 429);
-
     const code = newCode();
-    const ins = await this.db.from('email_otp_codes').insert({
-      user_id: u.id, purpose, code_hash: hashCode(secret, u.id, purpose, code), expires_at: new Date(Date.now() + OTP.ttlMs).toISOString(),
+    // the hourly limit and the insert are one locked step (parallel sends cannot pass it)
+    const ins = await this.db.rpc('otp_issue', {
+      p_user: u.id, p_purpose: purpose, p_hash: hashCode(secret, u.id, purpose, code), p_expires: new Date(Date.now() + OTP.ttlMs).toISOString(), p_max: OTP.maxSendsPerHour,
     });
     if (ins.error) throw new Error(ins.error.message);
+    if (ins.data !== true) throw new HttpException('too many codes requested; try again later', 429);
     const what = purpose === 'login' ? 'to finish logging in' : purpose === 'enable' ? 'to turn on email codes' : 'to turn off email codes';
     await this.mail.send({
       to: u.email,

@@ -226,3 +226,46 @@ $$;
 
 revoke execute on function public.toggle_vote(uuid, uuid) from public, anon, authenticated;
 grant execute on function public.toggle_vote(uuid, uuid) to service_role;
+
+-- 9. Email codes are issued under a per-user lock, so parallel sends cannot pass the hourly
+--    limit. Returns false when the limit is reached.
+create or replace function public.otp_issue(p_user uuid, p_purpose text, p_hash text, p_expires timestamptz, p_max int)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  perform pg_advisory_xact_lock(hashtextextended('otp:' || p_user::text, 0));
+  if (select count(*) from public.email_otp_codes where user_id = p_user and created_at > now() - interval '1 hour') >= p_max then
+    return false;
+  end if;
+  insert into public.email_otp_codes (user_id, purpose, code_hash, expires_at) values (p_user, p_purpose, p_hash, p_expires);
+  return true;
+end;
+$$;
+
+revoke execute on function public.otp_issue(uuid, text, text, timestamptz, int) from public, anon, authenticated;
+grant execute on function public.otp_issue(uuid, text, text, timestamptz, int) to service_role;
+
+-- 10. The API's second-factor facts count any verified factor, the same rule as
+--     mfa_satisfied() (only TOTP is enabled today, but the two must never disagree).
+create or replace function public.mfa_facts(p_user uuid, p_session uuid)
+returns table (totp_verified boolean, email_2fa boolean, session_passed_email boolean)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select
+    exists (select 1 from auth.mfa_factors f where f.user_id = p_user and f.status = 'verified'),
+    coalesce((select s.email_2fa_enabled from public.user_security s where s.user_id = p_user), false),
+    p_session is not null and exists (select 1 from public.mfa_sessions m where m.user_id = p_user and m.session_id = p_session);
+$$;
+
+-- 11. Deleting an account no longer deletes the classes it hosted (with every learner's notes,
+--     answers and cards): an ended room keeps its content and loses its host. Live rooms are
+--     refused by the API before deletion.
+alter table public.rooms alter column host_id drop not null;
+alter table public.rooms drop constraint rooms_host_id_fkey;
+alter table public.rooms add constraint rooms_host_id_fkey foreign key (host_id) references auth.users on delete set null;

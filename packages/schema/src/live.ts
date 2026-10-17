@@ -120,7 +120,8 @@ export interface RoomRow {
   topic_id: string | null;
   title: string;
   goal: string;
-  host_id: string;
+  /** null once the host deleted their account (ended rooms only) */
+  host_id: string | null;
   phase: Phase;
   segment: number;
   visibility: 'private' | 'public';
