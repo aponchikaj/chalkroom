@@ -268,6 +268,8 @@ export type ReactionKind = z.infer<typeof ReactionKind>;
 
 export const DisplayName = z.string().trim().min(1).max(32);
 export const Color = z.string().regex(/^#[0-9a-fA-F]{6}$/);
+/** Profile picture types; the `avatars` bucket also enforces these and a 2 MiB limit. */
+export const AvatarType = z.enum(['image/png', 'image/jpeg', 'image/webp']);
 /** Same rule as the profiles_username_format check; unique ignoring case. */
 export const Username = z.string().trim().regex(/^[A-Za-z0-9_]{3,24}$/, 'use 3 to 24 letters, digits or _');
 
@@ -315,6 +317,10 @@ export const Api = {
     color: Color.optional(),
     bio: z.string().max(280).optional(),
   }).refine((b) => Object.values(b).some((v) => v !== undefined), 'nothing to update'),
+  /** POST /me/avatar/upload-url -> AvatarUploadRes. Then upload the file to Storage with uploadToSignedUrl. */
+  avatarUploadUrl: z.object({ contentType: AvatarType }),
+  /** POST /me/avatar -> MeRes. Makes the uploaded file the profile picture (and removes the old one). */
+  avatarCommit: z.object({ path: z.string().max(200) }),
   /** PUT /rooms/:id/notes/:blockId */
   editNote: z.object({ markdown: z.string().max(5000), version: z.number().int() }),
 } as const;
@@ -348,6 +354,25 @@ export interface MeRes {
   avatarUrl: string | null;
   email: string | null;
   security: TwoFactorState;
+}
+
+/** GET /users/:username: what anyone signed in may see (no email). */
+export interface PublicProfile {
+  id: string;
+  username: string;
+  display_name: string;
+  color: string;
+  bio: string;
+  avatarUrl: string | null;
+}
+
+/** POST /me/avatar/upload-url */
+export interface AvatarUploadRes {
+  /** object key in the `avatars` bucket: "<user id>/<uuid>.<ext>" */
+  path: string;
+  /** for supabase.storage.from('avatars').uploadToSignedUrl(path, token, file) */
+  token: string;
+  signedUrl: string;
 }
 
 /** Second-factor state of the caller and this session (2FA lands in B11). */
