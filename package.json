@@ -16,6 +16,7 @@
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
     "db:status": "supabase status -o env",
+    "test:db": "supabase test db",
     "db:push:prod": "node --env-file=.env.production.local scripts/db-push-prod.mjs",
     "env": "node scripts/write-env.mjs",
     "build": "npm run build -w @chalk/web && npm run build -w @chalk/api",
