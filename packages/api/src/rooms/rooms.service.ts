@@ -75,10 +75,10 @@ export class RoomsService {
     if (room.phase === 'ended') return null;
     const active = await this.activeMembers(roomId);
     if (active.some((m) => m.user_id === room.host_id)) return null;
-    const next = pickSuccessor(active, room.host_id);
+    const next = pickSuccessor(active, room.host_id ?? '');
     if (!next) return null;
     await this.update(roomId, { host_id: next.user_id });
-    await this.db.from('room_members').update({ role: 'learner' }).eq('room_id', roomId).eq('user_id', room.host_id);
+    if (room.host_id) await this.db.from('room_members').update({ role: 'learner' }).eq('room_id', roomId).eq('user_id', room.host_id);
     await this.db.from('room_members').update({ role: 'host' }).eq('room_id', roomId).eq('user_id', next.user_id);
     await this.events.append(room.main_stream_id, 'notice', { text: `${next.display_name} is now the host.`, level: 'info' }, 'system');
     return next;
