@@ -43,11 +43,18 @@ schema needs Supabase's `auth` and `realtime` schemas.
 Apply migrations to production with `npm run db:push:prod` (add `-- --dry-run` to preview).
 Deployed API hosts get the production values as platform env vars.
 
-### Claude instead of the scripted tutor
+### A real model instead of the scripted tutor
 
-Add `ANTHROPIC_API_KEY=sk-ant-…` to `.env` and restart the API. All four agents use
-`claude-haiku-4-5` (override with `MODEL_ID`). If a model call fails, the API falls back to
-the scripted tutor for that call. Force the mock with `MODEL=mock`.
+Add `GROQ_API_KEY=gsk_...` to `.env.local` (free at console.groq.com) and restart the API.
+The agents spread over Groq's free models, each with its own 8000 tokens per minute: lead
+tutor `openai/gpt-oss-120b`, thread tutor `qwen/qwen3.8-27b`, triage, scribe, planning and
+Q&A answers `openai/gpt-oss-20b`. When a call would exceed the quota the API waits for it
+(within each agent's limit) and otherwise answers from the scripted tutor. The free tier runs
+one class at a time comfortably. Override models with `MODEL_ID` (all) or `MODEL_ID_LEAD`,
+`MODEL_ID_THREAD`, `MODEL_ID_TRIAGE`, `MODEL_ID_SCRIBE`.
+
+Claude instead: `ANTHROPIC_API_KEY=sk-ant-...` (and no Groq key, or `MODEL=anthropic`) runs
+all agents on `claude-haiku-4-5`. Force the scripted tutor with `MODEL=mock`.
 
 ### Other commands
 

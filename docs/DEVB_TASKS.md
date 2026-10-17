@@ -35,11 +35,11 @@ The anonymous-join demo in `docs/design.md` ("join by QR, the avatars pop in") n
 | 4 | B3 Scribe and notes | P0, **done** | M4 Wrap-up | A3 catch-up card, A5 notes | M |
 | 5 | B5 Presence gate and host handoff | P0, **done** | M4 Wrap-up | A4 ready bar | M |
 | 6 | B10 Profiles, avatars and settings | P1, **done** | M4 | profile page, avatar picker, settings | M |
-| 7 | B1 Real model | P0, **built** (verify with a key) | M5 Polish | nothing (mock speaks the same contract) | M |
+| 7 | B1 Real model | P0, **done** (Groq free tier) | M5 Polish | nothing (mock speaks the same contract) | M |
 | 8 | B11 Two-factor authentication | P1, **done** | M5 | 2FA settings and login step | M |
-| 9 | B12 RAG | P1 | M5 | sources panel, citations | L |
+| 9 | B12 RAG | P1, **done** | M5 | sources panel, citations | L |
 | 10 | B6 Reliability | P1, **done** | M5 Polish | host mute/kick buttons | M |
-| 11 | B7 Deploy | P1 | M5, before rehearsal | the demo itself | S |
+| 11 | B7 Deploy | P1, **prepared** (needs hosted keys) | M5, before rehearsal | the demo itself | S |
 
 B1 can start any time once an `ANTHROPIC_API_KEY` exists. B9 comes early because "accounts
 required" changes how every test and the web sign in; ship it together with Dev A's login
