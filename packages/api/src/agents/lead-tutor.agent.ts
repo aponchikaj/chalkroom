@@ -53,7 +53,7 @@ export class LeadTutorAgent {
     const notes = [
       `Teach segment ${ctx.segment}: "${seg.title}". Objective: ${seg.objective}`,
       ctx.slower ? 'The host asked to go slower: smaller steps, simpler words.' : '',
-      ctx.simple ? 'Keep the board simple: use only page, text, box, sticky and say steps.' : '',
+      ctx.simple ? 'Keep the board simple: use only page, text, box, sticky and say steps, and still end with the check.' : '',
       ctx.context ?? '',
       ctx.lastCheck ? `Last check "${ctx.lastCheck.prompt}": ${ctx.lastCheck.spread.correct}/${ctx.lastCheck.spread.total} correct (answer: ${ctx.lastCheck.answerText}).` : '',
       ctx.summaries.length ? `So far:\n${ctx.summaries.join('\n')}` : '',
