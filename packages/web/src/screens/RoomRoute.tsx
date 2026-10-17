@@ -48,7 +48,6 @@ export function RoomRoute({ code }: { code: string }) {
             <p className="muted">Host: {preview.hostName || '—'} · {preview.taken}/{preview.seats} seats · {preview.phase === 'lobby' ? 'starting soon' : preview.phase === 'ended' ? 'ended' : 'in progress'}</p>
           </>
         ) : !error && <p className="muted">Loading room {code}…</p>}
-        {/* TODO(frontend): mic test + "join muted" (design doc, Pre-join screen) */}
         <ProfileFields value={profile} onChange={setProfile} />
         {error && <p className="error-text">{error}</p>}
         <button className="btn primary" disabled={busy || !profile.name.trim() || !preview}>{busy ? 'Joining…' : 'Join class'}</button>

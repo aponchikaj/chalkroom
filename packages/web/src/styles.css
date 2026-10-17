@@ -228,7 +228,6 @@ h1, h2, h3 { margin: 0; line-height: 1.2; }
 .ask { flex: 1; min-width: 220px; display: flex; gap: 6px; }
 .ask .input { flex: 1; }
 .prompt-hint { font-size: 12.5px; color: var(--chalk-accent); padding: 0 12px 4px; background: var(--bg-2); }
-.mic.on { background: var(--danger); color: #fff; border-color: transparent; }
 
 /* ---------- chat ---------- */
 .chat { display: flex; flex-direction: column; gap: 10px; padding: 12px; }

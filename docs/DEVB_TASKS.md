@@ -17,6 +17,8 @@ Read first: `docs/design.md` (product), `docs/TASKS.md` (lanes and milestones), 
 | Profiles | Username, display name, color, bio, profile picture | B10: profile API, avatars bucket |
 | 2FA | Authenticator app (TOTP) **and** email codes | B11: Supabase MFA for TOTP, our own email-code flow |
 | RAG | Uploaded files, web pages, syllabus + past notes and FAQ, live class transcript | B12 replaces the old B8 (PDF only) |
+| Voice | **Text only for people.** No microphone, no speech-to-text, no calls with audio; only the AI tutor speaks (browser TTS of its `say` steps) | Nothing to build server-side; `packages/web/src/lib/stt.ts` removed; agents never expect spoken input |
+| Settings | Users have settings (tutor voice, captions, motion, theme, language, notifications) | B10: `user_settings` table and `GET/PATCH /me/settings` |
 | Room size | **5 users maximum** per room | Already enforced: `rooms.seats` check, `LIVE.maxSeats`, join returns 409; tested in e2e and pgTAP |
 
 The anonymous-join demo in `docs/design.md` ("join by QR, the avatars pop in") now means

@@ -74,7 +74,8 @@ mock speaks the same contract.
   `askers`.
 
 ### A2 Ask UX (P0)
-- Hold Space to talk: `lib/stt.ts` (`Listener`) → fills the ask box, sends on release.
+- Text only: people never use a microphone (decision 2026-10-17; `lib/stt.ts` was removed). The
+  AI tutor is the only voice.
 - Select shapes on the board (`Board` already supports selection) → "Ask about this" →
   `api.ask(roomId, { text, anchor: { streamId: room.main_stream_id, shapeIds } })`.
 - Typing indicator via `conn.track({ typing: true })` (presence, not stored).
@@ -112,7 +113,7 @@ mock speaks the same contract.
   a glow on the board (`board/Board.tsx`, `PageView`).
 - Laser pointer: hold `L` → `conn.sendLaser` throttled to `LIVE.laserHz`; draw others'
   lasers from `conn.onLaser`.
-- Pre-join mic test + "join muted"; a "tap to enable voice" prompt when TTS is blocked.
+- A "tap to enable the tutor's voice" prompt when browser TTS is blocked (no microphone anywhere).
 
 ### A7 Demo polish
 - Mobile layout (the phone in the demo), empty and error states, the design pass on Home and
