@@ -1,10 +1,9 @@
 // Accounts (B9): profile from the signup trigger, GET /me, rooms that default to the profile,
-// and the accounts-required switch (a second API started with REQUIRE_ACCOUNT=1).
-import { spawn, type ChildProcess } from 'node:child_process';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+// and accounts being required (no anonymous sign-in, password rules).
+import { describe, expect, it } from 'vitest';
 import { createClient } from '@supabase/supabase-js';
 import type { CreateRoomRes, JoinRoomRes, MeRes } from '@chalk/schema';
-import { ROOT, api, createRoom, env, newUser, sleep } from './helpers';
+import { api, createRoom, env, newUser } from './helpers';
 
 describe('GET /me', () => {
   it('returns the profile the signup trigger created, with the email', async () => {
@@ -46,38 +45,19 @@ describe('rooms default to the profile', () => {
   });
 });
 
-describe('REQUIRE_ACCOUNT=1', () => {
-  const PORT = 3102;
-  const url = `http://localhost:${PORT}`;
-  let child: ChildProcess;
-
-  beforeAll(async () => {
-    child = spawn('npm', ['run', 'start', '-w', '@chalk/api'], {
-      cwd: ROOT, detached: true, stdio: ['ignore', 'ignore', 'inherit'],
-      // RESUME_ROOMS=0: this instance must not drive rooms the main API runs
-      env: { ...process.env, MODEL: 'mock', API_PORT: String(PORT), REQUIRE_ACCOUNT: '1', SANDBOX: '0', RESUME_ROOMS: '0' },
-    });
-    for (let i = 0; i < 60; i++) {
-      try { if ((await fetch(`${url}/health`)).ok) return; } catch { /* starting */ }
-      await sleep(500);
-    }
-    throw new Error('second API did not start');
-  });
-  afterAll(() => { if (child?.pid) try { process.kill(-child.pid, 'SIGTERM'); } catch { /* gone */ } });
-
-  const call = (token: string, path: string, body: unknown) =>
-    fetch(`${url}${path}`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
-
-  it('refuses anonymous sessions with 403', async () => {
+describe('accounts are required', () => {
+  it('refuses anonymous sign-in', async () => {
     const anon = createClient(env.VITE_SUPABASE_URL!, env.VITE_SUPABASE_ANON_KEY!, { auth: { persistSession: false } });
-    const { data } = await anon.auth.signInAnonymously();
-    const r = await call(data.session!.access_token, '/rooms', { title: 'x' });
-    expect(r.status).toBe(403);
-    expect(((await r.json()) as { message: string }).message).toMatch(/account is required/);
+    const { data, error } = await anon.auth.signInAnonymously();
+    expect(data.session).toBeNull();
+    expect(error?.message).toMatch(/anonymous/i);
   });
 
-  it('lets account holders through', async () => {
-    const ana = await newUser('Ana');
-    expect((await call(ana.token, '/rooms', { title: 'x' })).status).toBe(201);
+  it('enforces the password rules on signup', async () => {
+    const sb = createClient(env.VITE_SUPABASE_URL!, env.VITE_SUPABASE_ANON_KEY!, { auth: { persistSession: false } });
+    for (const password of ['short1A', 'alllowercase123', 'NoDigitsHereAtAll']) {
+      const { error } = await sb.auth.signUp({ email: `weak-${crypto.randomUUID().slice(0, 8)}@example.com`, password });
+      expect(error, password).toBeTruthy();
+    }
   });
 });
