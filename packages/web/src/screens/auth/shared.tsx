@@ -9,13 +9,15 @@ import './auth.css';
 
 export const ICON = { size: 16, strokeWidth: 2 } as const;
 
-/** One manual leaf: the running head, the title side and the form side set off by a rule. */
-export function AuthLeaf({ title, lede, aside, children, wide }: {
-  title: ReactNode; lede?: ReactNode; aside?: ReactNode; children: ReactNode; wide?: boolean;
+/** One manual leaf: the running head, the title side, and the form on a library card tucked
+ *  into the leaf. `cardNo` prints in the card's number box (an invite code, for example); the
+ *  card's foot is ruled like a date-due slip. */
+export function AuthLeaf({ title, lede, aside, children, wide, cardNo }: {
+  title: ReactNode; lede?: ReactNode; aside?: ReactNode; children: ReactNode; wide?: boolean; cardNo?: ReactNode;
 }) {
   return (
-    <div className="entry">
-      <article className="manual leaf punched">
+    <main className="entry">
+      <article className="manual leaf punched page-fill auth-manual">
         <header className="manual-head">
           <button type="button" className="btn ghost small manual-back" onClick={() => navigate('/')}><ArrowLeft {...ICON} aria-hidden /> Chalkroom Live</button>
           <span className="manual-meta auth-meta">Live classes for up to five people</span>
@@ -26,9 +28,37 @@ export function AuthLeaf({ title, lede, aside, children, wide }: {
             {lede && <p className="lede">{lede}</p>}
             {aside}
           </section>
-          <div className="auth-side">{children}</div>
+          <div className="auth-side">
+            <div className="library-card">
+              <div className="lc-head">
+                <span className="lc-brand" aria-hidden>Chalkroom Live</span>
+                <span className="lc-kind" aria-hidden>Library card</span>
+                {cardNo && <span className="lc-no"><span aria-hidden>No. </span><span className="sr-only">Invite code </span><span className="mono">{cardNo}</span></span>}
+              </div>
+              {children}
+              <div className="lc-due" aria-hidden>
+                <span className="lc-due-head">Date due</span><span className="lc-due-head">Class</span>
+                <span className="lc-due-cell" /><span className="lc-due-cell" />
+                <span className="lc-due-cell" /><span className="lc-due-cell" />
+              </div>
+            </div>
+          </div>
         </div>
       </article>
+    </main>
+  );
+}
+
+/** On an invite link: Sign up first, Log in second, as two keys at the top of the card. The
+ *  pressed key names the form, so the form's own heading is for screen readers only. */
+export function AuthMode({ mode, onSwitch }: { mode: 'signup' | 'login'; onSwitch: () => void }) {
+  const key = (m: 'signup' | 'login', words: string) => (
+    <button type="button" className="auth-mode-key" aria-pressed={mode === m} onClick={() => { if (mode !== m) onSwitch(); }}>{words}</button>
+  );
+  return (
+    <div className="auth-mode" role="group" aria-label="Account">
+      {key('signup', 'New here: sign up')}
+      {key('login', 'I have an account: log in')}
     </div>
   );
 }

@@ -51,7 +51,7 @@ async function fillSignup(p, name) {
   await p.page.getByLabel('Display name').fill(name);
   await p.page.getByLabel('Email').fill(`${name.toLowerCase()}-${stamp}@example.com`);
   await p.page.getByLabel('Password', { exact: true }).fill(PASSWORD);
-  await p.page.getByRole('button', { name: /create (my )?account|sign up/i }).click();
+  await p.page.getByRole('button', { name: /^\s*(create (my )?account|sign up)\s*$/i }).click();
 }
 
 await step('Ana signs up and creates a class', async () => {
@@ -67,14 +67,19 @@ await step('Ana signs up and creates a class', async () => {
   log(`     code ${code}`);
 }, [ana]);
 
-// Nika and Gio come in by the class link (the QR code): the gate asks them to log in, they
-// create an account and land back on the class
+// Nika and Gio come in by the class link (the QR code): the gate opens Sign up first, they
+// create an account and land back on the class. Gio first checks the Log in key and comes back.
 for (const [p, name] of [[nika, 'Nika'], [gio, 'Gio']]) {
   await step(`${name} opens the class link, signs up and joins`, async () => {
     await p.page.goto(`${BASE}/r/${code}`);
-    await p.page.getByText(/log in to join/i).first().waitFor({ timeout: 15000 });
-    if (name === 'Gio') await snap(p, 'gate');
-    await p.page.getByRole('button', { name: /create an account/i }).click();
+    await p.page.getByText(/sign up to join/i).first().waitFor({ timeout: 15000 });
+    if (name === 'Gio') {
+      await p.page.getByRole('button', { name: /i have an account: log in/i }).click();
+      await p.page.getByText(/log in to join/i).first().waitFor({ timeout: 15000 });
+      await snap(p, 'gate');
+      await p.page.getByRole('button', { name: /new here: sign up/i }).click();
+      await p.page.getByText(/sign up to join/i).first().waitFor({ timeout: 15000 });
+    }
     await fillSignup(p, name);
     await p.page.getByRole('button', { name: /join muted/i }).click({ timeout: 15000 });
     await p.page.locator('.live').waitFor({ timeout: 15000 });
@@ -129,7 +134,8 @@ await step('Nika accepts the thread offer', async () => {
 }, [nika, ana]);
 
 await step('Ready gate (Nika excused while in her thread)', async () => {
-  for (const p of [ana, gio]) await p.page.getByRole('button', { name: /i'm ready/i }).click({ timeout: 15000 });
+  // Ready opens on each device once its narration of the part ends (a voiced host can take longer)
+  for (const p of [ana, gio]) await p.page.getByRole('button', { name: /i'm ready/i }).click({ timeout: 90000 });
   await ana.page.locator('.phase-qa, .phase-teaching').waitFor({ timeout: 30000 });
   await snap(ana, 'after-gate');
   await snap(gio, 'after-gate');
@@ -235,6 +241,17 @@ await step('Home: the class is under Your classes, and Gio rejoins a live one', 
   await gio.page.getByText(/^rejoin/i).first().click();
   await gio.page.locator('.live').waitFor({ timeout: 15000 });
 }, [ana, gio]);
+
+// leaving a class in-app keeps Home clickable (the board's styles were once loaded by then)
+await step('Gio leaves the class for Home and opens the Lobby tab', async () => {
+  // the phone masthead hides the brand button; the account menu leads home on every width
+  await gio.page.getByRole('button', { name: /account menu/i }).click();
+  await gio.page.getByRole('menuitem', { name: /your classes/i }).click();
+  const lobby = gio.page.getByRole('tab', { name: /lobby/i });
+  await lobby.click({ timeout: 10000 });
+  if ((await lobby.getAttribute('aria-selected')) !== 'true') throw new Error('the Lobby tab did not open after leaving a class');
+  await gio.page.getByRole('link', { name: /replays of finished classes/i }).waitFor({ timeout: 5000 });
+}, [gio]);
 
 await browser.close();
 console.log(problems.length ? `\nPROBLEMS (${problems.length}):\n  ${[...new Set(problems)].join('\n  ')}` : '\nno problems recorded');

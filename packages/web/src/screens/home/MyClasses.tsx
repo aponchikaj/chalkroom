@@ -140,6 +140,9 @@ export function MyClasses({ load, reload, onSwitch }: { load: Load; reload: () =
           {load.classes.map((c) => <ClassRow key={c.room.id} c={c} />)}
         </ol>
       )}
+      {load.status === 'ready' && (
+        <p className="form-note">Finished public classes from everyone play back in <a className="text-link" href="/replays" onClick={go('/replays')}>Replays</a>.</p>
+      )}
     </section>
   );
 }

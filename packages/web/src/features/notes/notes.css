@@ -1,21 +1,101 @@
 /* A5 (Dev A): shared notes in the rail, and the recap leaf over the board when class ends. */
 
-/* ---------- notes ---------- */
-.notes { padding: 14px 16px 20px; display: flex; flex-direction: column; gap: 10px; }
-.notes-lead { font-size: var(--t-xs); color: var(--ink-3); }
-.notes-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
-.notes-list > li + li { border-top: 1px solid var(--rule); }
-.note-block { padding: 12px 0; display: flex; flex-direction: column; gap: 8px; }
-.note-md { font-family: var(--font-read); font-size: 1rem; line-height: 1.55; color: var(--ink); overflow-x: auto; }
-.note-md h1, .note-md h2, .note-md h3 { font-family: var(--font-ui); font-stretch: 82%; font-size: 1.08rem; margin: 0 0 6px; }
-.note-md .katex-display { margin: 8px 0; overflow-x: auto; overflow-y: hidden; }
-.note-block.is-locked .note-md { color: var(--ink-2); }
+/* ---------- notes: pencil on a ruled page ---------- */
+.notes { padding: 14px 0 0; display: flex; flex-direction: column; gap: 10px; min-height: 100%; }
+.notes-lead { padding: 0 16px; font-size: var(--t-xs); color: var(--ink-3); }
+
+/* the page: rules from the .ruled utility, the margin rule in the segment hue */
+.notes-page.ruled {
+  --lh: 32px; --fs: 17px; --pad-top: 16px; --margin-x: 58px;
+  list-style: none; margin: 0; flex: 1;
+  padding: var(--pad-top) 16px calc(var(--lh) * 2) 70px;
+  color: var(--pencil);
+  border-top: 1px solid var(--rule);
+}
+.notes-entry { position: relative; }
+
+/* who wrote it last, in the margin: a colour dot and initials (print, not hand) */
+.note-who {
+  position: absolute; left: -70px; top: 0; width: 52px;
+  display: flex; align-items: center; justify-content: flex-end; gap: 4px; height: var(--lh);
+  font-family: var(--font-ui); font-size: 10px; font-weight: 750; font-stretch: 80%; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--ink-3); white-space: nowrap; overflow: hidden;
+}
+.note-who-short { display: none; }
+.note-who i { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--c, var(--rule-2)); }
+
+.note-block { position: relative; }
+.note-body { min-height: var(--lh); }
+.note-md { font-family: inherit; font-size: inherit; line-height: var(--lh); color: inherit; overflow-x: auto; overflow-y: hidden; }
+.note-md > * { margin: 0; }
+.note-md p, .note-md li { line-height: var(--lh); }
+.note-md ul, .note-md ol { padding-left: 20px; margin: 0; }
+.note-md li + li { margin-top: 0; }
+.note-md li::marker { color: var(--ink-3); }
+/* headings: the tutor's board hand, in pen */
+.note-md h1, .note-md h2, .note-md h3, .note-md h4 {
+  font-family: var(--hand-board); font-weight: 700; font-size: 22px; line-height: var(--lh); letter-spacing: 0;
+  color: var(--pen); margin: 0;
+}
+.note-md > :is(h1, h2, h3, h4):not(:first-child) { margin-top: var(--lh); }
+/* highlighter: a band of the segment hue low on the line, as a marker would leave it */
+.note-md strong, .note-md mark {
+  font-weight: inherit; color: inherit;
+  background: linear-gradient(transparent 46%, color-mix(in srgb, var(--section, var(--h-teal)) 26%, transparent) 46% 90%, transparent 90%);
+  padding: 0 2px; margin: 0 -1px; -webkit-box-decoration-break: clone; box-decoration-break: clone;
+}
+.note-md em { font-style: normal; text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--pencil) 45%, transparent); text-underline-offset: 5px; }
+.note-md code { font-family: var(--font-mono); font-size: 0.8em; background: color-mix(in srgb, var(--paper-2) 75%, transparent); padding: 1px 4px; border-radius: 2px; color: var(--ink); }
+/* code blocks are a card laid on the page: it hides the rules and keeps the rule pitch */
+.note-md pre { background: var(--paper-2); border-radius: 2px; padding: 0 10px; line-height: var(--lh); overflow-x: auto; }
+.note-md pre code { background: none; padding: 0; font-size: 13px; }
+.note-md blockquote { padding-left: 12px; border-left: 1px solid var(--rule-2); color: var(--ink-2); margin: 0; }
+.note-md table { border-collapse: collapse; background: var(--leaf); font-family: var(--font-ui); font-size: var(--t-sm); }
+.note-md th, .note-md td { border: 1px solid var(--rule); padding: 0 8px; line-height: calc(var(--lh) - 1px); }
+.note-md .katex-display { margin: 0; padding: 4px 0; overflow-x: auto; overflow-y: hidden; background: var(--leaf); }
+.note-md .katex { font-size: 1.02em; }
+.note-md a { color: var(--pen); text-underline-offset: 4px; }
+.note-block.is-locked .note-md { color: var(--ink-3); }
+
+/* the tools sit in the margin on the block's second rule: shown on hover and focus with a mouse */
+.note-tools {
+  position: absolute; top: var(--lh); left: -50px; width: 32px; height: var(--lh);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-ui); line-height: 1.2;
+}
+.note-edit { width: 30px; height: 28px; min-height: 0; padding: 0; color: var(--ink-2); background: var(--leaf); }
+.note-edit:hover:not(:disabled) { color: var(--ink); }
+.note-lock { display: inline-flex; color: var(--ink-3); }
+@media (hover: hover) {
+  .note-block:not(.is-locked) .note-tools { opacity: 0; transition: opacity var(--dur-quick) var(--ease-out); }
+  .note-block:hover .note-tools, .note-block:focus-within .note-tools { opacity: 1; }
+}
+
+/* editing: a slip of leaf laid over the page (no ruling behind controls) */
+.note-block.is-editing {
+  display: flex; flex-direction: column; gap: 8px;
+  margin: 0 -10px 0 -12px; padding: 8px 10px 8px 12px;
+  background: var(--leaf); box-shadow: var(--shadow-leaf); border: 1px solid var(--rule); border-radius: var(--r);
+  font-family: var(--font-ui); color: var(--ink);
+}
+.note-block.is-editing .errata, .note-block.is-editing .note-foot { line-height: 1.4; }
 .note-foot { display: flex; align-items: center; gap: 8px; min-height: 28px; font-size: var(--t-xs); }
 .note-foot .btn.ghost { color: var(--ink-2); }
 .note-foot .btn.ghost:hover:not(:disabled) { color: var(--ink); }
-.note-block.is-editing { padding: 12px 0; }
-.note-textarea { font-size: 0.95rem; line-height: 1.5; min-height: 120px; }
+.note-textarea { font-family: var(--font-mono); font-size: 0.86rem; line-height: 1.55; min-height: 120px; }
 .notes-empty { padding: 28px 18px; display: flex; flex-direction: column; gap: 6px; font-size: var(--t-sm); color: var(--ink); max-width: 34ch; }
+
+@media (max-width: 760px) {
+  /* the margin is 44px wide: who wrote it reads from the page edge and stops well short of the
+     margin rule; the edit pencil fills the margin as a 44px tap target */
+  .notes-page.ruled { --lh: 30px; --fs: 16px; --margin-x: 44px; padding-left: 56px; padding-right: 12px; }
+  .note-who { left: -52px; width: 32px; font-size: 9.5px; justify-content: flex-start; }
+  .note-who-long { display: none; }
+  .note-who-short { display: inline; }
+  .note-tools { left: -56px; width: 44px; }
+  .note-tools .btn.small.note-edit { width: 44px; height: 44px; margin: -7px 0; }
+  .note-md h1, .note-md h2, .note-md h3, .note-md h4 { font-size: 20px; }
+}
 
 /* ---------- recap: the class is over ---------- */
 .recap {

@@ -1,9 +1,10 @@
-// AS: Preferences: how the tutor plays on your devices, captions, motion, language and email.
+// AS: Preferences: how the tutor plays on your devices, captions, motion and email. English only.
 // Every change applies at once and saves on its own; a failed save puts the old value back.
 import { useEffect, useRef, useState } from 'react';
 import type { UserSettings } from '@chalk/schema';
-import { usePreferences } from '../../lib/preferences';
+import { setPlainType, usePlainType, usePreferences } from '../../lib/preferences';
 import { Done, Errata, Switch, say } from './parts';
+import { DeviceSound } from './DeviceSound';
 
 const RATE_MIN = 0.5;
 const RATE_MAX = 2;
@@ -16,6 +17,7 @@ export function PreferencesSection() {
   const [rate, setRate] = useState(settings.voiceRate);
   const rateTimer = useRef<number | undefined>(undefined);
   const pending = useRef(0);
+  const plainType = usePlainType((s) => s.on);
 
   useEffect(() => { if (!loaded) void reload(); }, [loaded, reload]);
   useEffect(() => { setRate(settings.voiceRate); }, [settings.voiceRate]);
@@ -83,39 +85,15 @@ export function PreferencesSection() {
       {row('pref-captions', 'Captions', 'The tutor\'s lines printed under the board.',
         <Switch id="pref-captions" labelledBy="pref-captions-label" describedBy="pref-captions-note" checked={settings.captions} onChange={(v) => change({ captions: v })} />)}
 
+      <DeviceSound rate={rate} tutorVoice={settings.tutorVoice} />
+
       <h3 className="acct-group">The page</h3>
       {row('pref-motion', 'Fewer animations', 'Figures and leaves appear at once instead of plotting on step by step.',
         <Switch id="pref-motion" labelledBy="pref-motion-label" describedBy="pref-motion-note" checked={settings.reducedMotion} onChange={(v) => change({ reducedMotion: v })} />)}
+      {row('pref-type', 'Plain type', 'The board, notes and headings in plain printed letters instead of handwriting. Easier to read, and kinder to dyslexia. This device only.',
+        <Switch id="pref-type" labelledBy="pref-type-label" describedBy="pref-type-note" checked={plainType} onChange={setPlainType} />)}
       {row('pref-theme', 'Theme', 'Light. Chalkroom is printed on light paper; there is no dark theme to choose.',
         <span className="acct-fixed">Light</span>)}
-      <div className="acct-pref acct-pref-wide">
-        <div className="acct-pref-text">
-          <span className="acct-pref-title" id="pref-lang-label">Interface language</span>
-          <span className="acct-note" id="pref-lang-note">
-            {settings.language === 'ka' ? 'Saved. A Georgian interface is coming; until then the interface stays in English.' : 'The language of buttons, labels and messages.'}
-          </span>
-        </div>
-        <div className="acct-pref-control">
-          <div className="acct-seg" role="radiogroup" aria-labelledby="pref-lang-label" aria-describedby="pref-lang-note">
-            {([['en', 'English'], ['ka', 'Georgian']] as const).map(([code, label]) => (
-              <button key={code} type="button" role="radio" aria-checked={settings.language === code}
-                tabIndex={settings.language === code ? 0 : -1} className="acct-seg-btn"
-                onClick={() => { if (settings.language !== code) void change({ language: code }); }}
-                onKeyDown={(e) => {
-                  if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
-                    e.preventDefault();
-                    const next = settings.language === 'en' ? 'ka' : 'en';
-                    void change({ language: next });
-                    (e.currentTarget.parentElement?.querySelector(`[data-lang="${next}"]`) as HTMLElement | null)?.focus();
-                  }
-                }} data-lang={code}>
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
       <h3 className="acct-group">Email</h3>
       {row('pref-mail', 'Email notifications', 'Class notes after a class and security notices. Sign-in codes are always sent.',
         <Switch id="pref-mail" labelledBy="pref-mail-label" describedBy="pref-mail-note" checked={settings.emailNotifications} onChange={(v) => change({ emailNotifications: v })} />)}

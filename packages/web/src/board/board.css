@@ -1,0 +1,105 @@
+/* The board as a ruled notebook leaf (Class Notebook, lane B). All sizes are board px: the svg
+   scales the 1320 x 640 leaf to fit. Base board rules (.board-svg, .draw, .camera) live in
+   styles.css; this file adds the leaf, the tutor's pen and handwriting, and the phone camera. */
+
+/* ---------- the leaf ---------- */
+.board-svg.leafed { background: var(--grain), var(--leaf); }
+.leaf { pointer-events: none; }
+.leaf-rules { fill: none; stroke: var(--ruling); stroke-width: 1; vector-effect: non-scaling-stroke; shape-rendering: crispEdges; }
+.leaf-margin { fill: none; stroke: var(--margin); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.leaf-hole circle { fill: var(--paper); stroke: rgba(60, 45, 15, 0.22); stroke-width: 1; }
+/* a hole punched through to the desk: desk colour, no outline ring, and a soft crescent of shadow
+   under the paper's top edge (the rules stop short of the hole column, see RULES_X0) */
+.leaf-hole circle { stroke: none; }
+.leaf-hole-shade { fill: rgba(40, 30, 10, 0.16); stroke: none; }
+
+/* keyboard focus on a figure: the selection ring, solid, so focus and selection read apart */
+.board-svg .shape:focus { outline: none; }
+.board-svg .shape:focus-visible .sel { display: block; stroke-dasharray: none; stroke-width: 2.5; }
+.board-svg .shape:not(.selected):focus-visible .sel { fill: none; }
+.board-svg text.leaf-pageno { font: 400 18px var(--font-mono); fill: var(--ink-3); }
+.board-svg text.leaf-title { font-family: var(--hand-board); font-size: 24px; font-stretch: normal; fill: var(--ink-3); }
+
+/* a card: the leaf colour under a figure, so rules stop at its edge */
+.card { fill: var(--leaf); stroke: none; }
+.draw .card { animation: b-fade calc(var(--dur, 0.6s) * 0.45 * var(--motion)) var(--ease-out) both; }
+
+/* ---------- the tutor's handwriting (Kalam, baselines on the rules) ---------- */
+.board-svg .hw text, .board-mini .hw text {
+  font-family: var(--hand-board); font-stretch: normal; fill: inherit;
+  font-kerning: normal; text-rendering: optimizeLegibility;
+}
+.board-svg text.b-hand { font-family: var(--hand-board); font-stretch: normal; fill: var(--pen); }
+.board-svg text.b-hand.muted { fill: var(--ink-3); }
+.board-svg text.b-num { font: 400 16px var(--font-mono); fill: var(--ink-2); }
+.board-svg text.b-ui { font: 500 16px var(--font-ui); fill: var(--fig-muted); }
+
+/* write-on: each line is swept on in turn (--ws start, --wl length, as fractions of the draw) */
+.draw .hw > text {
+  animation: b-write calc(var(--dur, 0.6s) * var(--wl, 1) * var(--motion)) var(--ease-pen) both;
+  animation-delay: calc(var(--dur, 0.6s) * var(--ws, 0) * var(--motion));
+}
+@keyframes b-write {
+  from { clip-path: inset(-45% 100% -45% -6%); }
+  to { clip-path: inset(-45% -6% -45% -6%); }
+}
+
+/* a title's underline in the segment hue, drawn after the words */
+.b-underline { fill: none; stroke: var(--section); stroke-width: 5; stroke-linecap: round; opacity: 0.75; stroke-dasharray: 1; stroke-dashoffset: 0; }
+.draw .b-underline {
+  animation: b-underline calc(var(--dur, 0.6s) * 0.22 * var(--motion)) var(--ease-pen) both;
+  animation-delay: calc(var(--dur, 0.6s) * 0.78 * var(--motion));
+}
+/* hidden until the pen starts, so the round cap does not wait on the page as a dot */
+@keyframes b-underline { 0% { stroke-dashoffset: 1; opacity: 0; } 1% { opacity: 0.75; } 100% { stroke-dashoffset: 0; opacity: 0.75; } }
+@keyframes b-fade { from { opacity: 0; } to { opacity: 1; } }
+
+/* ---------- figures ---------- */
+.board-svg .stroke { stroke-linecap: round; stroke-linejoin: round; }
+.b-arrow-label { fill: var(--leaf); }
+
+.b-sticky-paper { fill: var(--note); }
+/* a sticky lands like the class's sticky notes (Motion 2.0: note-in; a fade under reduced motion) */
+.draw .b-sticky-in { transform-box: fill-box; transform-origin: 50% 0; animation: note-in var(--dur-note) var(--ease-settle) both; }
+.b-sticky-curl { fill: none; stroke: var(--note-2); stroke-width: 2; }
+.b-sticky-tape { fill: rgba(255, 255, 255, 0.55); stroke: rgba(60, 45, 15, 0.08); }
+.fo-sticky.b-sticky-text { font-family: var(--hand-notes); font-weight: 500; font-size: 22px; line-height: 1.35; color: var(--note-ink); padding: 16px 16px 12px; }
+
+.fo-formula.b-formula { color: var(--pen); }
+.fo-formula.b-formula.pending { font: 400 20px var(--font-mono); color: var(--ink-3); }
+.fo-code.b-code { color: var(--pen); background: color-mix(in srgb, var(--paper-2) 45%, var(--leaf)); }
+
+/* highlighter: a segment-hue band low on the figure, swept on like a marker pass */
+.fx-marker {
+  fill: color-mix(in srgb, var(--section) 30%, transparent); stroke: none;
+  mix-blend-mode: multiply; pointer-events: none;
+  animation: b-sweep calc(380ms * var(--motion)) var(--ease-pen) both;
+}
+@keyframes b-sweep { from { clip-path: inset(-10% 100% -10% -2%); } to { clip-path: inset(-10% -2% -10% -2%); } }
+
+/* the learner's own pen and the selection marquee */
+.live-stroke { stroke: var(--fig-warn); stroke-width: 3; }
+.marquee { fill: color-mix(in srgb, var(--fig-blue) 12%, transparent); stroke: var(--fig-blue); stroke-dasharray: 5 4; vector-effect: non-scaling-stroke; }
+
+/* a figure that failed to render */
+.b-slip { height: 100%; font-size: 18px; }
+.b-slip .error-slip.compact { background: var(--leaf); border: 1px solid var(--leaf-edge); border-left: 3px solid var(--errata); }
+
+/* ---------- phone camera ---------- */
+/* a pinch or a one-finger pan: the camera follows the fingers with no ease */
+.board-svg.pinching .camera { transition: none; }
+.tl-board:has(> .board-cam), .replay-board:has(> .board-cam) { position: relative; }
+.board-cam { position: absolute; right: 6px; bottom: 6px; z-index: 6; display: flex; gap: 6px; pointer-events: none; }
+.board-cam-btn {
+  pointer-events: auto; position: relative;
+  /* icon only, 32 px, so it hides as little of the leaf corner as it can */
+  display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0;
+  color: var(--ink); background: color-mix(in srgb, var(--leaf) 94%, transparent);
+  border: 1px solid var(--ink); border-radius: var(--r); box-shadow: 2px 2px 0 var(--rule-2);
+  cursor: pointer; transition: background var(--step) steps(2), color var(--step) steps(2);
+}
+/* the visible chip stays small on a small board; the touch target is still 44 px */
+.board-cam-btn::before { content: ''; position: absolute; inset: -6px; }
+.board-cam-btn:active { background: var(--ink); color: var(--paper); }
+.board-cam-btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+@media (min-width: 761px) { .board-cam { display: none; } }

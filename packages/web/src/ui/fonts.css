@@ -1,0 +1,38 @@
+/* Hand faces for the Class Notebook, self-hosted from @fontsource.
+   Every hand face, and every fallback it can land on, gets the same vertical metrics
+   (ascent 78%, descent 22%, no line gap). The baseline then sits at a known spot in the line box
+   whatever face renders, so the .ruled utility can put each line exactly on its rule.
+   English only: latin subsets, no Georgian faces. index.html preloads only the UI and reading faces. */
+
+@font-face {
+  font-family: 'Kalam'; font-style: normal; font-weight: 400; font-display: swap;
+  src: url('@fontsource/kalam/files/kalam-latin-400-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  ascent-override: 78%; descent-override: 22%; line-gap-override: 0%;
+}
+@font-face {
+  font-family: 'Kalam'; font-style: normal; font-weight: 700; font-display: swap;
+  src: url('@fontsource/kalam/files/kalam-latin-700-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  ascent-override: 78%; descent-override: 22%; line-gap-override: 0%;
+}
+/* Shantell Sans: the weight axis only (about 80 KB); the informality axis file is 145 KB */
+@font-face {
+  font-family: 'Shantell Sans'; font-style: normal; font-weight: 300 800; font-display: swap;
+  src: url('@fontsource-variable/shantell-sans/files/shantell-sans-latin-wght-normal.woff2') format('woff2-variations');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  ascent-override: 78%; descent-override: 22%; line-gap-override: 0%;
+}
+@font-face {
+  font-family: 'Gochi Hand'; font-style: normal; font-weight: 400; font-display: swap;
+  src: url('@fontsource/gochi-hand/files/gochi-hand-latin-400-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  ascent-override: 78%; descent-override: 22%; line-gap-override: 0%;
+}
+
+/* The local fallback while a web font loads: same metrics, so no line jumps off its rule */
+@font-face {
+  font-family: 'Hand Fallback';
+  src: local('Segoe Print'), local('Comic Sans MS'), local('Bradley Hand'), local('Arial');
+  size-adjust: 92%; ascent-override: 78%; descent-override: 22%; line-gap-override: 0%;
+}

@@ -76,7 +76,7 @@ export function RoomRoute({ code }: { code: string }) {
   const name = me?.profile.display_name || me?.profile.username || 'you';
 
   return (
-    <div className="entry">
+    <main className="entry">
       <article className="manual leaf punched">
         <header className="manual-head">
           <button type="button" className="btn ghost small manual-back" onClick={() => navigate('/')}><ArrowLeft {...ICON} aria-hidden /> Chalkroom Live</button>
@@ -158,7 +158,7 @@ export function RoomRoute({ code }: { code: string }) {
           </div>
         )}
       </article>
-    </div>
+    </main>
   );
 }
 
