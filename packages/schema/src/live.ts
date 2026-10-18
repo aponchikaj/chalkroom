@@ -84,7 +84,13 @@ export const StreamEventData = {
   /** Chat line in a thread stream (tutor or learner). */
   chat: z.object({ role: z.enum(['tutor', 'learner']), markdown: z.string(), authorId: z.string().optional() }),
   /** Small system line ("Class ended", "Tutor is retrying…"). */
-  notice: z.object({ text: z.string(), level: z.enum(['info', 'warn']).default('info') }),
+  notice: z.object({
+    text: z.string(),
+    level: z.enum(['info', 'warn']).default('info'),
+    /** set when a host control posted it (lane C); pause and resume also pause or resume the
+     *  tutor's narration on every device in the class */
+    control: z.enum(['pause', 'resume', 'slower', 'skip', 'reexplain', 'pin']).optional(),
+  }),
   // --- live activities on `main` (lane M): quiz duel and teach-back ---
   /** A quiz duel begins: every learner answers the same questions against the clock. */
   duel_start: z.object({ duelId: z.string(), count: z.number().int().min(1).max(10), secondsPerQuestion: z.number().int().min(5).max(120) }),
@@ -376,6 +382,13 @@ export const Api = {
   ready: z.object({ segment: z.number().int() }),
   /** POST /rooms/:id/host (host) */
   host: z.object({ action: z.enum(['skip', 'hold', 'resume', 'slower', 'end']) }),
+  /** POST /rooms/:id/host/control (host, lane C): pause or resume the tutor's voice for the class,
+   *  or Slower / Skip; each posts a class notice */
+  hostControl: z.object({ action: z.enum(['pause', 'resume', 'slower', 'skip']) }),
+  /** POST /rooms/:id/host/reexplain (host, lane C): the tutor re-explains these shapes in the next Q&A */
+  hostReexplain: z.object({ shapeIds: z.array(z.string()).min(1).max(20), label: z.string().trim().max(120).optional() }),
+  /** POST /rooms/:id/host/pin (host, lane C): this question's group is answered in the next Q&A */
+  hostPin: z.object({ questionId: z.string().uuid() }),
   /** POST /rooms/:id/moderate (host): mute, unmute or remove (kick) a member */
   moderate: z.object({ userId: z.string().uuid(), action: z.enum(['mute', 'unmute', 'kick']) }),
   /** POST /rooms/:id/checks/:checkId/answer */
@@ -577,6 +590,10 @@ export const SegmentSummary = z.object({ summary: z.string().describe('3 short l
 // ---------------------------------------------------------------------------
 // Constants shared by both sides
 // ---------------------------------------------------------------------------
+
+/** GET /rooms/:id/host/checks/:checkId/answers (host, lane C): who answered a check. correct is
+ *  null while the answer waits for a person to read it (free-text types). */
+export interface HostCheckAnswer { userId: string; correct: boolean | null }
 
 export const LIVE = {
   maxSeats: 5,
