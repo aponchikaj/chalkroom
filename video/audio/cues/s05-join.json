@@ -1,0 +1,88 @@
+{
+  "scene": "s05-join",
+  "start": 40,
+  "note": "t is FILM seconds (scene start + local time). Names from the fixed SFX list in CONVENTIONS.md.",
+  "cues": [
+    {
+      "t": 40.1,
+      "name": "swap"
+    },
+    {
+      "t": 40.3,
+      "name": "paper"
+    },
+    {
+      "t": 40.86,
+      "name": "plot"
+    },
+    {
+      "t": 40.95,
+      "name": "plot"
+    },
+    {
+      "t": 41.43,
+      "name": "stamp"
+    },
+    {
+      "t": 42.0,
+      "name": "paper"
+    },
+    {
+      "t": 42.57,
+      "name": "stamp"
+    },
+    {
+      "t": 42.6,
+      "name": "key",
+      "dur": 0.25
+    },
+    {
+      "t": 43.14,
+      "name": "click"
+    },
+    {
+      "t": 43.42,
+      "name": "swap"
+    },
+    {
+      "t": 43.71,
+      "name": "pop"
+    },
+    {
+      "t": 44.29,
+      "name": "pop"
+    },
+    {
+      "t": 44.86,
+      "name": "pop"
+    },
+    {
+      "t": 45.43,
+      "name": "pop"
+    },
+    {
+      "t": 46.0,
+      "name": "paper"
+    },
+    {
+      "t": 46.29,
+      "name": "stamp"
+    },
+    {
+      "t": 47.14,
+      "name": "click"
+    },
+    {
+      "t": 47.71,
+      "name": "swap"
+    },
+    {
+      "t": 48.0,
+      "name": "whoosh"
+    },
+    {
+      "t": 48.86,
+      "name": "swap"
+    }
+  ]
+}

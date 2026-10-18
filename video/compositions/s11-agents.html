@@ -1,0 +1,544 @@
+<!--
+  s11-agents (film 122-138 s, 16 s): four agents, one log.
+
+  Handoff IN (from s10): a small leaf tile 560 x 340 at left 680, top 280 (centre 960, 450)
+  showing the s10 recap leaf at 0.5 (same markup). It swaps (short blur)
+  into the mini classroom screen.
+  Handoff OUT (to s12): a closed manual cover = the s04 book (1540 x 800, left 190, top 64)
+  under a camera at scale 0.42 around (960, 464): on screen 647 x 336 centred at (960, 464),
+  four page edges squared 5/10/15/20 px, cover with double ink frame, five empty holes and
+  "CHALKROOM". s12 opens this cover.
+
+  Beats (105 BPM, 0.571 s; bars at 0, 2.29, 4.57, 6.86, 9.14, 11.43, 13.71 local).
+  Local timeline (film = 122 + local):
+    0.30 tile swaps recap -> classroom   0.86 headline   0.9-1.9 board strokes plot
+    2.29 / 2.86 / 3.43 / 4.00 four agent cards hinge in (one per beat)
+    4.57 four elbow connectors plot      5.71 / 6.57 / 7.43 / 8.29 each agent sends a packet
+    9.14 reflow: cards -> agent tags (left), tile -> screen 1 (right), ledger hinges in
+    10.00 stamp "ერთი ჩამწერი · უწყვეტი seq"
+    10.29 .. 13.14 appends on every beat (#41 .. #45, plus one thread-stream row);
+          all screens update in the same frame; seat 5 joins late and replays the log
+    13.43 / 13.57 track tabs flick in
+    14.95 everything else steps out; ledger moves to centre, 15.62 folds; 15.82 cover prints
+-->
+<template id="s11-agents-template">
+  <div data-composition-id="s11-agents" data-width="1920" data-height="1080" data-duration="16">
+    <link rel="stylesheet" href="../assets/chalk.css" />
+    <script src="../assets/vendor/gsap.min.js"></script>
+    <script src="../assets/kit.js"></script>
+    <style>
+      .s11-camera { position: absolute; inset: 0; transform-origin: 960px 464px; }
+      .s11-lines { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: visible; }
+      .s11-lines .s11-hot { stroke-width: 5; }
+      .s11-lines .s11-faint { stroke: var(--rule-2); stroke-width: 2.5; }
+
+      /* headline, phase 1 */
+      .s11-head { position: absolute; left: 660px; width: 600px; top: 150px; text-align: center; white-space: nowrap;
+        font-family: var(--f-head); font-size: 46px; font-weight: 800; font-stretch: 78%; color: var(--ink); }
+      .s11-kicker { position: absolute; left: 660px; width: 600px; top: 104px; text-align: center; }
+
+      /* agent cards */
+      .leaf.s11-card { padding: 0; width: 560px; height: 170px; overflow: hidden; transform-origin: 0 0; }
+      .s11-card .s11-hue { position: absolute; left: 0; top: 0; bottom: 0; width: 10px; }
+      .s11-card .s11-ico { position: absolute; left: 30px; top: 14px; width: 72px; height: 72px; border: 2.5px solid var(--ink);
+        border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 40px; color: var(--ink); background: var(--leaf); }
+      .s11-card .s11-name { position: absolute; left: 124px; right: 20px; top: 24px; white-space: nowrap;
+        font-family: var(--f-head); font-size: 36px; font-weight: 780; font-stretch: 75%; line-height: 1.15; color: var(--ink); }
+      .s11-card .s11-job { position: absolute; left: 124px; right: 24px; top: 78px;
+        font-family: var(--f-head); font-size: 30px; font-weight: 450; font-stretch: 86%; line-height: 1.25; color: var(--ink-2); }
+      .s11-card .s11-ring { position: absolute; inset: 0; border: 3.5px solid var(--ink); border-radius: var(--r-leaf); visibility: hidden; }
+      .s11-card .s11-fast { position: absolute; right: 22px; top: 20px; height: 58px; font-size: 36px; }
+      .s11-card .s11-fast .mono { font-size: 34px; }
+      .s11-c1 { left: 80px; top: 70px; }   .s11-c1 .s11-hue { background: var(--h-orange); }
+      .s11-c2 { left: 1280px; top: 70px; } .s11-c2 .s11-hue { background: var(--h-teal); }
+      .s11-c3 { left: 80px; top: 650px; }  .s11-c3 .s11-hue { background: var(--h-ultra); }
+      .s11-c4 { left: 1280px; top: 650px; } .s11-c4 .s11-hue { background: var(--h-violet); }
+
+      /* packets travelling along the connectors */
+      .s11-pk { position: absolute; left: 0; top: 0; height: 46px; padding: 0 14px; display: flex; align-items: center;
+        background: var(--ink); color: var(--paper); border-radius: 3px; font-family: var(--f-mono); font-size: 28px; white-space: nowrap; z-index: 5; }
+
+      /* screens: base 560 x 340, shown at scale 1 (tile) or 0.5 (grid) */
+      .s11-scr { position: absolute; width: 560px; height: 340px; background: var(--leaf); border: 3px solid var(--rule-2);
+        border-radius: 6px; box-shadow: var(--shadow-leaf); transform-origin: 0 0; overflow: hidden; }
+      .s11-scr.s11-hit { border-color: var(--ink); box-shadow: 0 0 0 4px var(--ink), var(--shadow-leaf); }
+      .s11-bar { position: absolute; left: 0; right: 0; top: 0; height: 84px; display: flex; align-items: center; gap: 18px; padding: 0 26px;
+        border-bottom: 3px solid var(--ink); }
+      .s11-dot { width: 34px; height: 34px; border-radius: 50%; background: var(--paper-3); box-shadow: 0 0 0 6px var(--ring, var(--rule-2)); flex: none; }
+      .s11-dot.ana { --ring: var(--p-ana); } .s11-dot.nika { --ring: var(--p-nika); }
+      .s11-dot.gio { --ring: var(--p-gio); } .s11-dot.mari { --ring: var(--p-mari); }
+      .s11-dot.open { background: transparent; box-shadow: none; border: 4px dashed var(--rule-2); }
+      .s11-who { font-family: var(--f-head); font-size: 58px; font-weight: 780; font-stretch: 78%; color: var(--ink); white-space: nowrap; line-height: 1; }
+      .s11-seq { margin-left: auto; font-family: var(--f-mono); font-size: 58px; color: var(--ink); line-height: 1; }
+      .s11-mb { position: absolute; left: 0; top: 84px; width: 560px; height: 256px; overflow: visible; }
+      .s11-mb .stroke { stroke-width: 5; }
+      .s11-mb .s11-title { stroke: var(--h-orange); stroke-width: 10; }
+      .s11-mb .s11-title2 { stroke: var(--h-teal); stroke-width: 10; }
+      .s11-mb .s11-note { fill: var(--note); }
+      .s11-mb .s11-sum { stroke: var(--rule-2); stroke-width: 8; }
+      .s11-mb .s11-bars { stroke: var(--h-teal); }
+      .s11-scr1 { left: 680px; top: 280px; }
+      .s11-scr2 { left: 1560px; top: 150px; }
+      .s11-scr3 { left: 1250px; top: 345px; }
+      .s11-scr4 { left: 1560px; top: 345px; }
+      .s11-scr5 { left: 1405px; top: 540px; border-style: dashed; }
+      .s11-scr5.s11-live { border-style: solid; }
+      .s11-tmark { position: absolute; right: 20px; bottom: 20px; width: 64px; height: 64px; border-radius: 50%; background: var(--ink); color: var(--paper);
+        display: flex; align-items: center; justify-content: center; font-size: 40px; visibility: hidden; }
+      /* the recap leaf from s10 at 0.5 (same markup, s11 prefix) */
+      .s11-recap { position: absolute; left: 0; top: 0; width: 1108px; height: 668px; background: var(--leaf); transform-origin: 0 0; transform: scale(0.5); }
+      .s11-recap .s11-rh { position: absolute; left: 44px; top: 34px; font-family: var(--f-head); font-size: 64px; font-weight: 800; font-stretch: 78%; color: var(--ink); line-height: 1; }
+      .s11-recap .s11-chips { position: absolute; right: 44px; top: 40px; display: flex; gap: 12px; }
+      .s11-recap .s11-chips .chip .icon { width: 26px; height: 26px; }
+      .s11-recap .s11-by { position: absolute; left: 44px; top: 118px; font-family: var(--f-head); font-size: 28px; color: var(--ink-3); white-space: nowrap; }
+      .s11-recap .s11-hr { position: absolute; left: 44px; right: 44px; top: 166px; height: 1.5px; background: var(--ink); }
+      .s11-recap .s11-t { position: absolute; font-family: var(--f-head); font-size: 36px; font-weight: 760; font-stretch: 80%; color: var(--ink); white-space: nowrap; }
+      .s11-recap .s11-l { position: absolute; font-family: var(--f-read); font-size: 30px; line-height: 1.3; color: var(--ink); white-space: nowrap; }
+      .s11-recap .s11-q { position: absolute; font-family: var(--f-head); font-size: 30px; font-weight: 650; font-stretch: 86%; color: var(--ink); white-space: nowrap; }
+      .s11-recap .s11-fc { position: absolute; left: 724px; top: 400px; width: 330px; height: 176px; background: var(--leaf); border: 2.5px solid var(--ink);
+        border-radius: 4px; padding: 18px 22px; box-shadow: var(--shadow-leaf); }
+      .s11-recap .s11-fc.s11-fb { border-color: var(--rule-2); }
+      .s11-recap .s11-fc .mono { font-size: 26px; color: var(--ink-3); }
+      .s11-recap .s11-fc .s11-cq { font-family: var(--f-read); font-size: 28px; line-height: 1.3; color: var(--ink); margin-top: 8px; }
+      .s11-seatlabel { position: absolute; left: 1250px; top: 96px; white-space: nowrap; }
+
+      /* the ledger */
+      .s11-ledger { position: absolute; left: 650px; top: 120px; width: 500px; height: 740px; background: var(--leaf);
+        border: 1.5px solid var(--leaf-edge); border-radius: var(--r-leaf); box-shadow: var(--shadow-leaf); overflow: hidden; }
+      .s11-lhead { position: absolute; left: 0; right: 0; top: 0; height: 84px; display: flex; align-items: center; padding: 0 26px;
+        border-bottom: 2.5px solid var(--ink); }
+      .s11-lhead .s11-lt { font-family: var(--f-head); font-size: 36px; font-weight: 800; font-stretch: 78%; color: var(--ink); white-space: nowrap; }
+      .s11-lhead .s11-lm { margin-left: auto; font-family: var(--f-mono); font-size: 28px; color: var(--ink-3); }
+      .s11-row { position: absolute; left: 0; right: 0; height: 64px; display: flex; align-items: center; gap: 18px; padding: 0 22px 0 26px;
+        border-bottom: 1.5px solid var(--paper-2); font-family: var(--f-mono); font-size: 30px; color: var(--ink); white-space: nowrap; }
+      .s11-row .s11-n { width: 72px; font-weight: 700; }
+      .s11-row .s11-k { flex: 1; }
+      .s11-row .s11-m { display: flex; gap: 6px; }
+      .s11-row .s11-m b { width: 20px; height: 20px; border-radius: 2px; display: block; }
+      .s11-row.s11-old { color: var(--ink-3); }
+      .s11-row.s11-new { box-shadow: inset 8px 0 0 var(--ink); background: var(--paper); }
+      .s11-row.s11-branch { padding-left: 64px; color: var(--ink-2); font-size: 28px; }
+      .s11-row.s11-branch .s11-n { width: auto; font-weight: 400; font-family: var(--f-head); font-stretch: 85%; }
+      .s11-row.s11-branch .s11-n .mono { font-family: var(--f-mono); }
+      .h-or { background: var(--h-orange); } .h-te { background: var(--h-teal); } .h-ul { background: var(--h-ultra); } .h-vi { background: var(--h-violet); }
+
+      /* the single writer */
+      .s11-writer { position: absolute; left: 546px; top: 444px; width: 68px; height: 68px; border-radius: 50%; background: var(--ink); color: var(--paper);
+        display: flex; align-items: center; justify-content: center; font-size: 36px; }
+      .s11-stampwrap { position: absolute; left: 600px; width: 600px; top: 36px; display: flex; justify-content: center; }
+      .s11-stampwrap .stamp { background: var(--leaf); }
+
+      /* track tabs */
+      .s11-track { position: absolute; left: 0; height: 84px; width: 600px; border-radius: 0 8px 8px 0; display: flex; align-items: center; gap: 18px;
+        padding-left: 40px; color: #fff; font-family: var(--f-head); font-size: 40px; font-weight: 780; font-stretch: 80%; white-space: nowrap; }
+      .s11-track .mono { font-size: 36px; font-weight: 600; }
+      .s11-t1 { top: 676px; background: var(--h-orange); color: var(--ink); }
+      .s11-t2 { top: 774px; background: var(--h-teal); }
+
+      /* closing cover = the s04 book at camera 0.42 */
+      .s11-bookcam { position: absolute; inset: 0; transform-origin: 960px 464px; }
+      .s11-book { position: absolute; left: 190px; top: 64px; width: 1540px; height: 800px; }
+      .s11-sheet { position: absolute; inset: 0; background: var(--leaf); border: 1.5px solid var(--leaf-edge); border-radius: var(--r-leaf); box-shadow: var(--shadow-leaf); }
+      .s11-cover { position: absolute; inset: 0; background: var(--paper-2); border: 1.5px solid var(--rule-2); border-radius: var(--r-leaf); box-shadow: var(--shadow-leaf); }
+      .s11-cover .s11-frame { position: absolute; inset: 40px 40px 40px 130px; border: 3px solid var(--ink); }
+      .s11-cover .s11-frame::after { content: ''; position: absolute; inset: 10px; border: 1.5px solid var(--ink); }
+      .s11-cover .s11-cb { position: absolute; left: 130px; right: 40px; top: 300px; text-align: center;
+        font-family: var(--f-head); font-size: 112px; font-weight: 800; font-stretch: 75%; letter-spacing: 0.16em; color: var(--ink); }
+      .s11-cover .s11-cr { position: absolute; left: 50%; margin-left: -150px; width: 300px; top: 470px; height: 3px; background: var(--ink); transform: translateX(45px); }
+      .s11-cover .s11-holes { position: absolute; left: 37px; top: 150px; display: flex; flex-direction: column; gap: 46px; }
+      .s11-cover .s11-holes i { display: block; width: 76px; height: 76px; position: relative; }
+      .s11-cover .s11-holes i::after { content: ''; position: absolute; inset: 14px; border-radius: 50%; background: var(--paper-3); box-shadow: var(--shadow-punch); }
+    </style>
+
+    <div id="s11-agents-bg" class="paper-bg clip" data-start="0" data-duration="16" data-track-index="0"></div>
+
+    <div class="s11-camera">
+      <svg class="s11-lines" viewBox="0 0 1920 1080" data-layout-allow-overflow data-layout-allow-occlusion>
+        <!-- phase 1 elbows: card -> tile -->
+        <g class="s11-elbows">
+          <polyline class="stroke s11-faint s11-el1" points="360,240 360,330 680,330" />
+          <polyline class="stroke s11-faint s11-el2" points="1560,240 1560,330 1240,330" />
+          <polyline class="stroke s11-faint s11-el3" points="360,650 360,570 680,570" />
+          <polyline class="stroke s11-faint s11-el4" points="1560,650 1560,570 1240,570" />
+          <polyline class="stroke s11-hot s11-eh1" style="stroke: var(--h-orange)" points="360,240 360,330 680,330" />
+          <polyline class="stroke s11-hot s11-eh2" style="stroke: var(--h-teal)" points="1560,240 1560,330 1240,330" />
+          <polyline class="stroke s11-hot s11-eh3" style="stroke: var(--h-ultra)" points="360,650 360,570 680,570" />
+          <polyline class="stroke s11-hot s11-eh4" style="stroke: var(--h-violet)" points="1560,650 1560,570 1240,570" />
+        </g>
+        <!-- phase 2: tags -> writer, writer -> rows, rows -> screens (filled by script) -->
+        <g class="s11-wire"></g>
+      </svg>
+
+      <div class="label s11-kicker">კულისებში</div>
+      <div class="s11-head">ოთხი აგენტი · ერთი კლასი</div>
+
+      <!-- screens (screen 1 is the classroom tile) -->
+      <div class="s11-scr s11-scr1" data-who="ana"></div>
+      <div class="s11-scr s11-scr2" data-who="nika"></div>
+      <div class="s11-scr s11-scr3" data-who="gio"></div>
+      <div class="s11-scr s11-scr4" data-who="mari"></div>
+      <div class="s11-scr s11-scr5" data-who="open"></div>
+      <div class="label s11-seatlabel">ხუთამდე ადგილი ოთახში</div>
+
+      <!-- the ledger -->
+      <div class="s11-ledger" data-layout-allow-overflow data-layout-allow-occlusion>
+        <div class="s11-lhead"><span class="s11-lt">ოთახის ჟურნალი</span><span class="s11-lm">seq</span></div>
+      </div>
+      <div class="s11-writer"><i data-icon="pen-tool"></i></div>
+      <div class="s11-stampwrap"><span class="stamp big s11-stamp">ერთი ჩამწერი · უწყვეტი seq</span></div>
+
+      <!-- four agent cards -->
+      <div class="leaf s11-card s11-c1"><span class="s11-hue"></span><div class="s11-ico"><i data-icon="pen-tool"></i></div>
+        <div class="s11-name">მთავარი მასწავლებელი</div><div class="s11-job">ხატავს და ხსნის დაფაზე</div><div class="s11-ring"></div></div>
+      <div class="leaf s11-card s11-c2"><span class="s11-hue"></span><div class="s11-ico"><i data-icon="message-square"></i></div>
+        <div class="s11-name">პირადი მასწავლებელი</div><div class="s11-job">ერთი თითოეულ თემაზე</div><div class="s11-ring"></div></div>
+      <div class="leaf s11-card s11-c3"><span class="s11-hue"></span><div class="s11-ico"><i data-icon="layers"></i></div>
+        <div class="s11-name">ტრიაჟი</div><div class="s11-job">აჯგუფებს და ანაწილებს კითხვებს</div><div class="s11-ring"></div>
+        <span class="stamp s11-fast"><span class="mono">≤ 4.5</span> წმ</span></div>
+      <div class="leaf s11-card s11-c4"><span class="s11-hue"></span><div class="s11-ico"><i data-icon="book-open"></i></div>
+        <div class="s11-name">მემატიანე</div><div class="s11-job">წერს შეჯამებებს და ჩანაწერებს</div><div class="s11-ring"></div></div>
+
+      <div class="s11-pk s11-pk1">board</div>
+      <div class="s11-pk s11-pk2">chat</div>
+      <div class="s11-pk s11-pk3">cluster</div>
+      <div class="s11-pk s11-pk4">summary</div>
+
+      <!-- track tabs -->
+      <div class="s11-track s11-t1"><span class="mono">01</span>Make It Better</div>
+      <div class="s11-track s11-t2"><span class="mono">02</span>Multiplayer Agentic</div>
+    </div>
+
+    <!-- closing cover (the s04 book at camera 0.42) -->
+    <div class="s11-bookcam">
+      <div class="s11-book">
+        <div class="s11-sheet s11-p1"></div><div class="s11-sheet s11-p2"></div><div class="s11-sheet s11-p3"></div><div class="s11-sheet s11-p4"></div>
+        <div class="s11-cover">
+          <div class="s11-frame"></div>
+          <div class="s11-holes"><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="s11-cb">CHALKROOM</div>
+          <div class="s11-cr"></div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        const S = Kit.scope('s11-agents');
+        const q = S.q, qa = S.qa;
+        const tl = gsap.timeline({ paused: true });
+        const NS = 'http://www.w3.org/2000/svg';
+        const B = 0.5714; // one beat at 105 BPM
+
+        /* ---------- build the five screens ---------- */
+        const NAMES = { ana: 'ანა', nika: 'ნიკა', gio: 'გიო', mari: 'მარი', open: 'ადგილი 5' };
+        const board =
+          '<svg class="s11-mb" viewBox="0 0 560 256">' +
+          '<g class="s11-pg1">' +
+          '<line class="stroke s11-title s11-h1" x1="36" y1="40" x2="250" y2="40"/>' +
+          '<rect class="stroke s11-h2" x="36" y="70" width="150" height="70"/>' +
+          '<polyline class="stroke s11-h3" points="190,105 396,105 384,95 396,105 384,115"/>' +
+          '<circle class="stroke s11-h4" cx="452" cy="105" r="38"/>' +
+          '<g class="s11-e41">' +
+          '<rect class="stroke s11-e41s" x="36" y="168" width="80" height="34"/><rect class="stroke s11-e41s" x="126" y="168" width="80" height="34"/>' +
+          '<rect class="stroke s11-e41s" x="216" y="168" width="80" height="34"/><rect class="stroke s11-e41s" x="306" y="168" width="80" height="34"/></g>' +
+          '<rect class="s11-note s11-e42f" x="404" y="160" width="124" height="46"/>' +
+          '<line class="stroke s11-e42s" x1="404" y1="218" x2="528" y2="218"/>' +
+          '<line class="stroke s11-sum s11-e43s" x1="36" y1="226" x2="330" y2="226"/>' +
+          '<line class="stroke s11-sum s11-e43s" x1="36" y1="244" x2="250" y2="244"/>' +
+          '</g>' +
+          '<g class="s11-pg2">' +
+          '<line class="stroke s11-title2 s11-e44s" x1="36" y1="40" x2="290" y2="40"/>' +
+          '<polyline class="stroke s11-e45s" points="36,80 36,230 520,230"/>' +
+          '<polyline class="stroke s11-bars s11-e45s" points="90,230 90,170 150,170 150,230"/>' +
+          '<polyline class="stroke s11-bars s11-e45s" points="200,230 200,120 260,120 260,230"/>' +
+          '<polyline class="stroke s11-bars s11-e45s" points="310,230 310,96 370,96 370,230"/>' +
+          '</g></svg>';
+        qa('.s11-scr').forEach((el) => {
+          const who = el.dataset.who;
+          el.innerHTML = '<div class="s11-bar"><span class="s11-dot ' + who + '"></span><span class="s11-who">' + NAMES[who] +
+            '</span><span class="s11-seq">#40</span></div>' + board +
+            (who === 'nika' ? '<div class="s11-tmark">' + Kit.icon('arrow-up-right') + '</div>' : '');
+        });
+        // the tile starts as the mini recap (handoff from s10)
+        const tile = q('.s11-scr1');
+        const recap = document.createElement('div');
+        recap.className = 's11-recap';
+        recap.innerHTML =
+          '<div class="s11-rh">ჩანაწერები</div>' +
+          '<div class="s11-chips"><span class="chip">' + Kit.icon('list') + 'Markdown</span><span class="chip">' + Kit.icon('layers') + 'Anki</span></div>' +
+          '<div class="s11-by">მემატიანემ დაწერა, კლასმა შეასწორა</div>' +
+          '<div class="s11-hr"></div>' +
+          '<div class="s11-t" style="left:44px;top:190px">რა არის PDA?</div>' +
+          '<div class="s11-l" style="left:44px;top:240px">PDA: seeds-იდან და programId-დან.</div>' +
+          '<div class="s11-l" style="left:44px;top:282px">მრუდის გარეთაა, გასაღები არ აქვს.</div>' +
+          '<div class="s11-t" style="left:44px;top:350px">ძირითადი</div>' +
+          '<div class="s11-l" style="left:44px;top:400px">• ხელს მხოლოდ პროგრამა აწერს</div>' +
+          '<div class="s11-l" style="left:44px;top:442px">• bump: პირველი, 255-დან ქვემოთ</div>' +
+          '<div class="s11-l" style="left:44px;top:484px">• programId ჰეშში შედის</div>' +
+          '<div class="s11-t" style="left:724px;top:190px">კლასის კითხვები</div>' +
+          '<div class="s11-q" style="left:724px;top:236px;font-size:30px;line-height:1.15">რატომ ვერ აწერს<br>PDA ხელს?</div>' +
+          '<div class="s11-l" style="left:724px;top:318px;font-size:28px;color:var(--ink-2)">გასაღები არ არსებობს.</div>' +
+          '<div class="s11-fc s11-fb" style="transform:translate(-34px,6px) rotate(-8deg)"></div><div class="s11-fc s11-fb" style="transform:translate(26px,-4px) rotate(5deg)"></div>' +
+          '<div class="s11-fc"><span class="mono">1/3</span><div class="s11-cq">ვის შეუძლია PDA-ს<br>ხელის მოწერა?</div></div>';
+        tile.appendChild(recap);
+        Kit.hydrateIcons(S.root);
+
+        const scr = qa('.s11-scr');
+        const scr4 = scr.slice(0, 4);           // the four people already in class
+        const seat5 = q('.s11-scr5');
+        const camera = q('.s11-camera');
+        const sel = (cls, list) => list.flatMap((s) => Array.from(s.querySelectorAll(cls)));
+
+        /* ---------- ledger rows ---------- */
+        const ledger = q('.s11-ledger');
+        const MK = { lead: '<b class="h-or"></b>', thread: '<b class="h-te"></b>', triage: '<b class="h-ul"></b>', scribe: '<b class="h-vi"></b>' };
+        const ROWS = [
+          { n: '#37', k: 'segment_start', m: ['lead'] },
+          { n: '#38', k: 'board', m: ['lead'] },
+          { n: '#39', k: 'board', m: ['lead'] },
+          { n: '#40', k: 'board', m: ['lead'] },
+          { n: '#41', k: 'check', m: ['lead'], t: 10.29, from: 1, el: '.s11-e41s' },
+          { n: '#42', k: 'answer_cluster', m: ['triage', 'lead'], t: 10.86, from: 3, el: '.s11-e42s' },
+          { branch: true, k: 'chat', m: ['thread'], t: 11.43, from: 2 },
+          { n: '#43', k: 'segment_summary', m: ['scribe'], t: 12.0, from: 4, el: '.s11-e43s' },
+          { n: '#44', k: 'segment_start', m: ['lead'], t: 12.57, from: 1, el: '.s11-e44s' },
+          { n: '#45', k: 'board', m: ['lead'], t: 13.14, from: 1, el: '.s11-e45s' },
+        ];
+        ROWS.forEach((r, i) => {
+          const d = document.createElement('div');
+          d.className = 's11-row' + (r.t ? '' : ' s11-old') + (r.branch ? ' s11-branch' : '');
+          d.style.top = (84 + 14 + i * 64) + 'px';
+          d.innerHTML = r.branch
+            ? '<span class="s11-n">თემა · <span class="mono">#3</span></span><span class="s11-k mono">chat</span><span class="s11-m">' + MK.thread + '</span>'
+            : '<span class="s11-n">' + r.n + '</span><span class="s11-k">' + r.k + '</span><span class="s11-m">' + r.m.map((x) => MK[x]).join('') + '</span>';
+          ledger.appendChild(d);
+          r.row = d;
+          r.mid = 120 + 84 + 14 + i * 64 + 32; // frame y of the row centre
+        });
+
+        /* ---------- phase 2 wires ---------- */
+        const wire = q('.s11-wire');
+        const mk = (tag, attrs, cls) => {
+          const e = document.createElementNS(NS, tag);
+          for (const k in attrs) e.setAttribute(k, attrs[k]);
+          e.setAttribute('class', 'stroke ' + (cls || ''));
+          wire.appendChild(e);
+          return e;
+        };
+        const W = { x: 580, y: 478 };
+        const TAGY = [140, 260, 380, 500].map((y) => y + 40);
+        const HUES = ['var(--h-orange)', 'var(--h-teal)', 'var(--h-ultra)', 'var(--h-violet)'];
+        const tagLines = TAGY.map((y) => mk('polyline', { points: '528,' + y + ' 548,' + y + ' ' + W.x + ',' + W.y }, 's11-faint'));
+        const tagHot = TAGY.map((y, i) => { const e = mk('polyline', { points: '528,' + y + ' 548,' + y + ' ' + W.x + ',' + W.y }, 's11-hot'); e.style.stroke = HUES[i]; return e; });
+        // screen centres in phase 2 (scale 0.5)
+        const SC = [[1390, 235], [1700, 235], [1390, 430], [1700, 430], [1545, 625]];
+
+        /* ================= PHASE 1 ================= */
+        // 0.30 the recap tile swaps into the classroom screen (short blur)
+        const tileBody = [tile.querySelector('.s11-bar'), tile.querySelector('.s11-mb')];
+        tl.fromTo(recap, { filter: 'blur(0px)', opacity: 1 }, { filter: 'blur(8px)', opacity: 0, duration: 0.18, ease: 'steps(3)', immediateRender: false }, 0.3);
+        tl.set(recap, { visibility: 'hidden' }, 0.48);
+        tl.fromTo(tileBody, { filter: 'blur(8px)', opacity: 0 }, { filter: 'blur(0px)', opacity: 1, duration: 0.2, ease: 'steps(3)', immediateRender: false }, 0.4);
+        tl.set(tileBody, { opacity: 0 }, 0);
+        // the tile shows "კლასი" until it becomes ანა's screen
+        Kit.textAt(tl, tile.querySelector('.s11-who'), [[0, 'კლასი'], [9.7, 'ანა']]);
+        tl.set(tile.querySelector('.s11-dot'), { visibility: 'hidden' }, 0);
+        tl.set(tile.querySelector('.s11-dot'), { visibility: 'visible' }, 9.7);
+
+        // headline
+        Kit.stepIn(tl, q('.s11-kicker'), 0.86, { y: 8 });
+        Kit.stepIn(tl, q('.s11-head'), 1.0, { y: 10 });
+
+        // the classroom board plots on the tile
+        Kit.plot(tl, tile.querySelector('.s11-h1'), 0.9, { dur: 0.36 });
+        Kit.plot(tl, tile.querySelector('.s11-h2'), 1.2, { dur: 0.36 });
+        Kit.plot(tl, tile.querySelector('.s11-h3'), 1.5, { dur: 0.36 });
+        Kit.plot(tl, tile.querySelector('.s11-h4'), 1.8, { dur: 0.36 });
+
+        // a slow camera drift for life
+        gsap.set(camera, { scale: 1 });
+        Kit.camera(tl, camera, 0.6, { scale: 0.965 }, { dur: 8.2, ease: 'sine.inOut' });
+
+        // four cards, one per beat
+        const cards = [q('.s11-c1'), q('.s11-c2'), q('.s11-c3'), q('.s11-c4')];
+        const CT = [2.29, 2.86, 3.43, 4.0];
+        cards.forEach((c, i) => Kit.hingeIn(tl, c, CT[i]));
+
+        // elbows plot
+        const elbows = [1, 2, 3, 4].map((i) => q('.s11-el' + i));
+        Kit.plot(tl, elbows, 4.57, { dur: 0.48, stagger: 0.1 });
+
+        // each agent named: ring, hot elbow, packet into the tile, tile pulses
+        const PK = [
+          [[360, 240], [360, 330], [680, 330]],
+          [[1560, 240], [1560, 330], [1240, 330]],
+          [[360, 650], [360, 570], [680, 570]],
+          [[1560, 650], [1560, 570], [1240, 570]],
+        ];
+        const HT = [5.71, 6.57, 7.43, 8.29];
+        const pulses = { tile: [] };
+        HT.forEach((t, i) => {
+          const ring = cards[i].querySelector('.s11-ring');
+          tl.set(ring, { visibility: 'visible' }, t);
+          tl.set(ring, { visibility: 'hidden' }, t + 0.8);
+          Kit.plot(tl, q('.s11-eh' + (i + 1)), t, { dur: 0.36, steps: 6 });
+          tl.set(q('.s11-eh' + (i + 1)), { visibility: 'hidden' }, t + 0.8);
+          const pk = q('.s11-pk' + (i + 1));
+          const p = PK[i];
+          tl.set(pk, { visibility: 'hidden' }, 0);
+          gsap.set(pk, { xPercent: -50, yPercent: -50, x: p[0][0], y: p[0][1] });
+          tl.set(pk, { visibility: 'visible', x: p[0][0], y: p[0][1] }, t + 0.05);
+          tl.to(pk, { y: p[1][1], duration: 0.14, ease: 'steps(2)' }, t + 0.1);
+          tl.to(pk, { x: p[2][0] + (i % 2 ? 70 : -70), duration: 0.3, ease: 'steps(4)' }, t + 0.26);
+          tl.set(pk, { visibility: 'hidden' }, t + 0.62);
+          pulses.tile.push(t + 0.6);
+        });
+        Kit.track(tl, 0, 9.2, (s) => {
+          tile.classList.toggle('s11-hit', pulses.tile.some((p) => s >= p && s < p + 0.18));
+        });
+
+        /* ================= PHASE 2 (9.14) ================= */
+        const M = 9.14;
+        Kit.stepOut(tl, [q('.s11-kicker'), q('.s11-head')], M - 0.1);
+        tl.to(q('.s11-elbows'), { opacity: 0, duration: Kit.STEP, ease: 'steps(2)' }, M - 0.05);
+        tl.set(q('.s11-elbows'), { visibility: 'hidden' }, M + 0.05);
+        Kit.camera(tl, camera, M, { scale: 1 }, { dur: 0.9 });
+
+        // cards -> tags in a left column
+        const START = [[80, 70], [1280, 70], [80, 650], [1280, 650]];
+        cards.forEach((c, i) => {
+          tl.to(c.querySelector('.s11-job'), { opacity: 0, duration: 0.066, ease: 'steps(2)' }, M - 0.05);
+          tl.to(c, { x: 80 - START[i][0], y: [140, 260, 380, 500][i] - START[i][1], scale: 0.8, height: 100, duration: 0.8, ease: 'power3.inOut' }, M + i * 0.03);
+        });
+
+        // tile -> ანა's screen
+        tl.to(tile, { x: 1250 - 680, y: 150 - 280, scale: 0.5, duration: 0.9, ease: 'power3.inOut' }, M);
+
+        // the ledger hinges in with its history, the writer and wires plot
+        Kit.hingeIn(tl, ledger, M + 0.8);
+        Kit.stepIn(tl, q('.s11-writer'), M + 0.86, { y: 0, scale: 0.8 });
+        Kit.plot(tl, tagLines, M + 0.9, { dur: 0.24, stagger: 0.04 });
+
+        // the other four screens step in
+        gsap.set([q('.s11-scr2'), q('.s11-scr3'), q('.s11-scr4'), seat5], { scale: 0.5 });
+        [q('.s11-scr2'), q('.s11-scr3'), q('.s11-scr4'), seat5].forEach((el, i) => {
+          const t = M + 0.6 + i * 0.1 + (i === 3 ? 0.02 : 0);
+          tl.set(el, { visibility: 'hidden' }, 0);
+          tl.set(el, { visibility: 'visible' }, t);
+          tl.fromTo(el, { opacity: 0.4, y: 8, scale: 0.47 }, { opacity: 1, y: 0, scale: 0.5, duration: Kit.STEP, ease: 'steps(2)', immediateRender: false }, t);
+        });
+        Kit.stepIn(tl, q('.s11-seatlabel'), M + 0.75);
+        // others already have the history on their boards; seat 5 is empty until it joins
+        const s5hist = ['.s11-h1', '.s11-h2', '.s11-h3', '.s11-h4'].map((c) => seat5.querySelector(c));
+
+        // 10.00 the stamp
+        Kit.stamp(tl, q('.s11-stamp'), 10.06, { from: 1.18 });
+
+        // ---- appends: one writer, gap-free numbers, five screens in the same frame
+        const seqTimes = [[0, '#40']];
+        const scrPulse = [];
+        ROWS.filter((r) => r.t).forEach((r) => {
+          const t = r.t;
+          const hot = tagHot[r.from - 1];
+          // agent -> writer
+          Kit.plot(tl, hot, t - 0.28, { dur: 0.2, steps: 4 });
+          tl.set(hot, { visibility: 'hidden' }, t + 0.45);
+          tl.set(hot, { visibility: 'visible' }, t - 0.28);
+          // writer -> row slot
+          const wl = mk('polyline', { points: (W.x + 34) + ',' + W.y + ' 624,' + r.mid + ' 650,' + r.mid }, '');
+          Kit.plot(tl, wl, t - 0.08, { dur: 0.1, steps: 2 });
+          tl.set(wl, { visibility: 'hidden' }, t + 0.5);
+          tl.set(wl, { visibility: 'visible' }, t - 0.08);
+          // the row prints
+          Kit.stepIn(tl, r.row, t, { x: -14, y: 0 });
+          if (r.from === 3) Kit.stamp(tl, q('.s11-fast'), t + 0.12);
+          // broadcast to the screens
+          const targets = r.branch ? [1] : (t < 12.0 ? [0, 1, 2, 3] : [0, 1, 2, 3, 4]);
+          targets.forEach((si) => {
+            const fl = mk('line', { x1: 1150, y1: r.mid, x2: SC[si][0], y2: SC[si][1] }, 's11-faint');
+            fl.style.stroke = 'var(--ink)';
+            Kit.plot(tl, fl, t + 0.02, { dur: 0.12, steps: 3 });
+            tl.set(fl, { visibility: 'hidden' }, t + 0.4);
+            tl.set(fl, { visibility: 'visible' }, t + 0.02);
+          });
+          if (r.branch) {
+            // thread stream: only ნიკა sees it, main seq unchanged
+            Kit.stepIn(tl, q('.s11-scr2 .s11-tmark'), t + 0.14, { y: 0, scale: 0.6 });
+            scrPulse.push([t + 0.14, [1]]);
+            return;
+          }
+          seqTimes.push([t + 0.14, r.n]);
+          scrPulse.push([t + 0.14, targets]);
+        });
+        // newest row marker (one toggle per row)
+        const newRows = ROWS.filter((r) => r.t);
+        newRows.forEach((r, i) => Kit.classAt(tl, r.row, 's11-new', r.t, newRows[i + 1] ? newRows[i + 1].t : null));
+
+        // board elements: same strokes, same frame, on every screen
+        const live4 = scr4;
+        Kit.plot(tl, sel('.s11-e41s', live4), 10.43, { dur: 0.3, steps: 4 });
+        Kit.fillIn(tl, sel('.s11-e42f', live4), 11.0);
+        Kit.plot(tl, sel('.s11-e42s', live4), 11.0, { dur: 0.24, steps: 4 });
+        Kit.plot(tl, sel('.s11-e43s', scr), 12.14, { dur: 0.3, steps: 4 });
+        // seat 5 fast-forward: history + #41 + #42 replayed before it goes live
+        Kit.plot(tl, s5hist, 11.56, { dur: 0.1, steps: 2, stagger: 0.06 });
+        Kit.plot(tl, seat5.querySelectorAll('.s11-e41s'), 11.84, { dur: 0.06, steps: 2 });
+        Kit.fillIn(tl, seat5.querySelector('.s11-e42f'), 11.92);
+        Kit.plot(tl, seat5.querySelector('.s11-e42s'), 11.92, { dur: 0.06, steps: 2 });
+        Kit.classAt(tl, seat5, 's11-live', 11.5);
+        // #44 segment_start: the page turns on every screen, the new title plots
+        tl.fromTo(sel('.s11-pg1', scr), { opacity: 1 }, { opacity: 0, duration: Kit.STEP, ease: 'steps(2)', immediateRender: false }, 12.71);
+        Kit.plot(tl, sel('.s11-e44s', scr), 12.71, { dur: 0.24, steps: 4 });
+        Kit.plot(tl, sel('.s11-e45s', scr), 13.28, { dur: 0.4, steps: 6 });
+
+        // seq readouts
+        scr4.forEach((s) => Kit.textAt(tl, s.querySelector('.s11-seq'), seqTimes));
+        const s5seq = seat5.querySelector('.s11-seq');
+        Kit.track(tl, 0, 16, (s) => {
+          let v = '#0';
+          if (s >= 11.5 && s < 11.98) v = '#' + Math.min(42, Math.floor((s - 11.5) / 0.48 * 42));
+          else if (s >= 11.98) { v = '#42'; for (const [at, txt] of seqTimes) if (s >= at) v = txt; }
+          s5seq.textContent = v;
+        });
+        // screens pulse in the same frame
+        scr.forEach((el, si) => {
+          Kit.track(tl, 9.0, 15.0, (s0) => {
+            const s = s0 + 9.0;
+            el.classList.toggle('s11-hit', scrPulse.some(([p, list]) => list.includes(si) && s >= p && s < p + 0.2));
+          });
+        });
+
+        // track tabs flick in
+        const tabs = [q('.s11-t1'), q('.s11-t2')];
+        tabs.forEach((t, i) => {
+          tl.set(t, { visibility: 'hidden' }, 0);
+          tl.set(t, { visibility: 'visible' }, 13.43 + i * 0.14);
+          tl.fromTo(t, { x: -520 }, { x: 0, duration: Kit.STEP, ease: 'steps(2)', immediateRender: false }, 13.43 + i * 0.14);
+        });
+
+        /* ================= FOLD (14.95) ================= */
+        const F = 14.95;
+        const rest = [...cards, ...scr, q('.s11-seatlabel'), q('.s11-writer'), q('.s11-stampwrap'), ...tabs];
+        // exits keep each element's transform (no y jump): opacity steps, then hidden
+        rest.forEach((el, i) => {
+          tl.to(el, { opacity: 0, duration: 0.09, ease: 'steps(2)' }, F + i * 0.02);
+        });
+        tl.to(wire, { opacity: 0, duration: Kit.STEP, ease: 'steps(2)' }, F);
+        // ledger to centre, then folds into the closed leaf
+        tl.to(ledger, { x: 60, y: -26, duration: 0.45, ease: 'power3.inOut' }, F);
+        tl.to(ledger, { x: 636.6 - 650, y: 296 - 120, width: 646.8, height: 336, duration: 0.2, ease: 'steps(4)' }, F + 0.67);
+        // the cover prints over it
+        const bookcam = q('.s11-bookcam');
+        gsap.set(bookcam, { scale: 0.42 });
+        const sheets = ['.s11-p1', '.s11-p2', '.s11-p3', '.s11-p4'].map(q);
+        [20, 15, 10, 5].forEach((e, i) => gsap.set(sheets[i], { x: e, y: e }));
+        Kit.stepIn(tl, q('.s11-book'), F + 0.87, { y: 0, scale: 1.02 });
+        tl.set(ledger, { visibility: 'hidden' }, F + 0.96);
+
+        tl.set({}, {}, 16);
+        window.__timelines = window.__timelines || {};
+        window.__timelines['s11-agents'] = tl;
+      })();
+    </script>
+  </div>
+</template>

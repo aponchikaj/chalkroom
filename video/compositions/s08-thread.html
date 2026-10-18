@@ -1,0 +1,326 @@
+<!--
+  s08-thread (film 82-98 s, 16 s): a personal thread.
+
+  Handoff IN (from s07): classroom view 'full', segment 1 (orange), grouped card at the top
+  of the rail list, the ink "პირადი თემა" stamp docked right of ნიკა's punch
+  (canvas left 132, top 336, scale 1.3 from origin 0 0).
+  Handoff OUT (to s09): see CONVENTIONS.md section 14.
+
+  Local timeline (film = 82 + local), beats every 0.5714 s, bars at 0, 2.29, 4.57, 6.86, 9.14, 11.43, 13.71:
+    0.30 camera to view N (binding + board + ask input)
+    0.50 ნიკა cursor in, 1.14 click, 1.30 types, 2.86 Enter (input clears)
+    3.43 counter "3-ე კითხვა bump-ზე" lands under the stamp
+    4.00 offer slip hinges up over the ask bar, 5.14 ნიკა clicks "თემის გახსნა"
+    5.43 slip folds away; the stamp steps into ნიკა's punch as the arrow mark
+    5.30 camera back to 'full'; 6.29 class moves on to segment 2 (teal), 6.40 class dims
+    6.50 thread acetate slides in from the right, lands 6.86
+    7.14 transcript "შენ"; 7.43-9.14 mini board plots 255 -> 254 -> 253 (green)
+    9.43 tutor line streams; class board + PIP plot the same bars (7.43, 8.57, 9.71, 10.86)
+    10.20 camera pushes in on the live PIP, 12.40 pulls back
+    13.71 acetate slides away right, 14.29 class undims, 14.86 check card rises (rests 15.80)
+-->
+<template id="s08-thread-template">
+  <div data-composition-id="s08-thread" data-width="1920" data-height="1080" data-duration="16">
+    <link rel="stylesheet" href="../assets/chalk.css" />
+    <link rel="stylesheet" href="../assets/classroom.css" />
+    <script src="../assets/vendor/gsap.min.js"></script>
+    <script src="../assets/kit.js"></script>
+    <script src="../assets/classroom.js"></script>
+    <style>
+      .s08-cam { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; }
+      .s08-cr { position: absolute; inset: 0; }
+      .s08-over { position: absolute; inset: 0; }
+
+      /* rail card carried over from s07 (canvas px) */
+      .s08-card { position: absolute; left: 0; top: 0; width: 580px; }
+      .s08-card .q-head { margin-bottom: 12px; }
+      .s08-card .stamp { height: 46px; background: var(--leaf); }
+      .s08-card .q-askers { grid-template-columns: 96px 1fr; row-gap: 12px; }
+      .s08-card .q-askers .who { display: inline-flex; align-items: center; gap: 8px; }
+      .s08-card .q-askers .who i { display: inline-block; width: 14px; height: 14px; border-radius: 50%; background: var(--c); }
+      .s08-card .q-askers .s08-said { color: var(--ink); line-height: 1.3; }
+      .s08-note { font-family: var(--f-head); font-size: 28px; line-height: 1.3; color: var(--ink-2); margin-top: 16px; border-top: 1.5px solid var(--rule); padding-top: 14px; }
+
+      /* stamp + counter by ნიკა's punch (canvas px) */
+      .s08-fly { position: absolute; left: 0; top: 0; z-index: 25; transform-origin: 0 0; height: 56px; font-size: 30px; }
+      .s08-count { position: absolute; left: 0; top: 0; z-index: 25; transform-origin: 0 0; display: inline-flex; align-items: baseline; gap: 8px; height: 50px; padding: 0 14px; align-items: center; background: var(--leaf); border: 1.5px solid var(--ink); border-radius: var(--r-slip); font-family: var(--f-head); font-size: 28px; font-weight: 650; font-stretch: 84%; color: var(--ink); white-space: nowrap; }
+      .s08-count .mono { font-size: 28px; font-weight: 600; }
+
+      /* offer slip over the ask bar (canvas px) */
+      .s08-offer { position: absolute; left: 620px; top: 940px; width: 1180px; height: 170px; padding: 0 36px 0 56px; display: flex; align-items: center; justify-content: space-between; gap: 30px; z-index: 20; }
+      .acetate.s08-offer { background: var(--leaf); backdrop-filter: none; -webkit-backdrop-filter: none; }
+      .s08-offer .s08-otext { font-family: var(--f-read); font-size: 38px; line-height: 1.25; color: var(--ink); }
+      .s08-offer .s08-otext b { font-family: var(--f-head); font-weight: 700; font-stretch: 84%; display: block; font-size: 28px; color: var(--ink-2); letter-spacing: 0.04em; margin-bottom: 6px; }
+
+      /* class board, segment 2 figures (board px) */
+      .s08-code { left: 70px; top: 96px; font-size: 28px; }
+      .s08-axis-l { position: absolute; font-family: var(--f-mono); font-size: 28px; color: var(--ink-3); }
+
+      /* thread leaf (film px) */
+      .s08-thread { position: absolute; left: 610px; top: 40px; width: 1180px; height: 840px; padding: 0; }
+      .s08-thead { position: absolute; left: 56px; top: 34px; width: 640px; }
+      .s08-ttitle { font-family: var(--f-head); font-size: 60px; font-weight: 800; font-stretch: 78%; line-height: 1.05; color: var(--ink); }
+      .s08-tsub { font-family: var(--f-head); font-size: 30px; line-height: 1.3; color: var(--ink-2); margin-top: 12px; }
+      .s08-pip { position: absolute; right: 40px; top: 30px; width: 400px; height: 176px; background: var(--leaf); border: 1.5px solid var(--leaf-edge); border-radius: var(--r-leaf); box-shadow: var(--shadow-leaf); overflow: hidden; --section: var(--h-teal); }
+      .s08-pip svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+      .s08-pip .stroke { stroke-width: 2.5; }
+      .s08-pip .s08-ptxt { font-family: var(--f-head); font-size: 13px; fill: var(--ink-3); }
+      .s08-pip .s08-pcl line { stroke: var(--rule-2); stroke-width: 3; }
+      .s08-pipcap { position: absolute; right: 40px; top: 218px; width: 400px; font-family: var(--f-head); font-size: 28px; font-weight: 650; font-stretch: 80%; color: var(--ink-2); white-space: nowrap; }
+      .s08-live { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: var(--h-teal); margin-right: 10px; vertical-align: 2px; }
+      .s08-mini { position: absolute; left: 56px; right: 40px; top: 272px; height: 236px; background: var(--leaf); border: 1.5px solid var(--leaf-edge); border-radius: var(--r-leaf); }
+      .s08-mini svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+      .s08-mbox { position: absolute; width: 270px; height: 120px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-family: var(--f-head); font-size: 30px; font-weight: 500; line-height: 1.15; color: var(--ink); text-align: center; }
+      .s08-mbox b { font-family: var(--f-mono); font-weight: 500; font-size: 30px; letter-spacing: -0.02em; }
+      .s08-mbox.ok { color: var(--ok); font-weight: 750; }
+      .s08-script { position: absolute; left: 56px; right: 40px; top: 536px; border-top: 1.5px solid var(--rule); padding-top: 22px; display: grid; grid-template-columns: 236px 1fr; row-gap: 18px; align-items: start; }
+      .s08-who { font-family: var(--f-head); font-size: 28px; font-weight: 750; font-stretch: 80%; letter-spacing: 0.05em; color: var(--ink-2); padding-top: 12px; }
+      .s08-you { justify-self: start; background: var(--paper-2); border: 1.5px solid var(--rule); border-radius: var(--r-slip); padding: 8px 18px; font-family: var(--f-head); font-size: 32px; color: var(--ink); }
+      .s08-tutor { font-family: var(--f-read); font-size: 32px; line-height: 1.4; color: var(--ink); min-height: 90px; padding-top: 6px; }
+
+      /* check card (film px), rising at the end; s09 takes it over */
+      .s08-check { position: absolute; left: 290px; top: 0; width: 1240px; height: 520px; padding: 34px 48px; }
+      .s08-check .s08-chead { display: flex; align-items: center; gap: 18px; }
+      .s08-check .s08-cprompt { font-family: var(--f-read); font-size: 44px; line-height: 1.25; color: var(--ink); margin-top: 22px; }
+    </style>
+
+    <div id="s08-thread-bg" class="paper-bg clip" data-start="0" data-duration="16" data-track-index="0"></div>
+
+    <div class="s08-cam" data-layout-allow-overflow>
+      <div class="s08-cr" data-layout-allow-occlusion data-layout-allow-overlap data-layout-allow-overflow></div>
+      <div class="s08-over" data-layout-allow-occlusion data-layout-allow-overlap data-layout-allow-overflow>
+        <div class="s08-thread acetate punched" data-layout-allow-occlusion>
+          <div class="s08-thead">
+            <div class="s08-ttitle">bump seeds</div>
+            <div class="s08-tsub">შენი 1:1 მასწავლებელთან. კლასი გრძელდება.</div>
+          </div>
+          <div class="s08-pip">
+            <svg viewBox="0 0 400 176">
+              <text class="s08-ptxt" x="14" y="16">გვერდი 2</text>
+              <rect class="stroke s08-pcode" x="22" y="24" width="170" height="40" style="stroke: var(--rule-2)" />
+              <g class="s08-pcl"><line x1="32" y1="36" x2="120" y2="36" /><line x1="40" y1="46" x2="176" y2="46" /><line x1="48" y1="56" x2="150" y2="56" /></g>
+              <line class="stroke s08-pax" x1="40" y1="74" x2="40" y2="156" />
+              <line class="stroke s08-pax" x1="40" y1="156" x2="240" y2="156" />
+              <rect class="stroke accent fill-section s08-pbar" x="56" y="80" width="34" height="76" />
+              <rect class="stroke accent fill-section s08-pbar" x="102" y="118" width="34" height="38" />
+              <rect class="stroke accent fill-section s08-pbar" x="148" y="137" width="34" height="19" />
+              <rect class="stroke accent fill-section s08-pbar" x="194" y="146" width="34" height="10" />
+              <rect class="stroke s08-ptable" x="262" y="40" width="114" height="90" style="stroke: var(--rule-2)" />
+            </svg>
+          </div>
+          <div class="s08-pipcap"><span class="s08-live"></span>კლასი: ნაწილი 2, bump-ის პოვნა</div>
+          <div class="s08-mini">
+            <svg viewBox="0 0 1084 236">
+              <rect class="stroke s08-mb1" x="60" y="58" width="270" height="120" />
+              <path class="stroke s08-ma1" d="M334 118 H 400 M 388 108 L 400 118 L 388 128" />
+              <rect class="stroke s08-mb2" x="407" y="58" width="270" height="120" />
+              <path class="stroke s08-ma2" d="M681 118 H 747 M 735 108 L 747 118 L 735 128" />
+              <rect class="stroke ok fill-ok s08-mb3" x="754" y="58" width="270" height="120" />
+            </svg>
+            <div class="s08-mbox s08-ml1" style="left:60px;top:58px"><b>bump 255</b>მრუდზე</div>
+            <div class="s08-mbox s08-ml2" style="left:407px;top:58px"><b>bump 254</b>მრუდზე</div>
+            <div class="s08-mbox ok s08-ml3" style="left:754px;top:58px"><b>bump 253</b>მრუდის გარეთ</div>
+          </div>
+          <div class="s08-script">
+            <div class="s08-who s08-r1">შენ</div>
+            <div class="s08-you s08-r1">bump seed როგორ ირჩევა?</div>
+            <div class="s08-who s08-r2">მასწავლებელი</div>
+            <div class="s08-tutor s08-ttext"></div>
+          </div>
+        </div>
+
+        <div class="s08-check acetate" data-layout-allow-overflow>
+          <div class="s08-chead"><span class="stamp section s08-cstamp">შემოწმება <span class="mono">1</span></span></div>
+          <div class="s08-cprompt">ვის შეუძლია PDA-ს ხელის მოწერა?</div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        const S = Kit.scope('s08-thread');
+        const q = S.q, qa = S.qa;
+        const tl = gsap.timeline({ paused: true });
+        const NS = 'http://www.w3.org/2000/svg';
+        const mk = (html, cls, tag) => { const d = document.createElement(tag || 'div'); d.className = cls; d.innerHTML = html; return d; };
+
+        // ---------- the classroom, exactly as s07 left it
+        const cr = Kit.classroom(q('.s08-cr'), {
+          caption: 'შედეგი მრუდის გარეთაა, ამიტომ პირადი გასაღები მას არ აქვს.',
+          tabTimes: { orange: '0:32', teal: '~3წთ', grass: '~3წთ' },
+        });
+        Kit.classroom.pdaBoard(cr.board, cr.boardSvg);   // s06's finished PDA page
+        // everything currently on the board is segment 1 (page number excluded)
+        const seg1Els = Array.from(cr.board.children).filter((e) => e !== cr.pageNo && e !== cr.boardSvg)
+          .concat(Array.from(cr.boardSvg.children));
+
+        const card = mk(
+          '<div class="q-head"><span class="stamp section" style="color: var(--h-orange)">დაჯგუფდა · 2 იკითხა</span><span class="plus1">+1</span></div>' +
+          '<div class="q-title">რატომ ვერ აწერს PDA ხელს?</div>' +
+          '<div class="q-askers">' +
+            '<span class="who" style="--c:var(--p-gio)"><i></i>გიო</span><span class="s08-said">რატომ ვერ აწერს PDA ხელს ტრანზაქციას?</span>' +
+            '<span class="who" style="--c:var(--p-mari)"><i></i>მარი</span><span class="s08-said">PDA თავად რატომ ვერ მოაწერს ხელს?</span>' +
+          '</div>' +
+          '<div class="s08-note">მასწავლებელი ამას მთელ კლასს უპასუხებს</div>', 'q-card attention s08-card');
+        cr.railList.appendChild(card);
+
+        const fly = mk(Kit.icon('arrow-up-right') + 'პირადი თემა', 'stamp ink s08-fly', 'span');
+        const count = mk('<span><span class="mono">3</span>-ე კითხვა bump-ზე</span>', 's08-count');
+        const offer = mk(
+          '<div class="s08-otext"><b>პირადი თემა</b>გინდა bump seeds 1:1 გაარჩიო?</div>' +
+          '<span class="btn btn-primary s08-obtn">' + Kit.icon('arrow-up-right') + 'თემის გახსნა</span>', 'acetate punched s08-offer');
+        cr.canvas.append(fly, count, offer);
+        gsap.set(fly, { x: 132, y: 336, scale: 1.3 });
+        gsap.set(count, { x: 500, y: 340, scale: 1.2 });   // same row as the stamp, clear of the wallet box label
+
+        // ---------- segment 2 on the class board (board px; left part stays visible beside the acetate)
+        const code = mk('let (pda, bump) =\n  Pubkey::find_program_address(\n    &[b"vault"], program_id);', 'fig-code s08-code');
+        cr.board.appendChild(code);
+        const svgAdd = (tag, a) => { const e = document.createElementNS(NS, tag); Object.entries(a).forEach(([k, v]) => e.setAttribute(k, v)); cr.boardSvg.appendChild(e); return e; };
+        const axes = [svgAdd('line', { x1: 140, y1: 360, x2: 140, y2: 660, class: 'stroke' }), svgAdd('line', { x1: 140, y1: 660, x2: 600, y2: 660, class: 'stroke' })];
+        const BARS = [[170, 380], [270, 520], [370, 590], [470, 625]];
+        const bars = BARS.map(([x, y]) => svgAdd('rect', { x, y, width: 70, height: 660 - y, class: 'stroke accent fill-section' }));
+        const blabels = ['1', '2', '3', '4'].map((n, i) => { const l = mk(n, 's08-axis-l'); l.style.left = (BARS[i][0] + 26) + 'px'; l.style.top = '672px'; cr.board.appendChild(l); return l; });
+        const ylab = mk('%', 's08-axis-l'); ylab.style.left = '100px'; ylab.style.top = '350px'; cr.board.appendChild(ylab);
+
+        Kit.hydrateIcons(S.root);
+        // the class lies under acetate sheets on purpose: mark its text as intentionally layered (layout check)
+        cr.host.querySelectorAll('*').forEach((e) => e.setAttribute('data-layout-allow-occlusion', ''));
+
+        // ---------- views
+        const FULL = cr.view('full');
+        const VN = { scale: 0.894, x: 40, y: 885 - 1240 * 0.894 };   // binding + board + ask input
+        // plot a filled shape: hidden until its stroke starts plotting, fill steps in at the end
+        const plotFill = (el, t0, o) => {
+          tl.set(el, { visibility: 'hidden' }, 0);
+          tl.set(el, { visibility: 'visible' }, t0);
+          const end = Kit.plot(tl, el, t0, o);
+          tl.set(el, { fillOpacity: 0 }, 0);
+          tl.fromTo(el, { fillOpacity: 0 }, { fillOpacity: 1, duration: 0.09, ease: 'steps(2)', immediateRender: false }, end);
+          return end;
+        };
+        const at = (cx, cy, v) => ({ x: cx * v.scale + v.x, y: cy * v.scale + v.y });
+
+        // ---------- ნიკა asks his third bump question
+        cr.frame(tl, 0.3, VN, { dur: 1.1 });
+        const nika = Kit.makeCursor(q('.s08-over').parentNode.parentNode, 'nika', 'ნიკა', { x: 2000, y: 640 });
+        const inPt = at(900, 1166, VN);
+        Kit.cursorMove(tl, nika, 0.5, inPt.x, inPt.y, { dur: 0.6 });
+        Kit.cursorClick(tl, nika, 1.14);
+        Kit.classAt(tl, cr.askInput, 'focus', 1.14, 2.86);
+        const askLive = (tt) => tt >= 1.3 && tt < 2.86;
+        Kit.track(tl, 0, 3, (s) => { const on = askLive(s); cr.askBtn.classList.toggle('btn-primary', on); cr.askBtn.classList.toggle('cr-idle', !on); });
+        const Q = 'bump seed როგორ ირჩევა?';
+        Kit.track(tl, 1.3, 3.0, (s) => {
+          const tt = 1.3 + s;
+          if (tt >= 2.86 || s <= 0) { cr.askInput.innerHTML = '<span class="placeholder" data-layout-allow-occlusion>იკითხე ნებისმიერი რამ</span>'; return; }
+          const n = Math.min(Array.from(Q).length, Math.floor(s * 18 + 1e-6));
+          cr.askInput.innerHTML = Kit.esc(Array.from(Q).slice(0, n).join('')) + '<span class="caret"></span>';
+        });
+        // the counter by the punch
+        Kit.stamp(tl, count, 3.43, { from: 1.15 });
+        tl.fromTo(fly, { scale: 1.42 }, { scale: 1.3, duration: 0.09, ease: 'steps(2)', immediateRender: false }, 3.43);
+
+        // ---------- the offer slip
+        tl.set(offer, { visibility: 'hidden' }, 0);
+        tl.set(offer, { visibility: 'visible' }, 4.0);
+        tl.fromTo(offer, { rotationX: 14, opacity: 0.4, transformPerspective: 1400, transformOrigin: '50% 100%' },
+          { rotationX: 0, opacity: 1, duration: 0.18, ease: 'steps(3)', immediateRender: false }, 4.0);
+        const btn = offer.querySelector('.s08-obtn');
+        Kit.cursorMove(tl, nika, 4.3, at(1640, 1010, VN).x, at(1640, 1010, VN).y, { dur: 0.75 });
+        Kit.cursorClick(tl, nika, 5.14, { press: btn, hold: 0.2 });
+        tl.to(offer, { rotationX: 14, opacity: 0.3, duration: 0.09, ease: 'steps(2)' }, 5.43);
+        tl.set(offer, { visibility: 'hidden' }, 5.52);
+        tl.set(offer, { opacity: 0 }, 5.52);
+        Kit.cursorMove(tl, nika, 5.5, 2000, 560, { dur: 0.6 });
+
+        // stamp and counter step into ნიკა's punch: the arrow mark
+        Kit.stepOut(tl, [fly, count], 5.43);
+        tl.set([fly, count], { opacity: 0 }, 5.5);
+        Kit.stamp(tl, cr.punches.nika.thread, 5.49, { from: 1.4 });
+
+        // ---------- camera back to the room; class moves on to segment 2
+        cr.frame(tl, 5.3, FULL, { dur: 1.0 });
+        Kit.textAt(tl, cr.segment, [[0, 'ნაწილი 1 / 3: რა არის PDA?'], [6.29, 'ნაწილი 2 / 3: bump-ის პოვნა']]);
+        Kit.classAt(tl, cr.canvas, 'cr-hue-teal', 6.29);
+        Kit.track(tl, 0, 6.3, (s) => {
+          const seg2 = s >= 6.29;
+          cr.tabs.orange.el.classList.toggle('current', !seg2);
+          cr.tabs.orange.el.classList.toggle('done', seg2);
+          cr.tabs.teal.el.classList.toggle('current', seg2);
+        });
+        Kit.textAt(tl, cr.pageNo, [[0, 'გვერდი 1'], [6.29, 'გვერდი 2']]);
+        Kit.textAt(tl, cr.caption, [[0, 'შედეგი მრუდის გარეთაა, ამიტომ პირადი გასაღები მას არ აქვს.'], [6.29, 'bump ეძებს პირველ მნიშვნელობას 255-დან ქვემოთ.']]);
+        Kit.stepOut(tl, seg1Els, 6.29);
+        // teal tab running time ticks (the class keeps going)
+        // the offer slip lies over the caption line: step the caption out while it is up
+        tl.to(cr.caption, { opacity: 0, duration: Kit.STEP, ease: 'steps(2)' }, 3.95);
+        tl.to(cr.caption, { opacity: 1, duration: Kit.STEP, ease: 'steps(2)' }, 5.52);
+        // before segment 2 the teal tab keeps the s07 estimate "~3წთ" (continuity at 82.0)
+        Kit.track(tl, 0, 15.99, (s) => {
+          cr.tabs.teal.time.textContent = s < 6.29 ? '~3წთ'
+            : '0:' + String(Math.round(12 * Math.min(1, (s - 6.29) / 9.7))).padStart(2, '0');
+        });
+        Kit.stepIn(tl, code, 6.6);
+        Kit.plot(tl, axes, 6.9, { dur: 0.36, steps: 4 });
+        Kit.stepIn(tl, ylab, 7.0);
+        const BAR_T = [7.43, 8.86, 10.29, 11.71];
+        BAR_T.forEach((b, i) => { plotFill(bars[i], b, { dur: 0.54, steps: 6, label: blabels[i] }); });
+
+        // focus economy, kept above 3:1 contrast: desaturate, drop opacity only a little; tabs keep opacity
+        const dimText = [cr.stage, cr.rail, cr.masthead, cr.controls];
+        const dimmed = dimText.concat([cr.tabRail]);
+        Kit.dim(tl, dimText, 6.4, { opacity: 0.8 });
+        Kit.dim(tl, cr.tabRail, 6.4, { opacity: 1 });
+
+        // ---------- the thread leaf slides in from the right
+        const thread = q('.s08-thread');
+        tl.set(thread, { x: 1340, visibility: 'hidden' }, 0);
+        tl.set(thread, { visibility: 'visible' }, 6.5);
+        tl.fromTo(thread, { x: 1340 }, { x: 0, duration: 0.36, ease: 'steps(4)', immediateRender: false }, 6.5);
+        Kit.stepIn(tl, qa('.s08-r1'), 7.14, { x: -8, y: 0 });
+        Kit.plot(tl, q('.s08-mb1'), 7.43, { dur: 0.45, steps: 6, label: q('.s08-ml1') });
+        Kit.plot(tl, q('.s08-ma1'), 7.9, { dur: 0.27, steps: 3 });
+        Kit.plot(tl, q('.s08-mb2'), 8.29, { dur: 0.45, steps: 6, label: q('.s08-ml2') });
+        Kit.plot(tl, q('.s08-ma2'), 8.76, { dur: 0.27, steps: 3 });
+        plotFill(q('.s08-mb3'), 9.14, { dur: 0.45, steps: 6, label: q('.s08-ml3') });
+        Kit.stepIn(tl, q('.s08-who.s08-r2'), 9.43, { x: -8, y: 0 });
+        Kit.typeText(tl, q('.s08-ttext'), 'პირველი მნიშვნელობა 255-დან ქვემოთ, რომელიც ჰეშს მრუდიდან გადაიყვანს.', 9.5, { cps: 44, caret: false });
+
+        // PIP mirrors the class board: same strokes at the same moments
+        Kit.plot(tl, q('.s08-pcode'), 6.6, { dur: 0.27, steps: 3 });
+        Kit.stepIn(tl, q('.s08-pcl'), 6.6);
+        Kit.plot(tl, qa('.s08-pax'), 6.9, { dur: 0.36, steps: 4 });
+        qa('.s08-pbar').forEach((b, i) => plotFill(b, BAR_T[i], { dur: 0.54, steps: 6 }));
+        Kit.plot(tl, q('.s08-ptable'), 12.4, { dur: 0.45, steps: 6 });
+        // the live dot steps on and off with the beat
+        const live = q('.s08-live');
+        Kit.track(tl, 6.5, 16, (s) => { live.style.opacity = (Math.floor(s / 0.5714) % 2 === 0) ? '1' : '0.35'; });
+
+        // ---------- camera: push in on the live PIP, then back
+        const cam = q('.s08-cam');
+        const PS = 1.9;
+        // push in on the live PIP (its centre is film 1590, 158 at rest); the teal tab timer stays in frame
+        Kit.camera(tl, cam, 11.0, { scale: PS, x: 900 - 1590 * PS, y: 250 - 158 * PS }, { dur: 0.95 });
+        Kit.camera(tl, cam, 12.65, { scale: 1, x: 0, y: 0 }, { dur: 0.95 });
+
+        // ---------- the acetate slides away; the class returns to full colour
+        tl.to(thread, { x: 1340, duration: 0.27, ease: 'steps(3)' }, 13.71);
+        tl.set(thread, { visibility: 'hidden' }, 13.98);
+        Kit.undim(tl, dimmed, 14.29);
+
+        // ---------- check card rises at the bottom (s09 takes it from here)
+        const check = q('.s08-check');
+        tl.set(check, { visibility: 'hidden', y: 1090 }, 0);
+        tl.set(check, { visibility: 'visible' }, 14.86);
+        tl.fromTo(check, { y: 1090, rotationX: 10, transformPerspective: 1400, transformOrigin: '50% 100%' },
+          { y: 640, rotationX: 0, duration: 0.9, ease: 'steps(6)', immediateRender: false }, 14.86);
+
+        tl.set({}, {}, 16);
+        window.__timelines = window.__timelines || {};
+        window.__timelines['s08-thread'] = tl;
+
+      })();
+    </script>
+  </div>
+</template>

@@ -1,0 +1,324 @@
+<!--
+  s05-join (film 40-50 s, 10 s): join the room.
+
+  Handoff IN (from s04): the open title page at camera scale 1 (leaf 190,64 1540x800, page
+  edges 5/10/15/20 px, six fore-edge tabs, five punches). The contents swap with a short blur
+  into the lobby; the punches leave so the room starts empty (0/5).
+  Handoff OUT (to s06): the camera pushes into the leaf (scale 1.3 about 960,464) while the
+  leaf settles to the board's rect; last frame = a blank board leaf on paper at screen
+  (100, 47) 1720 x 834 with "გვერდი 1", exactly s06's first frame.
+
+  Local timeline (film = 40 + local); beats every 0.571 s, bars at 1.43, 3.71, 6.0, 8.29:
+    0.10 title page blurs out, punches leave      0.30 lobby blurs in (room, invite code)
+    0.86 QR plots on                              1.43 seats "0/5" stamps
+    0.9-2.1 camera eases toward the code
+    2.00 მარი's phone slides in (QR scanned)      2.57 "QR წაკითხულია" stamp
+    2.60 name types "მარი"                        3.14 მარი taps "შესვლა"
+    3.35 phone: "შენ ოთახში ხარ"
+    3.71 ანა joins (1/5)  4.29 ნიკა (2/5)  4.86 გიო (3/5)  5.43 მარი (4/5)  5.60 open seat
+    6.00 phone slides out, camera to the button   6.29 "გაკვეთილის დაწყება" lands (yellow)
+    7.14 ანა presses it (ink, yellow type)
+    7.71 lobby clears, tabs tuck in, page edges square up
+    8.00-9.40 camera pushes in, the leaf becomes the board     8.86 "გვერდი 1"
+-->
+<template id="s05-join-template">
+  <div data-composition-id="s05-join" data-width="1920" data-height="1080" data-duration="10">
+    <link rel="stylesheet" href="../assets/chalk.css" />
+    <script src="../assets/vendor/gsap.min.js"></script>
+    <script src="../assets/kit.js"></script>
+    <style>
+      .s05-camera { position: absolute; inset: 0; transform-origin: 960px 464px; }
+      .s05-book { position: absolute; left: 190px; top: 64px; width: 1540px; height: 800px; }
+      .s05-sheet {
+        position: absolute; inset: 0; background: var(--leaf); border: 1.5px solid var(--leaf-edge);
+        border-radius: var(--r-leaf); box-shadow: var(--shadow-leaf);
+      }
+      .s05-tabs { position: absolute; left: 1536px; top: 92px; display: flex; flex-direction: column; gap: 12px; z-index: 0; }
+      .s05-tabs .tab.stub { width: 46px; height: 92px; }
+      .s05-page {
+        position: absolute; left: 0; top: 0; width: 1540px; height: 800px; background: var(--leaf);
+        border: 1.5px solid var(--leaf-edge); border-radius: var(--r-leaf); box-shadow: var(--shadow-leaf); overflow: hidden;
+      }
+      .s05-head {
+        position: absolute; left: 150px; right: 110px; top: 40px; height: 64px;
+        display: flex; align-items: center; justify-content: space-between; border-bottom: 1.5px solid var(--ink);
+      }
+      .s05-head .s05-brand { font-family: var(--f-head); font-size: 28px; font-weight: 800; font-stretch: 75%; letter-spacing: 0.16em; color: var(--ink); }
+      .s05-head .s05-folio { font-family: var(--f-mono); font-size: 28px; color: var(--ink-3); }
+      .s05-binding { position: absolute; left: 37px; top: 150px; display: flex; flex-direction: column; gap: 46px; }
+      .s05-hole { position: relative; width: 76px; height: 76px; }
+      .s05-hole .s05-empty { position: absolute; inset: 14px; border-radius: 50%; background: var(--paper-3); box-shadow: var(--shadow-punch); }
+      .s05-hole .punch { position: absolute; left: 0; top: 0; }
+
+      /* s04 title page contents (leave in the blur) */
+      .s05-tp { position: absolute; inset: 0; }
+      .s05-title { position: absolute; left: 142px; top: 150px; white-space: nowrap; font-family: var(--f-head); font-size: 196px; font-weight: 850; font-stretch: 75%; line-height: 0.9; letter-spacing: -0.02em; color: var(--ink); }
+      .s05-rule { position: absolute; left: 150px; top: 358px; width: 1280px; height: 3px; background: var(--ink); }
+      .s05-lines-ka { position: absolute; left: 150px; top: 398px; }
+      .s05-lines-ka div { font-family: var(--f-head); font-size: 80px; font-weight: 800; font-stretch: 75%; line-height: 1.3; color: var(--ink); white-space: nowrap; }
+      .s05-stamp-wrap { position: absolute; right: 110px; top: 664px; transform: rotate(-4deg); transform-origin: 100% 50%; }
+      .s05-stamp-wrap .stamp { background: var(--leaf); height: 58px; font-size: 30px; padding: 0 18px; border-width: 3px; }
+
+      /* lobby */
+      .s05-lobby { position: absolute; inset: 0; }
+      .s05-lab { position: absolute; font-family: var(--f-head); font-size: 28px; font-weight: 700; font-stretch: 80%; letter-spacing: 0.05em; color: var(--ink-3); white-space: nowrap; }
+      .s05-room { position: absolute; left: 146px; top: 186px; font-family: var(--f-head); font-size: 104px; font-weight: 850; font-stretch: 75%; line-height: 1; letter-spacing: -0.01em; color: var(--ink); white-space: nowrap; }
+      .s05-code { position: absolute; left: 146px; top: 378px; font-family: var(--f-mono); font-size: 112px; font-weight: 700; letter-spacing: 0.14em; line-height: 1; color: var(--ink); white-space: nowrap; }
+      .s05-seats { position: absolute; left: 148px; top: 596px; font-family: var(--f-mono); font-size: 88px; font-weight: 700; line-height: 1; color: var(--ink); }
+      .s05-roster { position: absolute; left: 470px; top: 560px; display: flex; flex-direction: column; gap: 8px; }
+      .s05-row { display: flex; align-items: center; gap: 16px; height: 46px; font-family: var(--f-head); font-size: 32px; font-weight: 650; font-stretch: 85%; color: var(--ink); white-space: nowrap; }
+      .s05-row i { display: block; width: 30px; height: 30px; border-radius: 50%; background: var(--paper-3); box-shadow: 0 0 0 5px var(--who); }
+      .s05-row .badge { height: 34px; font-size: 24px; }
+      .s05-qr { position: absolute; left: 905px; top: 160px; width: 296px; height: 296px; overflow: visible; }
+      .s05-qr .s05-mods { fill: var(--ink); }
+      .s05-start-wrap { position: absolute; left: 990px; top: 664px; }
+      .s05-start { width: 440px; }
+      .s05-pageno { position: absolute; left: 34.37px; top: 24.06px; font-family: var(--f-head); font-size: 24.06px; color: var(--ink-3); }
+
+      /* the phone (screen space, over the camera) */
+      .s05-phone {
+        position: absolute; left: 1420px; top: 70px; width: 400px; height: 780px; background: var(--leaf);
+        border: 6px solid var(--ink); border-radius: 56px; box-shadow: 0 2px 0 var(--rule), 0 40px 60px -36px rgba(60, 45, 15, 0.5);
+      }
+      .s05-notch { position: absolute; left: 140px; top: 16px; width: 108px; height: 26px; border-radius: 13px; background: var(--ink); }
+      .s05-ph { position: absolute; left: 28px; right: 28px; }
+      .s05-ph-chip { top: 70px; display: inline-flex; align-items: center; gap: 8px; right: auto; height: 42px; padding: 0 12px; border: 2px solid var(--ok); border-radius: 3px; color: var(--ok); font-family: var(--f-head); font-size: 24px; font-weight: 700; font-stretch: 85%; white-space: nowrap; }
+      .s05-ph-chip .icon { width: 24px; height: 24px; stroke-width: 3; }
+      .s05-ph-brand { top: 140px; font-family: var(--f-head); font-size: 20px; font-weight: 800; font-stretch: 75%; letter-spacing: 0.16em; color: var(--ink); }
+      .s05-ph-title { top: 172px; font-family: var(--f-head); font-size: 44px; font-weight: 850; font-stretch: 75%; color: var(--ink); white-space: nowrap; }
+      .s05-ph-code { top: 236px; font-family: var(--f-mono); font-size: 30px; letter-spacing: 0.14em; color: var(--ink-2); }
+      .s05-ph-rule { top: 296px; height: 2.5px; background: var(--ink); }
+      .s05-ph-form { top: 330px; }
+      .s05-ph-lab { font-family: var(--f-head); font-size: 24px; font-weight: 700; font-stretch: 80%; color: var(--ink-3); }
+      .s05-ph-input { margin-top: 10px; height: 70px; font-size: 30px; border-color: var(--ink); }
+      .s05-ph-btn { margin-top: 26px; width: 100%; height: 80px; font-size: 32px; }
+      .s05-ph-in { top: 330px; }
+      .s05-ph-in .s05-ph-big { font-family: var(--f-head); font-size: 36px; font-weight: 800; font-stretch: 80%; color: var(--ink); }
+      .s05-ph-in .s05-ph-wait { margin-top: 8px; font-family: var(--f-read); font-size: 26px; color: var(--ink-2); }
+      .s05-ph-dots { margin-top: 30px; display: flex; gap: 14px; }
+      .s05-ph-dots span { width: 46px; height: 46px; border-radius: 50%; border: 3px dashed var(--rule-2); position: relative; }
+      .s05-ph-dots span b { position: absolute; inset: -3px; border-radius: 50%; background: var(--paper-3); box-shadow: 0 0 0 4px var(--who); }
+      .s05-ph-count { margin-top: 22px; font-family: var(--f-mono); font-size: 40px; font-weight: 700; color: var(--ink); }
+    </style>
+
+    <div id="s05-join-bg" class="paper-bg clip" data-start="0" data-duration="10" data-track-index="0"></div>
+
+    <div class="s05-camera">
+      <div class="s05-book">
+        <div class="s05-tabs" data-layout-allow-overflow>
+          <div class="tab stub orange"></div><div class="tab stub teal"></div><div class="tab stub grass"></div>
+          <div class="tab stub ultra"></div><div class="tab stub violet"></div><div class="tab stub sienna"></div>
+        </div>
+        <div class="s05-sheet s05-p1"></div><div class="s05-sheet s05-p2"></div><div class="s05-sheet s05-p3"></div><div class="s05-sheet s05-p4"></div>
+
+        <div class="s05-page">
+          <div class="s05-head" data-layout-allow-occlusion>
+            <span class="s05-brand">CHALKROOM LIVE</span>
+            <span class="s05-folio" data-layout-allow-occlusion>01</span>
+          </div>
+          <div class="s05-binding" data-layout-allow-overflow>
+            <div class="s05-hole"><div class="s05-empty"></div><div class="punch ana s05-who"><span class="host">H</span>ა</div></div>
+            <div class="s05-hole"><div class="s05-empty"></div><div class="punch nika s05-who">ნ</div></div>
+            <div class="s05-hole"><div class="s05-empty"></div><div class="punch gio s05-who">გ</div></div>
+            <div class="s05-hole"><div class="s05-empty"></div><div class="punch mari s05-who">მ</div></div>
+            <div class="s05-hole"><div class="s05-empty"></div><div class="punch open s05-who"></div></div>
+          </div>
+          <div class="s05-binding s05-binding-in" data-layout-allow-overflow>
+            <div class="s05-hole"><div class="punch ana s05-in"><span class="host">H</span>ა</div></div>
+            <div class="s05-hole"><div class="punch nika s05-in">ნ</div></div>
+            <div class="s05-hole"><div class="punch gio s05-in">გ</div></div>
+            <div class="s05-hole"><div class="punch mari s05-in">მ</div></div>
+            <div class="s05-hole"><div class="punch open s05-in"></div></div>
+          </div>
+
+          <div class="s05-tp">
+            <div class="s05-title">Chalkroom Live</div>
+            <div class="s05-rule"></div>
+            <div class="s05-lines-ka">
+              <div>ცოცხალი გაკვეთილი.</div><div>ერთი დაფა.</div><div>ხუთამდე ადამიანი.</div>
+            </div>
+            <div class="s05-stamp-wrap"><span class="stamp">Hacktoberfest Georgia 2026</span></div>
+          </div>
+
+          <div class="s05-lobby">
+            <div class="s05-lab" style="left:150px; top:146px">ოთახი</div>
+            <div class="s05-room">Solana PDA-ები</div>
+            <div class="s05-lab" style="left:150px; top:338px">მოწვევის კოდი</div>
+            <div class="s05-code">PDA-42K</div>
+            <div class="s05-lab s05-seats-lab" style="left:150px; top:556px">ადგილები</div>
+            <div class="s05-seats">0/5</div>
+            <div class="s05-lab s05-roster-lab" style="left:470px; top:520px">ოთახში</div>
+            <div class="s05-roster">
+              <div class="s05-row" style="--who: var(--p-ana)"><i></i>ანა <span class="badge">ჰოსტი</span></div>
+              <div class="s05-row" style="--who: var(--p-nika)"><i></i>ნიკა</div>
+              <div class="s05-row" style="--who: var(--p-gio)"><i></i>გიო</div>
+              <div class="s05-row" style="--who: var(--p-mari)"><i></i>მარი</div>
+            </div>
+            <svg class="s05-qr" viewBox="-15 -15 330 330"><rect class="stroke s05-qr-frame" x="-12" y="-12" width="324" height="324" /><path class="s05-mods" d="" /></svg>
+            <div class="s05-lab s05-qr-lab" style="left:905px; top:470px; width:296px; white-space:normal; text-align:center; line-height:1.2">სკანირება ტელეფონით</div>
+            <div class="s05-start-wrap"><span class="btn btn-primary lg s05-start">გაკვეთილის დაწყება</span></div>
+          </div>
+          <div class="s05-pageno">გვერდი 1</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="s05-phone" data-layout-allow-overflow>
+      <div class="s05-notch"></div>
+      <div class="s05-ph s05-ph-chip"><i data-icon="check"></i>QR წაკითხულია</div>
+      <div class="s05-ph s05-ph-brand">CHALKROOM LIVE</div>
+      <div class="s05-ph s05-ph-title">Solana PDA-ები</div>
+      <div class="s05-ph s05-ph-code">PDA-42K</div>
+      <div class="s05-ph s05-ph-rule"></div>
+      <div class="s05-ph s05-ph-form">
+        <div class="s05-ph-lab">შენი სახელი</div>
+        <div class="input s05-ph-input"></div>
+        <span class="btn btn-primary s05-ph-btn">შესვლა</span>
+      </div>
+      <div class="s05-ph s05-ph-in">
+        <div class="s05-ph-big">შენ ოთახში ხარ</div>
+        <div class="s05-ph-wait">ჰოსტი მალე დაიწყებს</div>
+        <div class="s05-ph-dots">
+          <span><b style="--who: var(--p-ana)"></b></span><span><b style="--who: var(--p-nika)"></b></span><span><b style="--who: var(--p-gio)"></b></span><span><b style="--who: var(--p-mari)"></b></span><span></span>
+        </div>
+        <div class="s05-ph-count">0/5</div>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        const S = Kit.scope('s05-join');
+        const q = S.q, qa = S.qa;
+        const tl = gsap.timeline({ paused: true });
+        Kit.hydrateIcons(S.root);
+
+        const camera = q('.s05-camera');
+        const sheets = ['.s05-p1', '.s05-p2', '.s05-p3', '.s05-p4'].map(q);
+        const EDGES = [20, 15, 10, 5];
+        const tabs = qa('.s05-tabs .tab');
+        const page = q('.s05-page');
+        sheets.forEach((s, i) => gsap.set(s, { x: EDGES[i], y: EDGES[i] }));
+        gsap.set(camera, { scale: 1, x: 0, y: 0 });
+
+        // screen position of a page-local point under a camera state (origin 960,464)
+        const scr = (px, py, c) => ({ x: 960 + (190 + px - 960) * c.scale + c.x, y: 464 + (64 + py - 464) * c.scale + c.y });
+
+        // ---- QR modules (decorative, deterministic)
+        (function buildQR() {
+          const N = 25, M = 12, r = Kit.rng(4242);
+          let d = '';
+          const finder = (cx, cy, x, y) => {
+            const dx = x - cx, dy = y - cy;
+            if (dx < 0 || dy < 0 || dx > 6 || dy > 6) return null;
+            if (dx === 0 || dy === 0 || dx === 6 || dy === 6) return true;
+            if (dx >= 2 && dx <= 4 && dy >= 2 && dy <= 4) return true;
+            return false;
+          };
+          for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+            let on = null;
+            for (const [cx, cy] of [[0, 0], [18, 0], [0, 18]]) { const f = finder(cx, cy, x, y); if (f !== null) on = f; }
+            if (on === null) {
+              const nearFinder = (x < 8 && y < 8) || (x > 16 && y < 8) || (x < 8 && y > 16);
+              on = !nearFinder && r() < 0.48;
+            }
+            if (on) d += 'M' + x * M + ' ' + y * M + 'h' + M + 'v' + M + 'h-' + M + 'z';
+          }
+          q('.s05-mods').setAttribute('d', d);
+        })();
+
+        // ---- 0.10 the title page blurs out; the punches leave (the room starts empty)
+        const tp = q('.s05-tp');
+        tl.fromTo(tp, { filter: 'blur(0px)', opacity: 1 }, { filter: 'blur(12px)', opacity: 0, duration: 0.2, ease: 'steps(3)', immediateRender: false }, 0.1);
+        tl.set(tp, { visibility: 'hidden' }, 0.3);
+        Kit.stepOut(tl, qa('.s05-who'), 0.1, { y: 0, stagger: 0.04 });
+        Kit.textAt(tl, q('.s05-folio'), [[0, '01'], [0.3, '02']]);
+
+        // ---- 0.30 the lobby blurs in
+        const lobby = q('.s05-lobby');
+        tl.set(lobby, { visibility: 'hidden' }, 0);
+        tl.set(lobby, { visibility: 'visible' }, 0.3);
+        tl.fromTo(lobby, { filter: 'blur(12px)', opacity: 0.2 }, { filter: 'blur(0px)', opacity: 1, duration: 0.24, ease: 'steps(3)', immediateRender: false }, 0.3);
+
+        // ---- 0.86 QR plots on (frame stroke + modules printing down in 8 steps)
+        Kit.plot(tl, q('.s05-qr-frame'), 0.86, { dur: 0.5 });
+        const mods = q('.s05-mods');
+        tl.set(mods, { visibility: 'hidden' }, 0);
+        tl.set(mods, { visibility: 'visible' }, 0.95);
+        tl.fromTo(mods, { clipPath: 'inset(0% 0% 100% 0%)' }, { clipPath: 'inset(0% 0% 0% 0%)', duration: 0.64, ease: 'steps(8)', immediateRender: false }, 0.95);
+        Kit.stepIn(tl, q('.s05-qr-lab'), 1.5);
+
+        // ---- 1.43 seats
+        Kit.stepIn(tl, q('.s05-seats-lab'), 1.43);
+        Kit.stamp(tl, q('.s05-seats'), 1.43, { from: 1.18 });
+
+        // camera eases toward the code while the room waits
+        const C1 = { scale: 1.05, x: -24, y: 6 };
+        Kit.camera(tl, camera, 0.9, C1, { dur: 1.2 });
+
+        // ---- 2.00 მარი's phone slides in from the right
+        const phone = q('.s05-phone');
+        gsap.set(phone, { x: 560, rotation: 4 });   // waits off frame (right)
+        tl.fromTo(phone, { x: 560, rotation: 4 }, { x: 0, rotation: 0, duration: 0.6, ease: 'expo.out', immediateRender: false }, 2.0);
+        Kit.stamp(tl, q('.s05-ph-chip'), 2.57, { from: 1.2 });
+        Kit.typeText(tl, q('.s05-ph-input'), 'მარი', 2.6, { cps: 18, caretUntil: 3.1 });
+
+        const mari = Kit.makeCursor(S.root, 'mari', 'მარი', { x: 1990, y: 760 });
+        Kit.cursorMove(tl, mari, 2.4, 1640, 600, { dur: 0.7 });
+        Kit.cursorClick(tl, mari, 3.143, { press: q('.s05-ph-btn'), hold: 0.2 });
+        // phone swaps to "in the room"
+        Kit.stepOut(tl, q('.s05-ph-form'), 3.35);
+        Kit.stepIn(tl, q('.s05-ph-in'), 3.42);
+        Kit.cursorMove(tl, mari, 3.5, 1990, 700, { dur: 0.6 });
+
+        // ---- the joins, one per beat
+        const JOIN = [3.714, 4.286, 4.857, 5.429];
+        const ins = qa('.s05-in');
+        const rows = qa('.s05-row');
+        const dots = qa('.s05-ph-dots b');
+        Kit.stepIn(tl, q('.s05-roster-lab'), JOIN[0]);
+        JOIN.forEach((t, i) => {
+          Kit.stepIn(tl, ins[i], t, { y: 0, scale: 0.7 });
+          Kit.stepIn(tl, rows[i], t, { x: -12, y: 0 });
+          Kit.stepIn(tl, dots[i], t, { y: 0, scale: 0.6 });
+        });
+        Kit.stepIn(tl, ins[4], 5.6, { y: 0, scale: 0.8 });
+        const seatTimes = [[0, '0/5']].concat(JOIN.map((t, i) => [t, (i + 1) + '/5']));
+        Kit.textAt(tl, q('.s05-seats'), seatTimes);
+        Kit.textAt(tl, q('.s05-ph-count'), seatTimes);
+
+        // ---- 6.00 the phone leaves; the host starts the class
+        tl.to(phone, { x: 600, duration: 0.4, ease: 'power3.in' }, 6.0);
+        const C2 = { scale: 1.08, x: -60, y: -36 };
+        Kit.camera(tl, camera, 6.0, C2, { dur: 1.0 });
+        Kit.stamp(tl, q('.s05-start'), 6.29, { from: 1.15 });
+
+        const btnAt = scr(990 + 220, 664 + 44, C2);
+        const ana = Kit.makeCursor(S.root, 'ana', 'ანა', { x: 1990, y: 860 });
+        Kit.cursorMove(tl, ana, 6.3, btnAt.x + 30, btnAt.y + 12, { dur: 0.75 });
+        Kit.cursorClick(tl, ana, 7.143, { press: q('.s05-start'), hold: null });
+        Kit.cursorMove(tl, ana, 7.5, 1990, 900, { dur: 0.5 });
+
+        // ---- 7.71 the lobby clears; the book closes up around the leaf
+        // exits use opacity on the container: children with their own visibility would survive a hidden parent
+        const out = (els, t, o = {}) => tl.to(els, { opacity: 0, y: o.y ?? -6, duration: 0.066, ease: 'steps(2)', stagger: o.stagger ?? 0 }, t);
+        out([q('.s05-head'), lobby], 7.714);
+        out(qa('.s05-binding-in .s05-hole'), 7.714, { y: 0, stagger: 0.03 });
+        out(qa('.s05-binding:not(.s05-binding-in) .s05-empty'), 7.85, { y: 0 });
+        tabs.forEach((t, i) => tl.to(t, { x: -40, duration: Kit.STEP, ease: 'steps(2)' }, 7.714 + i * 0.05));
+        sheets.forEach((s) => tl.to(s, { x: 0, y: 0, duration: 0.18, ease: 'steps(2)' }, 7.8));
+        tl.set(sheets.concat(tabs), { visibility: 'hidden' }, 8.0);
+
+        // ---- 8.00 push in: the leaf becomes the board (screen 100,47 1720x834.3 at the end)
+        const K = 1.3;
+        const R = { left: 960 + (100 - 960) / K - 190, top: 464 + (47 - 464) / K - 64, width: 1720 / K, height: (747 * 1.116883) / K };
+        Kit.camera(tl, camera, 8.0, { scale: K, x: 0, y: 0 }, { dur: 1.4 });
+        tl.to(page, Object.assign({ duration: 1.4, ease: 'power3.inOut' }, R), 8.0);
+        Kit.stepIn(tl, q('.s05-pageno'), 8.857, { y: 4 });
+
+        tl.set({}, {}, 10);
+        window.__timelines = window.__timelines || {};
+        window.__timelines['s05-join'] = tl;
+      })();
+    </script>
+  </div>
+</template>

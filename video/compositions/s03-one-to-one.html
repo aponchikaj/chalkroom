@@ -1,0 +1,332 @@
+<!--
+  s03-one-to-one (film 22-30 s, 8 s): AI tutors lose the group.
+
+  Handoff IN (from s02): one punch (blue ring, 76 px world) at frame centre (960, 464),
+  camera scale 2 (152 px on screen), nothing else on the paper.
+  Handoff OUT (to s04): the pile of five leaves from CONVENTIONS.md section 9, built with the
+  exact s04 markup (1540 x 800 book at left 190 / top 64, scaled 0.42 about (960, 464); four
+  sheets under the top one at -3 / +2.2 / -1.4 / +1 deg, offsets (-40,22) (34,-16) (18,30)
+  (-22,-10) book px; tabs tucked at x -34). The five chat leaves land on exactly those spots
+  and swap to it at 7.70.
+
+  Local timeline (film = 22 + local; beats every 0.571 s, bars 0 / 2.29 / 4.57 / 6.86):
+    0.15 camera eases from the punch to punch + chat leaf; 0.35 the 1:1 chat leaf hinges in
+    1.14 the question       1.71 tutor typing    2.29 the answer (serif)   2.86 "ნაპასუხებია"
+    3.43-4.75 camera pulls back: five people, five separate chats; 3.90 hub, spokes plot
+    4.57 the five drift apart
+    4.86 / 5.43 / 6.00 spokes break; "საერთო ტემპი", "სხვისი კითხვები", "ერთად სწავლა"
+         step in at the gaps and get a vermilion strike; 6.29 / 6.57 the last two break
+    6.86-7.66 the leaves slide together into one pile, camera returns to 1
+    7.70 swap to the s04 pile markup (hold to 8.00)
+-->
+<template id="s03-one-to-one-template">
+  <div data-composition-id="s03-one-to-one" data-width="1920" data-height="1080" data-duration="8">
+    <link rel="stylesheet" href="../assets/chalk.css" />
+    <script src="../assets/vendor/gsap.min.js"></script>
+    <script src="../assets/kit.js"></script>
+    <style>
+      .s03-camera { position: absolute; inset: 0; transform-origin: 960px 464px; }
+
+      /* chat leaves: 647 x 336 world (= the pile leaf size at camera 1) */
+      .s03-leaf {
+        position: absolute; width: 647px; height: 336px; background: var(--leaf);
+        border: 1px solid var(--leaf-edge); border-radius: 2px;
+        box-shadow: 0 0.63px 0 var(--rule), 0 8.8px 17.6px -11.3px rgba(60, 45, 15, 0.45);
+      }
+      .s03-chat { position: absolute; inset: 0; }
+      .s03-hd { position: absolute; left: 40px; right: 28px; top: 16px; height: 42px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--ink); }
+      .s03-hd b { font-family: var(--f-head); font-size: 21px; font-weight: 750; font-stretch: 82%; color: var(--ink); white-space: nowrap; }
+      .s03-hd span { font-family: var(--f-mono); font-size: 17px; font-weight: 600; color: var(--ink-2); border: 1.5px solid var(--ink-2); border-radius: 2px; padding: 1px 7px; }
+      .s03-who { position: absolute; left: 40px; font-family: var(--f-head); font-size: 17px; font-weight: 700; font-stretch: 80%; color: var(--ink-3); letter-spacing: 0.04em; }
+      .s03-bub {
+        position: absolute; left: 118px; padding: 6px 12px; background: var(--paper-2); border: 1px solid var(--rule); border-radius: 2px;
+        font-family: var(--f-head); font-size: 19px; font-weight: 600; font-stretch: 88%; color: var(--ink); white-space: nowrap;
+      }
+      .s03-ans { position: absolute; left: 118px; width: 490px; font-family: var(--f-read); font-size: 19px; line-height: 1.42; color: var(--ink); }
+      .s03-dots { position: absolute; left: 118px; font-family: var(--f-read); font-size: 26px; color: var(--ink-3); letter-spacing: 0.1em; }
+      .s03-okw { position: absolute; left: 118px; top: 222px; }
+      .s03-ok {
+        display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 9px;
+        border: 2px solid var(--ok); border-radius: 2px; color: #35702b;
+        font-family: var(--f-head); font-size: 17px; font-weight: 750; font-stretch: 82%; white-space: nowrap;
+      }
+      .s03-ok svg { width: 16px; height: 16px; stroke-width: 3; }
+      .s03-ask { position: absolute; left: 40px; right: 28px; top: 276px; height: 38px; border: 1.5px solid var(--rule-2); border-radius: 3px; padding: 0 12px; display: flex; align-items: center; font-family: var(--f-head); font-size: 17px; color: var(--ink-3); }
+      .s03-grey { position: absolute; left: 118px; height: 10px; background: var(--paper-3); border-radius: 2px; }
+
+      .s03-punch { position: absolute; width: 76px; height: 76px; }
+      .s03-punch .punch { position: absolute; left: 0; top: 0; }
+
+      /* hub, spokes, labels (world px; the far camera is 0.5, so sizes are 2x screen) */
+      .s03-links { position: absolute; left: 0; top: 0; width: 10px; height: 10px; overflow: visible; }
+      .s03-links line { stroke: var(--ink-2); stroke-width: 6; stroke-dasharray: 20 16; stroke-linecap: butt; }
+      .s03-hub {
+        position: absolute; width: 160px; height: 160px; border-radius: 50%;
+        border: 6px dashed var(--ink-2); background: var(--paper);
+        display: flex; align-items: center; justify-content: center; color: var(--ink-2);
+      }
+      .s03-hub svg { width: 76px; height: 76px; stroke-width: 2; }
+      .s03-labw { position: absolute; width: 800px; height: 100px; text-align: center; }
+      .s03-lab {
+        position: relative; display: inline-block; padding: 4px 22px; background: var(--paper);
+        font-family: var(--f-head); font-size: 68px; font-weight: 800; font-stretch: 78%; color: var(--ink); white-space: nowrap; line-height: 1.2;
+      }
+      .s03-strike { position: absolute; left: 6px; right: 6px; top: 50%; height: 8px; margin-top: -2px; background: var(--errata); }
+
+      /* ---- the s04 pile, copied from compositions/s04-reveal.html (CONVENTIONS.md section 9) ---- */
+      .s03-pilecam { position: absolute; inset: 0; transform-origin: 960px 464px; transform: scale(0.42); }
+      .s03-book { position: absolute; left: 190px; top: 64px; width: 1540px; height: 800px; }
+      .s03-sheet {
+        position: absolute; inset: 0; background: var(--leaf); border: 1.5px solid var(--leaf-edge);
+        border-radius: var(--r-leaf); box-shadow: var(--shadow-leaf);
+      }
+      .s03-sheet .s03-lines { position: absolute; left: 120px; right: 140px; top: 150px; }
+      .s03-sheet .s03-lines i { display: block; height: 14px; margin-bottom: 70px; background: var(--paper-2); border-radius: 2px; }
+      .s03-sheet .s03-lines i:nth-child(2) { width: 72%; }
+      .s03-sheet .s03-lines i:nth-child(3) { width: 86%; background: var(--paper-3); }
+      .s03-sheet .s03-lines i:nth-child(4) { width: 54%; }
+      .s03-tabs { position: absolute; left: 1536px; top: 92px; display: flex; flex-direction: column; gap: 12px; z-index: 0; }
+      .s03-tabs .tab.stub { width: 46px; height: 92px; }
+    </style>
+
+    <div id="s03-one-to-one-bg" class="paper-bg clip" data-start="0" data-duration="8" data-track-index="0"></div>
+
+    <div class="s03-camera" data-layout-allow-overflow>
+      <svg class="s03-links" data-layout-allow-overflow></svg>
+      <div class="s03-hub"><i data-icon="users"></i></div>
+      <div class="s03-labs"></div>
+      <div class="s03-units"></div>
+    </div>
+
+    <div class="s03-pilecam">
+      <div class="s03-book">
+        <div class="s03-tabs" data-layout-allow-overflow>
+          <div class="tab stub orange"></div>
+          <div class="tab stub teal"></div>
+          <div class="tab stub grass"></div>
+          <div class="tab stub ultra"></div>
+          <div class="tab stub violet"></div>
+          <div class="tab stub sienna"></div>
+        </div>
+        <div class="s03-sheet s03-p1"><div class="s03-lines"><i></i><i></i><i></i><i></i></div></div>
+        <div class="s03-sheet s03-p2"><div class="s03-lines"><i></i><i></i><i></i><i></i></div></div>
+        <div class="s03-sheet s03-p3"><div class="s03-lines"><i></i><i></i><i></i><i></i></div></div>
+        <div class="s03-sheet s03-p4"><div class="s03-lines"><i></i><i></i><i></i><i></i></div></div>
+        <div class="s03-sheet s03-page"></div>
+        <div class="s03-sheet s03-top"><div class="s03-lines"><i></i><i></i><i></i><i></i></div></div>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        const S = Kit.scope('s03-one-to-one');
+        const q = S.q, qa = S.qa;
+        const tl = gsap.timeline({ paused: true });
+        Kit.hydrateIcons(S.root);
+        const SVGNS = 'http://www.w3.org/2000/svg';
+
+        const cam = q('.s03-camera');
+        const W = 647, H = 336;
+
+        // ---- far camera and world layout (screen positions at the far camera, mapped to world)
+        const FAR = { k: 0.5, x: -162.75, y: -259 };
+        const toW = (sx, sy) => [960 + (sx - 960 - FAR.x) / FAR.k, 464 + (sy - 464 - FAR.y) / FAR.k];
+        const toS = (wx, wy) => [960 + FAR.k * (wx - 960) + FAR.x, 464 + FAR.k * (wy - 464) + FAR.y];
+        const HUB = toW(980, 480);
+
+        // units: leaf centre (screen at far camera), punch ring, chat lines, pile slot
+        const UNITS = [
+          { id: 'a', s: [990, 205], ring: 'var(--p-nika)', q: 'რატომ ვერ აწერს PDA ხელს?', pile: [960, 464, 0], z: 5, edge: 'bottom' },
+          { id: 'b', s: [390, 420], ring: 'var(--p-gio)', q: 'bump რა არის?', pile: [960 - 16.8, 464 + 9.24, -3], z: 1, edge: 'right' },
+          { id: 'c', s: [1560, 420], ring: 'var(--p-mari)', q: 'seeds სად ინახება?', pile: [960 + 14.28, 464 - 6.72, 2.2], z: 2, edge: 'punch' },
+          { id: 'd', s: [620, 720], ring: 'var(--p-ana)', q: 'PDA-ს ბალანსი აქვს?', pile: [960 + 7.56, 464 + 12.6, -1.4], z: 3, edge: 'top' },
+          { id: 'e', s: [1340, 720], ring: 'var(--h-violet)', q: 'invoke_signed რას აკეთებს?', pile: [960 - 9.24, 464 - 4.2, 1.0], z: 4, edge: 'top' },
+        ];
+        const unitsEl = q('.s03-units');
+        UNITS.forEach((u, i) => {
+          const [cx, cy] = toW(u.s[0], u.s[1]);
+          u.cx = cx; u.cy = cy;
+          u.left = cx - W / 2; u.top = cy - H / 2;
+          // drift: 7% of the screen distance from the hub, in world px
+          u.dx = (u.s[0] - 980) * 0.07 / FAR.k; u.dy = (u.s[1] - 480) * 0.07 / FAR.k;
+          const leaf = document.createElement('div');
+          leaf.className = 's03-leaf s03-leaf-' + u.id;
+          leaf.setAttribute('data-layout-allow-overflow', '');
+          leaf.style.left = u.left + 'px'; leaf.style.top = u.top + 'px'; leaf.style.zIndex = u.z;
+          const main = i === 0;
+          leaf.innerHTML = '<div class="s03-chat">' +
+            '<div class="s03-hd"><b>AI მასწავლებელი</b><span>1:1</span></div>' +
+            '<div class="s03-who" style="top: 82px">შენ</div>' +
+            '<div class="s03-bub" style="top: 74px">' + Kit.esc(u.q) + '</div>' +
+            '<div class="s03-who" style="top: 140px">AI</div>' +
+            (main
+              ? '<div class="s03-dots" style="top: 128px"></div>' +
+                '<div class="s03-ans" style="top: 134px">PDA-ს პირადი გასაღები არ აქვს, ამიტომ ხელს მხოლოდ პროგრამა აწერს.</div>' +
+                '<div class="s03-okw"><span class="s03-ok">' + Kit.icon('check') + 'ნაპასუხებია</span></div>'
+              : '<div class="s03-grey" style="top: 146px; width: 440px"></div><div class="s03-grey" style="top: 174px; width: 360px"></div><div class="s03-grey" style="top: 202px; width: 400px"></div>') +
+            '<div class="s03-ask">ჰკითხე ნებისმიერი რამ</div>' +
+            '</div>';
+          unitsEl.appendChild(leaf);
+          const p = document.createElement('div');
+          p.className = 's03-punch s03-punch-' + u.id;
+          p.setAttribute('data-layout-allow-overflow', '');
+          p.style.left = (u.left - 62 - 38) + 'px'; p.style.top = (cy - 38) + 'px'; p.style.zIndex = 6;
+          p.innerHTML = '<span class="punch" style="--ring:' + u.ring + '"></span>';
+          unitsEl.appendChild(p);
+          u.leaf = leaf; u.punch = p;
+          // spoke end on the unit (world, before drift)
+          if (u.edge === 'bottom') u.end = [cx, u.top + H];
+          if (u.edge === 'top') u.end = [cx, u.top];
+          if (u.edge === 'right') u.end = [u.left + W, cy];
+          if (u.edge === 'punch') u.end = [u.left - 62, cy];
+        });
+        const A = UNITS[0];
+
+        // hub
+        const hub = q('.s03-hub');
+        hub.style.left = (HUB[0] - 80) + 'px'; hub.style.top = (HUB[1] - 80) + 'px';
+        const HUB_R = 80;
+
+        // spokes: two halves each, so they can break at the middle
+        const svg = q('.s03-links');
+        const spokes = UNITS.map((u) => {
+          const a = document.createElementNS(SVGNS, 'line');
+          const b = document.createElementNS(SVGNS, 'line');
+          svg.appendChild(a); svg.appendChild(b);
+          return { u, a, b };
+        });
+
+        // break order and labels
+        const BREAKS = [
+          { id: 'b', t: 4.857, label: 'საერთო ტემპი' },
+          { id: 'c', t: 5.429, label: 'სხვისი კითხვები' },
+          { id: 'a', t: 6.0, label: 'ერთად სწავლა' },
+          { id: 'd', t: 6.286 },
+          { id: 'e', t: 6.571 },
+        ];
+        const labsEl = q('.s03-labs');
+        const labs = [];
+        BREAKS.forEach((br) => {
+          br.u = UNITS.find((u) => u.id === br.id);
+          if (!br.label) return;
+          const w = document.createElement('div');
+          w.className = 's03-labw';
+          w.setAttribute('data-layout-allow-overflow', '');
+          w.innerHTML = '<span class="s03-lab">' + br.label + '<i class="s03-strike"></i></span>';
+          labsEl.appendChild(w);
+          br.w = w; labs.push(w);
+        });
+
+        // drift progress (sine in/out over 4.57-6.86), plot progress, break gap: one seek-safe track
+        const T_DRIFT0 = 4.571, T_DRIFT1 = 6.857, T_PLOT = 3.9, PLOT_D = 0.64;
+        const sine = gsap.parseEase('sine.inOut');
+        const driftAt = (s) => sine(Math.min(1, Math.max(0, (s - T_DRIFT0) / (T_DRIFT1 - T_DRIFT0))));
+        const setLine = (el, p0, p1, show) => {
+          el.setAttribute('x1', p0[0]); el.setAttribute('y1', p0[1]);
+          el.setAttribute('x2', p1[0]); el.setAttribute('y2', p1[1]);
+          el.style.visibility = show ? 'visible' : 'hidden';
+        };
+        Kit.track(tl, 0, 6.9, (s) => {
+          const d = driftAt(s);
+          spokes.forEach(({ u, a, b }, i) => {
+            const br = BREAKS.find((x) => x.id === u.id);
+            const e = [u.end[0] + u.dx * d, u.end[1] + u.dy * d];
+            const vx = e[0] - HUB[0], vy = e[1] - HUB[1];
+            const len = Math.hypot(vx, vy);
+            const ux = vx / len, uy = vy / len;
+            const p0 = [HUB[0] + ux * HUB_R, HUB[1] + uy * HUB_R];
+            const L = len - HUB_R;
+            // plotted from the hub outward, 8 steps, spokes 0.08 s apart
+            const pp = Math.min(1, Math.max(0, Math.floor(((s - T_PLOT - i * 0.08) / PLOT_D) * 8) / 8));
+            // break: gap opens in 3 steps over 0.2 s
+            let g = 0;
+            if (s >= br.t) g = Math.min(3, Math.floor((s - br.t) / 0.066) + 1) / 3 * 0.36;
+            const m = 0.5;
+            const at = (f) => [p0[0] + ux * L * f, p0[1] + uy * L * f];
+            const endA = Math.min(pp, m - g / 2);
+            setLine(a, p0, at(Math.max(0, endA)), pp > 0 && endA > 0);
+            setLine(b, at(m + g / 2), at(Math.max(m + g / 2, pp)), pp > m + g / 2);
+            if (br.w) {
+              const mid = at(m);
+              br.w.style.left = (mid[0] - 400) + 'px';
+              br.w.style.top = (mid[1] - 50) + 'px';
+            }
+          });
+        });
+
+        // ---- 0.00 handoff: the punch alone at centre, camera 2
+        gsap.set(cam, { scale: 2, x: 0, y: 0 });
+        const CLOSE = { scale: 1.7, x: -1.7 * (1295 - 960), y: 0 };
+        Kit.camera(tl, cam, 0.15, CLOSE, { dur: 0.9, ease: 'power3.inOut' });
+        Kit.hingeIn(tl, A.leaf, 0.35);
+
+        const chatA = A.leaf;
+        Kit.stepIn(tl, chatA.querySelectorAll('.s03-who')[0], 1.143);
+        Kit.stepIn(tl, chatA.querySelector('.s03-bub'), 1.143, { x: 8, y: 0 });
+        Kit.stepIn(tl, chatA.querySelectorAll('.s03-who')[1], 1.714);
+        const dots = chatA.querySelector('.s03-dots');
+        Kit.textAt(tl, dots, [[0, ''], [1.714, '.'], [1.857, '..'], [2.0, '...'], [2.143, '.'], [2.286, '']]);
+        Kit.stepIn(tl, chatA.querySelector('.s03-ans'), 2.286);
+        Kit.stamp(tl, chatA.querySelector('.s03-ok'), 2.857, { from: 1.2 });
+
+        // ---- 3.43 pull back: five people, five separate chats
+        Kit.camera(tl, cam, 3.43, { scale: FAR.k, x: FAR.x, y: FAR.y }, { dur: 1.32, ease: 'expo.inOut' });
+        UNITS.slice(1).forEach((u, i) => {
+          Kit.hingeIn(tl, u.leaf, 3.6 + i * 0.12);
+          Kit.stepIn(tl, u.punch.querySelector('.punch'), 3.6 + i * 0.12, { y: 0, scale: 0.7 });
+        });
+        Kit.stepIn(tl, hub, 3.9, { y: 0, scale: 0.85 });
+
+        // drift apart
+        UNITS.forEach((u) => {
+          tl.fromTo([u.leaf, u.punch], { x: 0, y: 0 }, { x: u.dx, y: u.dy, duration: T_DRIFT1 - T_DRIFT0, ease: 'sine.inOut', immediateRender: false }, T_DRIFT0);
+        });
+
+        // labels at the gaps, struck in vermilion
+        BREAKS.forEach((br) => {
+          if (!br.w) return;
+          const lab = br.w.querySelector('.s03-lab');
+          const strike = br.w.querySelector('.s03-strike');
+          Kit.stepIn(tl, lab, br.t + 0.1, { y: 8 });
+          tl.set(strike, { visibility: 'hidden' }, 0);
+          tl.set(strike, { visibility: 'visible' }, br.t + 0.32);
+          tl.fromTo(strike, { clipPath: 'inset(0% 100% 0% 0%)' }, { clipPath: 'inset(0% 0% 0% 0%)', duration: 0.36, ease: 'steps(8)', immediateRender: false }, br.t + 0.32);
+        });
+        // the hub empties once every spoke is gone
+        tl.fromTo(hub, { opacity: 1, filter: 'saturate(1)' }, { opacity: 0.5, filter: 'saturate(0.35)', duration: 0.09, ease: 'steps(2)', immediateRender: false }, 6.64);
+
+        // ---- 6.86 the leaves slide together into one pile; everything else steps away
+        const T_C = 6.857, C_D = 0.8;
+        const gone = [svg, hub].concat(UNITS.map((u) => u.punch));
+        tl.to(gone, { opacity: 0, duration: 0.066, ease: 'steps(2)' }, T_C);
+        tl.set(gone, { visibility: 'hidden' }, T_C + 0.07);
+        tl.to(labs, { opacity: 0, y: -10, duration: 0.066, ease: 'steps(2)' }, T_C + 0.14);
+        tl.set(labs, { visibility: 'hidden' }, T_C + 0.21);
+        Kit.camera(tl, cam, T_C, { scale: 1, x: 0, y: 0 }, { dur: C_D, ease: 'power3.inOut' });
+        UNITS.forEach((u, i) => {
+          tl.fromTo(u.leaf, { x: u.dx, y: u.dy, rotation: 0 },
+            { x: u.pile[0] - W / 2 - u.left, y: u.pile[1] - H / 2 - u.top, rotation: u.pile[2], duration: C_D - i * 0.03, ease: 'power3.inOut', immediateRender: false }, T_C + i * 0.03);
+          tl.to(u.leaf.querySelector('.s03-chat'), { opacity: 0, duration: 0.066, ease: 'steps(2)' }, 7.28 + i * 0.02);
+        });
+
+        // ---- 7.70 swap to the exact s04 pile markup
+        const PILE = [
+          { rotation: -3.0, x: -40, y: 22 },
+          { rotation: 2.2, x: 34, y: -16 },
+          { rotation: -1.4, x: 18, y: 30 },
+          { rotation: 1.0, x: -22, y: -10 },
+        ];
+        ['.s03-p1', '.s03-p2', '.s03-p3', '.s03-p4'].forEach((sel, i) => gsap.set(q(sel), PILE[i]));
+        gsap.set(qa('.s03-tabs .tab'), { x: -34 });
+        const pile = q('.s03-pilecam');
+        tl.set(pile, { visibility: 'hidden' }, 0);
+        tl.set(pile, { visibility: 'visible' }, 7.7);
+        tl.set(UNITS.map((u) => u.leaf), { visibility: 'hidden' }, 7.7);
+
+        tl.set({}, {}, 8);
+        window.__timelines = window.__timelines || {};
+        window.__timelines['s03-one-to-one'] = tl;
+      })();
+    </script>
+  </div>
+</template>

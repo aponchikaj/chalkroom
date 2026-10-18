@@ -1,0 +1,92 @@
+{
+  "scene": "s01-alone",
+  "start": 0,
+  "note": "t is FILM seconds. gain is dB (tools/audio/mix_sfx.py).",
+  "cues": [
+    {
+      "t": 0.6,
+      "name": "plot"
+    },
+    {
+      "t": 1.2,
+      "name": "plot",
+      "gain": -3
+    },
+    {
+      "t": 1.5,
+      "name": "plot",
+      "gain": -3
+    },
+    {
+      "t": 2.1,
+      "name": "plot",
+      "gain": -3
+    },
+    {
+      "t": 2.32,
+      "name": "paper",
+      "gain": -6
+    },
+    {
+      "t": 3.47,
+      "name": "click"
+    },
+    {
+      "t": 3.55,
+      "name": "key",
+      "dur": 1.39
+    },
+    {
+      "t": 5.21,
+      "name": "click"
+    },
+    {
+      "t": 5.3,
+      "name": "paper"
+    },
+    {
+      "t": 5.79,
+      "name": "thud"
+    },
+    {
+      "t": 5.79,
+      "name": "stamp",
+      "gain": -3
+    },
+    {
+      "t": 6.37,
+      "name": "swap"
+    },
+    {
+      "t": 6.95,
+      "name": "swap"
+    },
+    {
+      "t": 6.95,
+      "name": "whoosh",
+      "gain": -4
+    },
+    {
+      "t": 7.53,
+      "name": "swap"
+    },
+    {
+      "t": 7.6,
+      "name": "swap",
+      "gain": -4
+    },
+    {
+      "t": 8.11,
+      "name": "thud"
+    },
+    {
+      "t": 9.26,
+      "name": "paper"
+    },
+    {
+      "t": 10.0,
+      "name": "paper",
+      "gain": -3
+    }
+  ]
+}

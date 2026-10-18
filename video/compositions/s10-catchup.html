@@ -1,0 +1,232 @@
+<!--
+  s10-catchup (film 112-122 s, 10 s): catch-up and shared notes.
+
+  Handoff IN (from s09): classroom shell at view "lesson", hue teal (segment 2), Q&A page
+  "გვერდი 3" on the board (title, sticky note, arrow, answer box, credit line), caption = the
+  tutor's sentence, phase "კითხვა-პასუხი",
+  ready marks on ანა, გიო, მარი, ნიკა with the thread mark.
+  Handoff OUT (to s11): the recap leaf, scaled 0.5 about its centre, = a 560 x 340 tile at
+  left 680, top 280 (border 3 px rule-2 at that scale) on plain paper. s11's tile carries the
+  same recap markup at 0.5.
+
+  Beats (102 BPM, 0.588 s; bars at 0, 2.35, 4.71, 7.06, 9.41 local).
+  Local timeline (film = 112 + local):
+    0.30 the thread acetate slides in from the right; 1.18 ნიკა presses "კლასში დაბრუნება"
+    1.45 the acetate slides away, ნიკა's thread mark goes; 1.76 catch-up slip hinges in
+    2.35 / 2.94 / 3.53 summary lines; 4.12 buttons; 4.41 ნიკა clicks "შეჯამების წაკითხვა"
+    4.71 slip out, class ends, camera pulls back, class dims; 5.29 recap leaf hinges in
+    5.88-7.35 the scribe writes the notes line by line; 7.65 flashcards fan out; 8.24 export chips
+    9.00 the recap leaf pulls far back into the s11 tile; the class falls away
+-->
+<template id="s10-catchup-template">
+  <div data-composition-id="s10-catchup" data-width="1920" data-height="1080" data-duration="10">
+    <link rel="stylesheet" href="../assets/chalk.css" />
+    <link rel="stylesheet" href="../assets/classroom.css" />
+    <script src="../assets/vendor/gsap.min.js"></script>
+    <script src="../assets/kit.js"></script>
+    <script src="../assets/classroom.js"></script>
+    <style>
+      .s10-cr { position: absolute; inset: 0; }
+      /* Q&A page figures (same as s09's last frame) */
+      .s10-qa-note { left: 130px; top: 250px; width: 380px; white-space: normal; }
+      .s10-ans { left: 800px; top: 230px; width: 620px; height: 210px; flex-direction: column; line-height: 1.3; }
+      .s10-ans div { white-space: nowrap; }
+      .s10-credit { position: absolute; left: 800px; top: 470px; display: flex; align-items: center; gap: 12px; white-space: nowrap;
+        font-family: var(--f-head); font-size: 32px; font-weight: 650; font-stretch: 85%; color: var(--ok); }
+      .s10-credit .icon { width: 30px; height: 30px; stroke-width: 2.5; }
+      .s10-banner { position: absolute; left: 0; width: 1540px; top: 66px; text-align: center; }
+
+      /* thread acetate peeking in */
+      .acetate.s10-thr { left: 1360px; top: 230px; width: 520px; height: 320px; padding: 36px 40px; }
+      .s10-thr .s10-tt { font-family: var(--f-head); font-size: 48px; font-weight: 800; font-stretch: 78%; color: var(--ink); }
+      .s10-thr .s10-ts { font-family: var(--f-head); font-size: 30px; color: var(--ink-2); margin-top: 8px; white-space: nowrap; }
+      .s10-thr .btn { position: absolute; left: 40px; bottom: 40px; }
+
+      /* catch-up slip */
+      .leaf.s10-slip { left: 440px; top: 108px; width: 1040px; height: 580px; padding: 40px 48px; }
+      .s10-slip .s10-st { font-family: var(--f-head); font-size: 52px; font-weight: 800; font-stretch: 78%; line-height: 1.1; color: var(--ink); white-space: nowrap; }
+      .s10-slip .s10-rule { height: 1.5px; background: var(--rule-2); margin: 24px 0 20px; }
+      .s10-slip .s10-seg { font-family: var(--f-head); font-size: 32px; font-weight: 750; font-stretch: 82%; color: var(--ink); }
+      .s10-slip .s10-seg .mono { color: var(--ink-3); margin-right: 12px; }
+      .s10-slip .s10-li { font-family: var(--f-read); font-size: 36px; line-height: 1.45; color: var(--ink); white-space: nowrap; }
+      .s10-slip .s10-btns { position: absolute; right: 48px; bottom: 40px; display: flex; gap: 18px; }
+
+      /* recap leaf: 1120 x 680 at scale 1, centred at (960, 450); shrinks to the s11 tile */
+      .s10-recap { position: absolute; left: 400px; top: 110px; width: 1120px; height: 680px; background: var(--leaf);
+        border: 6px solid var(--rule-2); border-radius: 12px; box-shadow: var(--shadow-leaf); overflow: hidden; }
+      .s10-rc { position: absolute; left: 0; top: 0; width: 1108px; height: 668px; }
+      .s10-rc .s10-h { position: absolute; left: 44px; top: 34px; font-family: var(--f-head); font-size: 64px; font-weight: 800; font-stretch: 78%; color: var(--ink); line-height: 1; }
+      .s10-rc .s10-chips { position: absolute; right: 44px; top: 40px; display: flex; gap: 12px; }
+      .s10-rc .s10-chips .chip .icon { width: 26px; height: 26px; }
+      .s10-rc .s10-by { position: absolute; left: 44px; top: 118px; font-family: var(--f-head); font-size: 28px; color: var(--ink-3); white-space: nowrap; }
+      .s10-rc .s10-hr { position: absolute; left: 44px; right: 44px; top: 166px; height: 1.5px; background: var(--ink); }
+      .s10-rc .s10-t { position: absolute; font-family: var(--f-head); font-size: 36px; font-weight: 760; font-stretch: 80%; color: var(--ink); white-space: nowrap; }
+      .s10-rc .s10-l { position: absolute; font-family: var(--f-read); font-size: 30px; line-height: 1.3; color: var(--ink); white-space: nowrap; }
+      .s10-rc .s10-q { position: absolute; font-family: var(--f-head); font-size: 30px; font-weight: 650; font-stretch: 86%; color: var(--ink); white-space: nowrap; }
+      .s10-rc .s10-card { position: absolute; left: 724px; top: 400px; width: 330px; height: 176px; background: var(--leaf); border: 2.5px solid var(--ink);
+        border-radius: 4px; padding: 18px 22px; box-shadow: var(--shadow-leaf); }
+      .s10-rc .s10-card.s10-back { border-color: var(--rule-2); }
+      .s10-rc .s10-card .mono { font-size: 26px; color: var(--ink-3); }
+      .s10-rc .s10-card .s10-cq { font-family: var(--f-read); font-size: 28px; line-height: 1.3; color: var(--ink); margin-top: 8px; }
+    </style>
+
+    <div id="s10-catchup-bg" class="paper-bg clip" data-start="0" data-duration="10" data-track-index="0"></div>
+    <div class="s10-cr"></div>
+
+    <div class="acetate punched s10-thr" data-layout-allow-overflow data-layout-allow-occlusion>
+      <div class="s10-tt">bump seeds</div>
+      <div class="s10-ts">შენი 1:1 თემა</div>
+      <span class="btn btn-primary s10-back-btn"><i data-icon="arrow-left"></i>კლასში დაბრუნება</span>
+    </div>
+
+    <div class="leaf s10-slip" data-layout-allow-occlusion>
+      <div class="s10-st">სანამ თემაში იყავი:<br>ნაწილი 2, bump-ის პოვნა</div>
+      <div class="s10-rule"></div>
+      <div class="s10-seg"><span class="mono">2</span>bump-ის პოვნა</div>
+      <div class="s10-li s10-li1">• მასწავლებელმა bump 255-დან ქვემოთ ცადა.</div>
+      <div class="s10-li s10-li2">• პირველი bump მრუდის გარეთ არის სწორი.</div>
+      <div class="s10-li s10-li3">• კლასმა მოკლე შემოწმებას უპასუხა.</div>
+      <div class="s10-btns">
+        <span class="btn sm s10-b2x" style="text-transform:none"><i data-icon="play"></i>ნახვა 2x</span>
+        <span class="btn sm s10-bread">შეჯამების წაკითხვა</span>
+      </div>
+    </div>
+
+    <div class="s10-recap" data-layout-allow-occlusion><div class="s10-rc"></div></div>
+
+    <script>
+      (function () {
+        const S = Kit.scope('s10-catchup');
+        const q = S.q, qa = S.qa;
+        const tl = gsap.timeline({ paused: true });
+        const ic = (n) => Kit.icon(n);
+
+        const cr = Kit.classroom(q('.s10-cr'), {
+          punches: { ana: { ready: true }, gio: { ready: true }, mari: { ready: true }, nika: { thread: true } },
+          segment: 'ნაწილი 2 / 3: bump-ის პოვნა',
+          hue: 'teal',
+          currentTab: 'teal',
+          tabTimes: { orange: '0:32', teal: '0:12', grass: '~3წთ' },
+          phase: 'კითხვა-პასუხი',
+          page: 'გვერდი 3',
+          caption: 'პირადი გასაღები არ არსებობს, ამიტომ ხელს მხოლოდ პროგრამა აწერს.',
+          view: 'lesson',
+        });
+        cr.tabs.orange.el.classList.add('done');
+        // the class is the world under the overlays (check card, slips, leaves, subtitles):
+        // layering is intentional, so its texts carry the occlusion/overlap allowance
+        const allowUnder = (root) => {
+          [root, ...root.querySelectorAll('*')].forEach((e) => e.setAttribute('data-layout-allow-occlusion', ''));
+          root.setAttribute('data-layout-allow-overlap', '');
+          root.setAttribute('data-layout-allow-overflow', '');
+        };
+        // the Q&A page, finished (same as s09's last frame)
+        const NS = 'http://www.w3.org/2000/svg';
+        const mk = (tag, cls, html, parent) => { const e = document.createElement(tag); e.className = cls; if (html !== undefined) e.innerHTML = html; parent.appendChild(e); return e; };
+        const shape = (tag, a) => { const e = document.createElementNS(NS, tag); for (const k in a) e.setAttribute(k, a[k]); e.setAttribute('class', 'stroke'); cr.boardSvg.appendChild(e); return e; };
+        mk('div', 'fig-title s10-banner', 'კითხვა-პასუხი: რატომ ვერ აწერს PDA ხელს?', cr.board);
+        mk('div', 'fig-note s10-qa-note', 'რატომ ვერ აწერს<br>PDA ხელს?', cr.board);
+        shape('path', { d: 'M 530 335 H 790' }); shape('path', { d: 'M 768 321 L 791 335 L 768 349' });
+        shape('rect', { x: 800, y: 230, width: 620, height: 210 });
+        mk('div', 'fig-box s10-ans', '<div>პირადი გასაღები არ არსებობს</div><div>→ მხოლოდ პროგრამას შეუძლია</div><div>ხელის მოწერა (invoke_signed)</div>', cr.board);
+        mk('div', 's10-credit', ic('check') + 'იკითხეს: გიომ და მარიმ', cr.board);
+
+        // ---- the recap leaf content (s11 reuses this markup at 0.5)
+        const rc = q('.s10-rc');
+        rc.innerHTML =
+          '<div class="s10-h">ჩანაწერები</div>' +
+          '<div class="s10-chips"><span class="chip s10-chip">' + ic('list') + 'Markdown</span><span class="chip s10-chip">' + ic('layers') + 'Anki</span></div>' +
+          '<div class="s10-by">მემატიანემ დაწერა, კლასმა შეასწორა</div>' +
+          '<div class="s10-hr"></div>' +
+          '<div class="s10-t s10-w" style="left:44px;top:190px">რა არის PDA?</div>' +
+          '<div class="s10-l s10-w" style="left:44px;top:240px">PDA: seeds-იდან და programId-დან.</div>' +
+          '<div class="s10-l s10-w" style="left:44px;top:282px">მრუდის გარეთაა, გასაღები არ აქვს.</div>' +
+          '<div class="s10-t s10-w" style="left:44px;top:350px">ძირითადი</div>' +
+          '<div class="s10-l s10-w" style="left:44px;top:400px">• ხელს მხოლოდ პროგრამა აწერს</div>' +
+          '<div class="s10-l s10-w" style="left:44px;top:442px">• bump: პირველი, 255-დან ქვემოთ</div>' +
+          '<div class="s10-l s10-w" style="left:44px;top:484px">• programId ჰეშში შედის</div>' +
+          '<div class="s10-t s10-w" style="left:724px;top:190px">კლასის კითხვები</div>' +
+          '<div class="s10-q s10-w" style="left:724px;top:236px;font-size:30px;line-height:1.15">რატომ ვერ აწერს<br>PDA ხელს?</div>' +
+          '<div class="s10-l s10-w" style="left:724px;top:318px;font-size:28px;color:var(--ink-2)">გასაღები არ არსებობს.</div>' +
+          '<div class="s10-card s10-back s10-c1"></div><div class="s10-card s10-back s10-c2"></div>' +
+          '<div class="s10-card s10-c3"><span class="mono">1/3</span><div class="s10-cq">ვის შეუძლია PDA-ს<br>ხელის მოწერა?</div></div>';
+        Kit.hydrateIcons(S.root);
+
+        allowUnder(cr.host);
+        [q('.s10-slip'), q('.s10-recap'), q('.s10-thr')].forEach((e) => e.setAttribute('data-layout-allow-overlap', ''));
+        const thr = q('.s10-thr');
+        const slip = q('.s10-slip');
+        const recap = q('.s10-recap');
+
+        // ---- 0.30 the thread acetate slides in from the right
+        tl.set(thr, { visibility: 'hidden' }, 0);
+        tl.set(thr, { visibility: 'visible' }, 0.3);
+        tl.fromTo(thr, { x: 600 }, { x: 0, duration: 0.27, ease: 'steps(3)', immediateRender: false }, 0.3);
+        const nika = Kit.makeCursor(S.root, 'nika', 'ნიკა', { x: 1760, y: 860 });
+        tl.set(nika, { visibility: 'hidden' }, 0);
+        tl.set(nika, { visibility: 'visible' }, 0.45);
+        const bb = { x: 1520, y: 498 };
+        Kit.cursorMove(tl, nika, 0.45, bb.x, bb.y, { dur: 0.65 });
+        Kit.cursorClick(tl, nika, 1.18, { press: q('.s10-back-btn'), hold: 0.24 });
+        // 1.45 the acetate slides away; ნიკა is back in class
+        tl.to(thr, { x: 600, duration: 0.2, ease: 'steps(3)' }, 1.45);
+        tl.set(thr, { visibility: 'hidden' }, 1.66);
+        tl.to(cr.punches.nika.thread, { scale: 0.4, opacity: 0, duration: 0.09, ease: 'steps(2)' }, 1.5);
+
+        // ---- 1.76 catch-up slip hinges in over the board (from the bottom)
+        tl.set(slip, { visibility: 'hidden' }, 0);
+        tl.set(slip, { visibility: 'visible' }, 1.76);
+        tl.fromTo(slip, { rotationX: 34, y: 40, opacity: 0.4, transformPerspective: 1600, transformOrigin: '50% 100%' },
+          { rotationX: 0, y: 0, opacity: 1, duration: 0.18, ease: 'steps(3)', immediateRender: false }, 1.76);
+        Kit.stepIn(tl, q('.s10-li1'), 2.35, { x: -10, y: 0 });
+        Kit.stepIn(tl, q('.s10-li2'), 2.94, { x: -10, y: 0 });
+        Kit.stepIn(tl, q('.s10-li3'), 3.53, { x: -10, y: 0 });
+        Kit.stepIn(tl, q('.s10-btns'), 4.0, { y: 8 });
+        Kit.cursorMove(tl, nika, 2.2, 1200, 520, { dur: 1.2, ease: 'sine.inOut' });
+        Kit.cursorMove(tl, nika, 3.75, 1300, 636, { dur: 0.55 });
+        Kit.cursorClick(tl, nika, 4.41, { press: q('.s10-bread'), hold: 0.2 });
+
+        // ---- 4.71 the class ends: slip out, pull back, dim
+        tl.to(slip, { rotationX: 30, y: 60, opacity: 0, duration: 0.14, ease: 'steps(2)' }, 4.71);
+        tl.set(slip, { visibility: 'hidden' }, 4.86);
+        tl.to(nika, { opacity: 0, duration: 0.066, ease: 'steps(2)' }, 4.71);
+        tl.set(nika, { visibility: 'hidden' }, 4.78);
+        cr.frame(tl, 4.71, 'full', { dur: 0.95 });
+        Kit.textAt(tl, cr.phase, [[0, 'კითხვა-პასუხი'], [4.75, 'დასრულდა']]);
+        Kit.dim(tl, cr.host, 5.18, { sat: 0.35, opacity: 0.45 });
+
+        // ---- 5.29 the recap leaf hinges in
+        Kit.hingeIn(tl, recap, 5.29, { dur: 0.2 });
+        const w = qa('.s10-w');
+        // the scribe writes: titles step in, lines print left to right
+        const printAt = [5.6, 5.88, 6.18, 6.47, 6.62, 6.92, 7.06, 6.47, 7.06, 7.35];
+        // order in w: t1, l1, l2, t2, k1, k2, k3, t3, q, a
+        const order = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+        order.forEach((i) => {
+          const el = w[i], t = printAt[i];
+          tl.set(el, { visibility: 'hidden' }, 0);
+          tl.set(el, { visibility: 'visible' }, t);
+          tl.fromTo(el, { clipPath: 'inset(-20% 100% -20% 0%)' }, { clipPath: 'inset(-20% 0% -20% 0%)', duration: 0.24, ease: 'steps(5)', immediateRender: false }, t);
+        });
+        // flashcards: a stack that fans out
+        const cards = [q('.s10-c1'), q('.s10-c2'), q('.s10-c3')];
+        Kit.stepIn(tl, cards, 7.35, { y: 10 });
+        tl.fromTo(cards[0], { rotation: 0, x: 0, y: 0 }, { rotation: -8, x: -34, y: 6, duration: 0.18, ease: 'steps(3)', immediateRender: false }, 7.65);
+        tl.fromTo(cards[1], { rotation: 0, x: 0, y: 0 }, { rotation: 5, x: 26, y: -4, duration: 0.18, ease: 'steps(3)', immediateRender: false }, 7.65);
+        Kit.stepIn(tl, [q('.s10-by'), q('.s10-hr')], 5.45, { y: 0 });
+        Kit.stepIn(tl, qa('.s10-chip'), 8.24, { y: 6, stagger: 0.12 });
+
+        // ---- 9.00 pull far back: the leaf becomes the s11 tile, the class falls away
+        tl.set(recap, { transformOrigin: '50% 50%' }, 8.95);
+        tl.fromTo(recap, { scale: 1 }, { scale: 0.5, duration: 0.85, ease: 'power3.inOut', immediateRender: false }, 9.0);
+        tl.to(cr.host, { opacity: 0, duration: Kit.STEP, ease: 'steps(2)' }, 9.25);
+        tl.set(cr.host, { visibility: 'hidden' }, 9.35);
+        gsap.set(recap, { transformOrigin: '50% 50%' });
+
+        tl.set({}, {}, 10);
+        window.__timelines = window.__timelines || {};
+        window.__timelines['s10-catchup'] = tl;
+      })();
+    </script>
+  </div>
+</template>

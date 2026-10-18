@@ -1,0 +1,86 @@
+/*
+  Classroom shell: the product's class layout (docs/pitch/img/board.png) in Georgian,
+  built by Kit.classroom(rootEl, opts) from assets/classroom.js.
+  Geometry is in CANVAS px (a 2560 x 1240 canvas); the camera (.cr-cam) scales it.
+  See CONVENTIONS.md section 13 for the API and the pixel boxes.
+  Shared by s06-s10. Class names start with "cr-"; do not reuse that prefix in scenes.
+*/
+.cr-host { position: absolute; inset: 0; overflow: hidden; }
+.cr-cam { position: absolute; left: 0; top: 0; width: 2560px; height: 1240px; transform-origin: 0 0; }
+.cr-canvas {
+  position: absolute; left: 0; top: 0; width: 2560px; height: 1240px; background: var(--paper);
+  --section: var(--h-orange);
+}
+.cr-canvas.cr-hue-orange { --section: var(--h-orange); }
+.cr-canvas.cr-hue-teal { --section: var(--h-teal); }
+.cr-canvas.cr-hue-grass { --section: var(--h-grass); }
+.cr-canvas.cr-hue-ultra { --section: var(--h-ultra); }
+.cr-canvas.cr-hue-violet { --section: var(--h-violet); }
+.cr-canvas.cr-hue-sienna { --section: var(--h-sienna); }
+
+/* masthead: 0..2560 x 0..150 (kit .masthead) */
+.cr-canvas .masthead { height: 150px; padding: 0 80px; gap: 56px; }
+.cr-canvas .masthead .class-title { font-size: 64px; }
+.cr-canvas .masthead .segment { font-size: 30px; }
+.cr-canvas .stamp.section.cr-phase { background: var(--paper); color: color-mix(in srgb, var(--section) 86%, var(--ink)); }
+.cr-voice { font-family: var(--f-head); font-size: 28px; font-weight: 700; font-stretch: 80%; letter-spacing: 0.05em; color: var(--ink); white-space: nowrap; }
+
+/* binding column: 0..150 x 150..1130 */
+.cr-binding {
+  position: absolute; left: 0; top: 150px; width: 150px; height: 980px;
+  border-right: 1.5px solid var(--rule); display: flex; flex-direction: column; align-items: center; padding-top: 44px; gap: 22px;
+}
+.cr-seat { display: flex; flex-direction: column; align-items: center; width: 150px; }
+.cr-seat .punch-name { margin-top: 12px; font-size: 28px; line-height: 1; }
+.cr-seat .punch .mark.cr-thread { background: var(--ink); }
+.cr-seats { font-family: var(--f-head); font-size: 28px; color: var(--ink-3); margin-top: 6px; white-space: nowrap; }
+.cr-seats .mono { font-size: 26px; }
+
+/* stage: 150..1830 x 150..1130; board leaf 220,190 1540 x 747 */
+.cr-stage { position: absolute; left: 150px; top: 150px; width: 1680px; height: 980px; }
+.cr-canvas .board.cr-board { left: 70px; top: 40px; width: 1540px; height: 747px; }
+.cr-board .page-no { font-size: 28px; }
+.cr-canvas .caption-line.cr-caption { left: 70px; top: 818px; width: 1540px; min-height: 120px; font-size: 38px; }
+
+/* right rail: 1830..2450 x 150..1130 */
+.cr-rail { position: absolute; left: 1830px; top: 150px; width: 620px; height: 980px; border-left: 1.5px solid var(--rule); }
+.cr-rail-tabs { position: absolute; left: 24px; right: 0; top: 22px; height: 70px; display: flex; gap: 10px; border-bottom: 1.5px solid var(--ink); }
+.cr-rail-tab {
+  display: flex; align-items: center; height: 70px; padding: 0 26px; margin-bottom: -1.5px;
+  border: 1.5px solid var(--rule-2); border-bottom: none; border-radius: 6px 6px 0 0; background: var(--paper-2);
+  font-family: var(--f-head); font-size: 28px; font-weight: 700; font-stretch: 80%; letter-spacing: 0.05em; color: var(--ink-3); white-space: nowrap;
+}
+.cr-rail-tab.cr-on { background: var(--paper); border-color: var(--ink); color: var(--ink); }
+.cr-rail-list { position: absolute; left: 24px; top: 112px; width: 580px; height: 850px; }
+.cr-rail-list .q-card { width: 580px; }
+
+/* fore-edge tab rail: 2460..2560 x 150..1130 */
+.cr-tabs { position: absolute; left: 2462px; top: 160px; height: 960px; }
+.cr-tabs .tab { width: 88px; padding: 20px 0 14px; gap: 10px; }
+.cr-tabs .tab .tab-title { text-transform: none; letter-spacing: 0.02em; }
+.cr-tabs .tab .tab-time { font-size: 24px; white-space: nowrap; }
+.cr-tabs .tab .tab-time .cr-ka { font-family: var(--f-head); font-size: 22px; font-stretch: 78%; }
+
+/* control bar: 0..2560 x 1130..1240 */
+.cr-controls {
+  position: absolute; left: 0; top: 1130px; width: 2560px; height: 110px; border-top: var(--rule-w) solid var(--ink);
+  display: flex; align-items: center; gap: 22px; padding: 0 80px; background: var(--paper);
+}
+.cr-controls .cr-host-label { font-family: var(--f-head); font-size: 28px; font-weight: 750; font-stretch: 80%; letter-spacing: 0.05em; color: var(--ink-2); padding-right: 6px; }
+.cr-controls .btn.cr-plain { border-color: transparent; background: transparent; }
+.cr-controls .input.cr-ask { flex: 1; height: 72px; margin-left: 24px; }
+.cr-controls .btn.cr-askbtn { height: 72px; }
+.cr-controls .btn.cr-askbtn.cr-idle { color: var(--ink-3); border-color: var(--rule-2); }
+
+/* board signal chips (product: "1 got it", "2 confused") */
+.cr-sig {
+  position: absolute; display: inline-flex; align-items: center; gap: 8px; height: 46px; padding: 0 14px;
+  background: var(--leaf); border: 1.5px solid currentColor; border-radius: var(--r-slip);
+  font-family: var(--f-head); font-size: 28px; font-weight: 650; font-stretch: 85%; white-space: nowrap;
+}
+.board .cr-sig svg.icon { position: static; inset: auto; width: 26px; height: 26px; stroke-width: 2.5; }
+.cr-sig .mono { font-size: 26px; font-weight: 700; }
+.cr-sig-ok { color: var(--ok); }
+.cr-sig-q { color: var(--warn); }
+/* board title in the section hue, a touch darker so it clears 3:1 on the leaf at any scale */
+.board .fig-title.cr-fig-title { color: color-mix(in srgb, var(--section) 88%, var(--ink)); }

@@ -1,0 +1,139 @@
+{
+  "scene": "s02-classroom",
+  "start": 11,
+  "note": "t is FILM seconds. gain is dB (tools/audio/mix_sfx.py).",
+  "cues": [
+    {
+      "t": 11.1,
+      "name": "swap",
+      "gain": -4
+    },
+    {
+      "t": 11.25,
+      "name": "plot"
+    },
+    {
+      "t": 11.5,
+      "name": "pop",
+      "gain": -4
+    },
+    {
+      "t": 11.6,
+      "name": "plot",
+      "gain": -3
+    },
+    {
+      "t": 11.9,
+      "name": "plot",
+      "gain": -3
+    },
+    {
+      "t": 11.9,
+      "name": "pop",
+      "gain": -4
+    },
+    {
+      "t": 12.3,
+      "name": "plot",
+      "gain": -3
+    },
+    {
+      "t": 12.3,
+      "name": "pop",
+      "gain": -4
+    },
+    {
+      "t": 12.7,
+      "name": "pop",
+      "gain": -4
+    },
+    {
+      "t": 13.32,
+      "name": "stamp"
+    },
+    {
+      "t": 13.895,
+      "name": "stamp",
+      "gain": -2
+    },
+    {
+      "t": 14.474,
+      "name": "stamp",
+      "gain": -2
+    },
+    {
+      "t": 15.053,
+      "name": "stamp",
+      "gain": -2
+    },
+    {
+      "t": 15.632,
+      "name": "stamp",
+      "gain": -2
+    },
+    {
+      "t": 15.921,
+      "name": "stamp",
+      "gain": -4
+    },
+    {
+      "t": 16.211,
+      "name": "stamp",
+      "gain": -4
+    },
+    {
+      "t": 16.5,
+      "name": "stamp",
+      "gain": -4
+    },
+    {
+      "t": 16.789,
+      "name": "stamp",
+      "gain": -4
+    },
+    {
+      "t": 17.079,
+      "name": "stamp",
+      "gain": -4
+    },
+    {
+      "t": 17.368,
+      "name": "thud"
+    },
+    {
+      "t": 17.368,
+      "name": "stamp",
+      "gain": -4
+    },
+    {
+      "t": 17.95,
+      "name": "whoosh",
+      "gain": -4
+    },
+    {
+      "t": 18.75,
+      "name": "paper"
+    },
+    {
+      "t": 18.9,
+      "name": "key",
+      "dur": 1.17
+    },
+    {
+      "t": 20.55,
+      "name": "key",
+      "dur": 0.95,
+      "gain": -4
+    },
+    {
+      "t": 20.6,
+      "name": "swap",
+      "gain": -3
+    },
+    {
+      "t": 20.9,
+      "name": "whoosh",
+      "gain": -5
+    }
+  ]
+}

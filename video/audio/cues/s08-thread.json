@@ -1,0 +1,147 @@
+{
+  "scene": "s08-thread",
+  "start": 82,
+  "note": "t is FILM seconds (scene start 82 + local time). Key events sit on the beat grid (beats every 0.5714 s from 82.0).",
+  "cues": [
+    {
+      "t": 82.3,
+      "name": "whoosh",
+      "gain": 0.4
+    },
+    {
+      "t": 83.14,
+      "name": "click"
+    },
+    {
+      "t": 83.3,
+      "name": "key",
+      "dur": 1.28
+    },
+    {
+      "t": 84.86,
+      "name": "click"
+    },
+    {
+      "t": 85.43,
+      "name": "stamp"
+    },
+    {
+      "t": 86.0,
+      "name": "paper"
+    },
+    {
+      "t": 87.14,
+      "name": "click"
+    },
+    {
+      "t": 87.3,
+      "name": "whoosh",
+      "gain": 0.4
+    },
+    {
+      "t": 87.43,
+      "name": "paper"
+    },
+    {
+      "t": 87.49,
+      "name": "stamp"
+    },
+    {
+      "t": 88.29,
+      "name": "swap"
+    },
+    {
+      "t": 88.5,
+      "name": "paper"
+    },
+    {
+      "t": 88.6,
+      "name": "plot",
+      "gain": 0.6
+    },
+    {
+      "t": 88.9,
+      "name": "plot",
+      "gain": 0.6
+    },
+    {
+      "t": 89.14,
+      "name": "swap",
+      "gain": 0.6
+    },
+    {
+      "t": 89.43,
+      "name": "plot"
+    },
+    {
+      "t": 89.9,
+      "name": "plot",
+      "gain": 0.6
+    },
+    {
+      "t": 90.29,
+      "name": "plot"
+    },
+    {
+      "t": 90.76,
+      "name": "plot",
+      "gain": 0.6
+    },
+    {
+      "t": 90.86,
+      "name": "plot",
+      "gain": 0.5
+    },
+    {
+      "t": 91.14,
+      "name": "plot"
+    },
+    {
+      "t": 91.43,
+      "name": "swap",
+      "gain": 0.6
+    },
+    {
+      "t": 91.59,
+      "name": "chime",
+      "gain": 0.5
+    },
+    {
+      "t": 92.29,
+      "name": "plot",
+      "gain": 0.5
+    },
+    {
+      "t": 93.0,
+      "name": "whoosh",
+      "gain": 0.5
+    },
+    {
+      "t": 93.71,
+      "name": "plot",
+      "gain": 0.6
+    },
+    {
+      "t": 94.4,
+      "name": "plot",
+      "gain": 0.5
+    },
+    {
+      "t": 94.65,
+      "name": "whoosh",
+      "gain": 0.5
+    },
+    {
+      "t": 95.71,
+      "name": "paper"
+    },
+    {
+      "t": 96.29,
+      "name": "swap"
+    },
+    {
+      "t": 96.86,
+      "name": "paper"
+    }
+  ]
+}

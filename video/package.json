@@ -1,0 +1,13 @@
+{
+  "name": "chalkroom-live-film",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "subs": "node tools/build-subs.mjs",
+    "lint": "HYPERFRAMES_SKIP_SKILLS=1 npx --yes hyperframes@0.8.169 lint",
+    "check": "HYPERFRAMES_SKIP_SKILLS=1 npx --yes hyperframes@0.8.169 check",
+    "snapshot": "HYPERFRAMES_SKIP_SKILLS=1 npx --yes hyperframes@0.8.169 snapshot",
+    "dev": "HYPERFRAMES_SKIP_SKILLS=1 npx --yes hyperframes@0.8.169 preview",
+    "render": "HYPERFRAMES_SKIP_SKILLS=1 npx --yes hyperframes@0.8.169 render --workers 1 -o renders/chalkroom-live-ka.mp4"
+  }
+}

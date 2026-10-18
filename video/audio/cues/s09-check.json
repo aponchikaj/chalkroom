@@ -1,0 +1,138 @@
+{
+ "scene": "s09-check",
+ "start": 98,
+ "note": "FILM seconds (98 + local). key at 107.4 is the caption typing burst.",
+ "cues": [
+  {
+   "t": 98.05,
+   "name": "paper"
+  },
+  {
+   "t": 98.3,
+   "name": "whoosh",
+   "gain": -3
+  },
+  {
+   "t": 98.42,
+   "name": "swap"
+  },
+  {
+   "t": 99.17,
+   "name": "click"
+  },
+  {
+   "t": 99.75,
+   "name": "click"
+  },
+  {
+   "t": 100.33,
+   "name": "click"
+  },
+  {
+   "t": 100.92,
+   "name": "swap"
+  },
+  {
+   "t": 101.5,
+   "name": "chime"
+  },
+  {
+   "t": 101.5,
+   "name": "thud",
+   "gain": -6
+  },
+  {
+   "t": 101.6,
+   "name": "plot"
+  },
+  {
+   "t": 102.08,
+   "name": "stamp"
+  },
+  {
+   "t": 102.67,
+   "name": "click"
+  },
+  {
+   "t": 102.72,
+   "name": "pop"
+  },
+  {
+   "t": 103.25,
+   "name": "pop"
+  },
+  {
+   "t": 103.83,
+   "name": "pop"
+  },
+  {
+   "t": 104.42,
+   "name": "stamp",
+   "gain": -3
+  },
+  {
+   "t": 105.0,
+   "name": "stamp"
+  },
+  {
+   "t": 105.58,
+   "name": "paper"
+  },
+  {
+   "t": 105.6,
+   "name": "whoosh",
+   "gain": -3
+  },
+  {
+   "t": 106.17,
+   "name": "swap"
+  },
+  {
+   "t": 106.2,
+   "name": "paper"
+  },
+  {
+   "t": 106.92,
+   "name": "paper",
+   "gain": -2
+  },
+  {
+   "t": 107.0,
+   "name": "whoosh",
+   "gain": -4
+  },
+  {
+   "t": 107.33,
+   "name": "plot"
+  },
+  {
+   "t": 107.4,
+   "name": "key",
+   "gain": -6,
+   "dur": 2.9
+  },
+  {
+   "t": 107.92,
+   "name": "plot"
+  },
+  {
+   "t": 108.2,
+   "name": "swap",
+   "gain": -3
+  },
+  {
+   "t": 108.5,
+   "name": "swap",
+   "gain": -3
+  },
+  {
+   "t": 108.8,
+   "name": "swap",
+   "gain": -3
+  },
+  {
+   "t": 109.67,
+   "name": "swap"
+  }
+ ]
+}

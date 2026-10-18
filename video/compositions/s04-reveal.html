@@ -1,0 +1,228 @@
+<!--
+  s04-reveal (film 30-40 s, 10 s): Chalkroom Live.
+  Reference scene for the kit. Read CONVENTIONS.md before copying patterns.
+
+  Handoff IN (from s03): a pile of five leaves, each 647 x 336 px, centred at
+  (960, 464), the top one square, the four below rotated -3 / +2.2 / -1.4 / +1 deg
+  with small offsets (see PILE below). That is the book at camera scale 0.42.
+  Handoff OUT (to s05): the open title page at camera scale 1: the leaf at
+  left 190, top 64, 1540 x 800, four page edges below/right (5 px steps),
+  six divider tabs out on the fore edge, five punches on the binding.
+
+  Local timeline (film = 30 + local):
+    0.00 pile           0.30 squares up      0.75 cover prints
+    1.35 cover hinges open, camera pushes in (to 2.55)
+    1.70 running head   1.95 title prints    2.40 rule plots
+    2.75 six tabs flick out, 0.13 s apart
+    3.50 line 1         4.60 Hacktoberfest stamp
+    5.80 line 2         7.90 line 3          8.05 five punches pop in
+-->
+<template id="s04-reveal-template">
+  <div data-composition-id="s04-reveal" data-width="1920" data-height="1080" data-duration="10">
+    <link rel="stylesheet" href="../assets/chalk.css" />
+    <script src="../assets/vendor/gsap.min.js"></script>
+    <script src="../assets/kit.js"></script>
+    <style>
+      .s04-camera { position: absolute; inset: 0; transform-origin: 960px 464px; }
+      .s04-book { position: absolute; left: 190px; top: 64px; width: 1540px; height: 800px; }
+
+      /* pile leaves / page edges */
+      .s04-sheet {
+        position: absolute; inset: 0; background: var(--leaf); border: 1.5px solid var(--leaf-edge);
+        border-radius: var(--r-leaf); box-shadow: var(--shadow-leaf);
+      }
+      .s04-sheet .s04-lines { position: absolute; left: 120px; right: 140px; top: 150px; }
+      .s04-sheet .s04-lines i { display: block; height: 14px; margin-bottom: 70px; background: var(--paper-2); border-radius: 2px; }
+      .s04-sheet .s04-lines i:nth-child(2) { width: 72%; }
+      .s04-sheet .s04-lines i:nth-child(3) { width: 86%; background: var(--paper-3); }
+      .s04-sheet .s04-lines i:nth-child(4) { width: 54%; }
+
+      /* fore-edge divider tabs (stubs), behind the pages */
+      .s04-tabs { position: absolute; left: 1536px; top: 92px; display: flex; flex-direction: column; gap: 12px; z-index: 0; }
+      .s04-tabs .tab.stub { width: 46px; height: 92px; }
+
+      /* the title page */
+      .s04-page {
+        position: absolute; inset: 0; background: var(--leaf); border: 1.5px solid var(--leaf-edge);
+        border-radius: var(--r-leaf); box-shadow: var(--shadow-leaf); overflow: hidden;
+      }
+      .s04-head {
+        position: absolute; left: 150px; right: 110px; top: 40px; height: 64px;
+        display: flex; align-items: center; justify-content: space-between;
+        border-bottom: 1.5px solid var(--ink);
+      }
+      .s04-head .s04-brand { font-family: var(--f-head); font-size: 28px; font-weight: 800; font-stretch: 75%; letter-spacing: 0.16em; color: var(--ink); }
+      .s04-head .s04-folio { font-family: var(--f-mono); font-size: 28px; color: var(--ink-3); }
+      .s04-title {
+        position: absolute; left: 142px; top: 150px; white-space: nowrap;
+        font-family: var(--f-head); font-size: 196px; font-weight: 850; font-stretch: 75%;
+        line-height: 0.9; letter-spacing: -0.02em; color: var(--ink);
+      }
+      .s04-rule { position: absolute; left: 150px; top: 356px; width: 1280px; height: 8px; overflow: visible; }
+      .s04-lines-ka { position: absolute; left: 150px; top: 398px; }
+      .s04-lines-ka div {
+        font-family: var(--f-head); font-size: 80px; font-weight: 800; font-stretch: 75%;
+        line-height: 1.3; color: var(--ink); white-space: nowrap;
+      }
+      .s04-lines-ka div .s04-dot { color: var(--ink); }
+      .s04-stamp-wrap { position: absolute; right: 110px; top: 664px; transform: rotate(-4deg); transform-origin: 100% 50%; }
+      .s04-stamp-wrap .stamp { background: var(--leaf); height: 58px; font-size: 30px; padding: 0 18px; border-width: 3px; }
+      .s04-binding { position: absolute; left: 37px; top: 150px; display: flex; flex-direction: column; gap: 46px; }
+      .s04-hole { position: relative; width: 76px; height: 76px; }
+      .s04-hole .s04-empty {
+        position: absolute; inset: 14px; border-radius: 50%; background: var(--paper-3); box-shadow: var(--shadow-punch);
+      }
+      .s04-hole .punch { position: absolute; left: 0; top: 0; }
+
+      /* the cover */
+      .s04-cover {
+        position: absolute; inset: 0; background: var(--paper-2); border: 1.5px solid var(--rule-2);
+        border-radius: var(--r-leaf); box-shadow: var(--shadow-leaf); backface-visibility: hidden;
+      }
+      .s04-cover .s04-frame { position: absolute; inset: 40px 40px 40px 130px; border: 3px solid var(--ink); }
+      .s04-cover .s04-frame::after { content: ''; position: absolute; inset: 10px; border: 1.5px solid var(--ink); }
+      .s04-cover .s04-cover-brand {
+        position: absolute; left: 130px; right: 40px; top: 300px; text-align: center;
+        font-family: var(--f-head); font-size: 112px; font-weight: 800; font-stretch: 75%; letter-spacing: 0.16em; color: var(--ink);
+      }
+      .s04-cover .s04-cover-rule { position: absolute; left: 50%; margin-left: -150px; width: 300px; top: 470px; height: 3px; background: var(--ink); transform: translateX(45px); }
+      .s04-cover .s04-binding .s04-empty { background: var(--paper-3); }
+    </style>
+
+    <div id="s04-reveal-bg" class="paper-bg clip" data-start="0" data-duration="10" data-track-index="0"></div>
+
+    <div class="s04-camera">
+      <div class="s04-book">
+        <div class="s04-tabs" data-layout-allow-overflow>
+          <div class="tab stub orange"></div>
+          <div class="tab stub teal"></div>
+          <div class="tab stub grass"></div>
+          <div class="tab stub ultra"></div>
+          <div class="tab stub violet"></div>
+          <div class="tab stub sienna"></div>
+        </div>
+
+        <!-- PILE: four leaves under the top one; they square up into page edges -->
+        <div class="s04-sheet s04-p1"><div class="s04-lines"><i></i><i></i><i></i><i></i></div></div>
+        <div class="s04-sheet s04-p2"><div class="s04-lines"><i></i><i></i><i></i><i></i></div></div>
+        <div class="s04-sheet s04-p3"><div class="s04-lines"><i></i><i></i><i></i><i></i></div></div>
+        <div class="s04-sheet s04-p4"><div class="s04-lines"><i></i><i></i><i></i><i></i></div></div>
+
+        <!-- TITLE PAGE (under the cover) -->
+        <div class="s04-page">
+          <div class="s04-head">
+            <span class="s04-brand">CHALKROOM LIVE</span>
+            <span class="s04-folio">01</span>
+          </div>
+          <div class="s04-binding">
+            <div class="s04-hole"><div class="s04-empty"></div><div class="punch ana s04-who"><span class="host">H</span>ა</div></div>
+            <div class="s04-hole"><div class="s04-empty"></div><div class="punch nika s04-who">ნ</div></div>
+            <div class="s04-hole"><div class="s04-empty"></div><div class="punch gio s04-who">გ</div></div>
+            <div class="s04-hole"><div class="s04-empty"></div><div class="punch mari s04-who">მ</div></div>
+            <div class="s04-hole"><div class="s04-empty"></div><div class="punch open s04-who"></div></div>
+          </div>
+          <div class="s04-title">Chalkroom Live</div>
+          <svg class="s04-rule" viewBox="0 0 1280 8"><line class="stroke s04-rule-line" x1="2" y1="4" x2="1278" y2="4" style="stroke-width: 3" /></svg>
+          <div class="s04-lines-ka">
+            <div class="s04-l1">ცოცხალი გაკვეთილი<span class="s04-dot">.</span></div>
+            <div class="s04-l2">ერთი დაფა<span class="s04-dot">.</span></div>
+            <div class="s04-l3">ხუთამდე ადამიანი<span class="s04-dot">.</span></div>
+          </div>
+          <div class="s04-stamp-wrap"><span class="stamp s04-hack">Hacktoberfest Georgia 2026</span></div>
+        </div>
+
+        <!-- COVER -->
+        <div class="s04-cover" data-layout-allow-overflow>
+          <div class="s04-frame"></div>
+          <div class="s04-binding">
+            <div class="s04-hole"><div class="s04-empty"></div></div>
+            <div class="s04-hole"><div class="s04-empty"></div></div>
+            <div class="s04-hole"><div class="s04-empty"></div></div>
+            <div class="s04-hole"><div class="s04-empty"></div></div>
+            <div class="s04-hole"><div class="s04-empty"></div></div>
+          </div>
+          <div class="s04-cover-brand">CHALKROOM</div>
+          <div class="s04-cover-rule"></div>
+        </div>
+
+        <!-- top leaf of the pile (the last chat leaf from s03) -->
+        <div class="s04-sheet s04-top"><div class="s04-lines"><i></i><i></i><i></i><i></i></div></div>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        const S = Kit.scope('s04-reveal');
+        const q = S.q, qa = S.qa;
+        const tl = gsap.timeline({ paused: true });
+
+        const camera = q('.s04-camera');
+        const sheets = ['.s04-p1', '.s04-p2', '.s04-p3', '.s04-p4'].map(q);
+        const top = q('.s04-top');
+        const cover = q('.s04-cover');
+        const tabs = qa('.s04-tabs .tab');
+
+        // ---- 0.00 handoff in: the pile, seen at camera scale 0.42
+        // offsets are in book px (x 1/0.42 on screen)
+        const PILE = [
+          { rotation: -3.0, x: -40, y: 22 },
+          { rotation: 2.2, x: 34, y: -16 },
+          { rotation: -1.4, x: 18, y: 30 },
+          { rotation: 1.0, x: -22, y: -10 },
+        ];
+        const EDGES = [20, 15, 10, 5]; // squared up: page edges below/right
+        gsap.set(camera, { scale: 0.42 });
+        sheets.forEach((s, i) => gsap.set(s, PILE[i]));
+        gsap.set(tabs, { x: -34 });   // tucked behind the pages
+
+        // ---- 0.30 the pile squares up (three mechanical steps)
+        sheets.forEach((s, i) => {
+          tl.fromTo(s, PILE[i], { rotation: 0, x: EDGES[i], y: EDGES[i], duration: 0.27, ease: 'steps(3)', immediateRender: false }, 0.3 + i * 0.03);
+        });
+        // camera eases in a little while it squares up
+        Kit.camera(tl, camera, 0.15, { scale: 0.56 }, { dur: 1.1 });
+
+        // ---- 0.75 the cover prints over the top leaf
+        Kit.stepIn(tl, cover, 0.75, { y: 0, scale: 1.02 });
+        tl.set(top, { visibility: 'hidden' }, 0.75);
+
+        // ---- 1.35 the cover hinges open from the binding; camera pushes in
+        tl.fromTo(cover,
+          { rotationY: 0, transformPerspective: 2600, transformOrigin: '0% 50%' },
+          { rotationY: -100, duration: 0.54, ease: 'steps(6)', immediateRender: false }, 1.35);
+        tl.set(cover, { visibility: 'hidden' }, 1.35 + 0.54);
+        Kit.camera(tl, camera, 1.3, { scale: 1 }, { dur: 1.25, ease: 'power3.inOut' });
+
+        // ---- 1.70 running head, 1.95 title prints, 2.40 rule plots
+        Kit.stepIn(tl, q('.s04-head'), 1.7);
+        const title = q('.s04-title');
+        tl.set(title, { visibility: 'hidden' }, 0);
+        tl.set(title, { visibility: 'visible' }, 1.95);
+        tl.fromTo(title,
+          { clipPath: 'inset(-10% 100% -20% 0%)', y: 6 },
+          { clipPath: 'inset(-10% 0% -20% 0%)', y: 0, duration: 0.42, ease: 'steps(7)', immediateRender: false }, 1.95);
+        Kit.plot(tl, q('.s04-rule-line'), 2.4, { dur: 0.48 });
+
+        // ---- 2.75 the six tabs flick out, boom boom boom
+        tabs.forEach((t, i) => {
+          tl.fromTo(t, { x: -34 }, { x: 0, duration: Kit.STEP, ease: 'steps(2)', immediateRender: false }, 2.75 + i * 0.13);
+        });
+
+        // ---- the three lines, on the voice (c10 33.4-39.4 s)
+        Kit.stepIn(tl, q('.s04-l1'), 3.5, { x: -10, y: 0 });
+        Kit.stepIn(tl, q('.s04-l2'), 5.8, { x: -10, y: 0 });
+        Kit.stepIn(tl, q('.s04-l3'), 7.9, { x: -10, y: 0 });
+
+        // ---- 4.60 Hacktoberfest stamp lands
+        Kit.stamp(tl, q('.s04-hack'), 4.6, { from: 1.18 });
+
+        // ---- 8.05 five punches pop into the binding (four people, one open seat)
+        Kit.stepIn(tl, qa('.s04-who'), 8.05, { y: 0, scale: 0.7, stagger: 0.14 });
+
+        tl.set({}, {}, 10);
+        window.__timelines = window.__timelines || {};
+        window.__timelines['s04-reveal'] = tl;
+      })();
+    </script>
+  </div>
+</template>

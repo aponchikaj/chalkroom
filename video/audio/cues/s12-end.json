@@ -1,0 +1,114 @@
+{
+ "scene": "s12-end",
+ "start": 138,
+ "note": "FILM seconds (138 + local). Final stamp at 147.70 with the footer.",
+ "cues": [
+  {
+   "t": 138.25,
+   "name": "whoosh",
+   "gain": -3
+  },
+  {
+   "t": 138.29,
+   "name": "paper"
+  },
+  {
+   "t": 138.7,
+   "name": "swap",
+   "gain": -3
+  },
+  {
+   "t": 139.14,
+   "name": "swap"
+  },
+  {
+   "t": 139.6,
+   "name": "swap"
+  },
+  {
+   "t": 140.4,
+   "name": "plot"
+  },
+  {
+   "t": 140.95,
+   "name": "swap"
+  },
+  {
+   "t": 142.57,
+   "name": "swap"
+  },
+  {
+   "t": 143.14,
+   "name": "swap",
+   "gain": -2
+  },
+  {
+   "t": 143.71,
+   "name": "pop"
+  },
+  {
+   "t": 144.0,
+   "name": "pop"
+  },
+  {
+   "t": 144.29,
+   "name": "pop"
+  },
+  {
+   "t": 144.57,
+   "name": "pop",
+   "gain": -2
+  },
+  {
+   "t": 145.86,
+   "name": "swap",
+   "gain": -3
+  },
+  {
+   "t": 146.0,
+   "name": "swap"
+  },
+  {
+   "t": 146.4,
+   "name": "plot"
+  },
+  {
+   "t": 146.75,
+   "name": "swap"
+  },
+  {
+   "t": 146.9,
+   "name": "stamp",
+   "gain": -3
+  },
+  {
+   "t": 147.03,
+   "name": "stamp",
+   "gain": -3
+  },
+  {
+   "t": 147.16,
+   "name": "stamp",
+   "gain": -3
+  },
+  {
+   "t": 147.29,
+   "name": "stamp",
+   "gain": -3
+  },
+  {
+   "t": 147.42,
+   "name": "stamp",
+   "gain": -3
+  },
+  {
+   "t": 147.55,
+   "name": "stamp",
+   "gain": -3
+  },
+  {
+   "t": 147.7,
+   "name": "stamp"
+  }
+ ]
+}

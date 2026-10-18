@@ -1,0 +1,254 @@
+<!--
+  s07-triage (film 64-82 s, 18 s): questions and triage.
+
+  Handoff IN (from s06): classroom shell, camera view 'full', PDA page on the board,
+  rail tab "კითხვები" with an empty list, ask input on its placeholder.
+  Handoff OUT (to s08): camera view 'full', no overlays; the "პირადი თემა" stamp
+  (ink-filled, arrow-up-right icon) docked right of ნიკა's punch: canvas left 132,
+  top 336, built at 30 px and scaled 1.3 (origin 0 0). The rail holds the grouped
+  card at the top of the list. Class still in segment 1 (orange).
+
+  Local timeline (film = 64 + local), music bars at 0, 2.32, 4.65, 6.97, 9.29, 11.61, 13.94, 16.26:
+    0.25 camera to view A (rail + ask bar)
+    0.55 გიო cursor in, 1.20 click, 1.35 types, 3.48 presses "კითხვა", 3.60 card + "სორტირდება"
+    3.70 მარი cursor in, 4.20 click, 4.35 types, 6.39 presses, 6.50 card + stamp
+    6.75 camera to view B (rail close-up)
+    7.55 triage tag steps in and sweeps down the two cards (7.55-8.45)
+    8.71 the cards slide together, 9.29 merge into one grouped card, stamp lands
+    9.58 / 9.87 askers, 10.45 note
+    11.00 camera back to full; 11.61 board + rail dim, route sheet hinges in
+    12.19 / 12.77 / 13.35 / 13.94 four routes fan out (connector plots, stamp lands, example)
+    14.52 readout "სტატუსი ≤ 5 წმ"
+    15.40 "პირადი თემა" re-lands (lit); 16.00 sheet hinges out, the stamp stays
+    16.26 class undims, the stamp travels to ნიკა's punch (arrives 17.16)
+-->
+<template id="s07-triage-template">
+  <div data-composition-id="s07-triage" data-width="1920" data-height="1080" data-duration="18">
+    <link rel="stylesheet" href="../assets/chalk.css" />
+    <link rel="stylesheet" href="../assets/classroom.css" />
+    <script src="../assets/vendor/gsap.min.js"></script>
+    <script src="../assets/kit.js"></script>
+    <script src="../assets/classroom.js"></script>
+    <style>
+      .s07-cr { position: absolute; inset: 0; }
+      .s07-layer { position: absolute; inset: 0; }
+
+      /* question cards in the rail list (canvas px) */
+      .s07-card { position: absolute; left: 0; top: 0; width: 580px; }
+      .s07-card .q-head { margin-bottom: 12px; }
+      .s07-card .stamp { height: 46px; background: var(--leaf); }
+      .s07-card .stamp.section { background: var(--leaf); }
+      .s07-grp .q-askers { grid-template-columns: 96px 1fr; row-gap: 12px; }
+      .s07-grp .q-askers .who { display: inline-flex; align-items: center; gap: 8px; }
+      .s07-grp .q-askers .who i { display: inline-block; width: 14px; height: 14px; border-radius: 50%; background: var(--c); }
+      .s07-grp .q-askers .s07-said { color: var(--ink); line-height: 1.3; }
+      .s07-note { font-family: var(--f-head); font-size: 28px; line-height: 1.3; color: var(--ink-2); margin-top: 16px; border-top: 1.5px solid var(--rule); padding-top: 14px; }
+
+      /* triage tag */
+      .s07-tag { position: absolute; display: inline-flex; align-items: center; gap: 10px; height: 56px; padding: 0 18px; background: var(--ink); color: var(--paper); border-radius: var(--r-slip); font-family: var(--f-head); font-size: 32px; font-weight: 750; font-stretch: 80%; letter-spacing: 0.05em; white-space: nowrap; z-index: 30; }
+      .s07-tag svg { width: 30px; height: 30px; }
+      .s07-ctag { left: 1600px; top: 290px; }
+      .s07-scan { position: absolute; left: 1838px; top: 262px; width: 6px; height: 0; background: var(--ink); z-index: 29; }
+
+      /* route sheet (film px, over the 'full' view) */
+      .s07-routes { position: absolute; left: 150px; top: 64px; width: 1200px; height: 800px; padding: 0; }
+      .s07-routes svg.s07-fan { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+      .s07-readout { position: absolute; right: 48px; top: 40px; font-family: var(--f-mono); font-size: 32px; color: var(--ink); display: inline-flex; gap: 12px; align-items: baseline; border: var(--rule-w) solid var(--ink); padding: 8px 16px; border-radius: var(--r-slip); background: var(--leaf); }
+      .s07-readout .ka { font-family: var(--f-head); font-weight: 700; font-stretch: 80%; }
+      .s07-rtag { left: 48px; top: 400px; }
+      .s07-row { position: absolute; left: 330px; right: 48px; display: grid; grid-template-columns: 300px 1fr; column-gap: 24px; align-items: start; }
+      .s07-row .stamp { height: 56px; font-size: 30px; justify-self: start; }
+      .s07-row .stamp:not(.ink) { background: var(--leaf); }
+      .s07-ex { font-family: var(--f-head); font-size: 32px; font-weight: 680; font-stretch: 86%; line-height: 1.25; color: var(--ink); padding-top: 8px; }
+      .s07-ex small { display: block; font-size: 28px; font-weight: 400; font-stretch: 92%; color: var(--ink-2); margin-top: 6px; }
+      .s07-ex .s07-ans { display: block; font-family: var(--f-read); font-size: 30px; font-weight: 400; line-height: 1.35; color: var(--ink); margin-top: 8px; }
+      .s07-r1 { top: 128px; } .s07-r2 { top: 278px; } .s07-r3 { top: 428px; } .s07-r4 { top: 660px; }
+
+      /* the traveling thread stamp (canvas px, scaled from origin 0 0) */
+      .s07-fly { position: absolute; left: 0; top: 0; z-index: 25; transform-origin: 0 0; height: 56px; font-size: 30px; }
+    </style>
+
+    <div id="s07-triage-bg" class="paper-bg clip" data-start="0" data-duration="18" data-track-index="0"></div>
+
+    <div class="s07-cr" data-layout-allow-occlusion data-layout-allow-overlap data-layout-allow-overflow></div>
+
+    <div class="s07-layer" data-layout-allow-occlusion data-layout-allow-overlap data-layout-allow-overflow>
+      <div class="s07-routes acetate punched" data-layout-allow-occlusion>
+        <svg class="s07-fan" viewBox="0 0 1200 800">
+          <path class="stroke s07-f1" d="M240 428 C 285 428, 285 156, 326 156" />
+          <path class="stroke s07-f2" d="M240 428 C 285 428, 285 306, 326 306" />
+          <path class="stroke s07-f3" d="M240 428 C 285 428, 285 456, 326 456" />
+          <path class="stroke s07-f4" d="M240 428 C 285 428, 285 688, 326 688" />
+        </svg>
+        <div class="s07-readout"><span class="ka">სტატუსი</span><span>≤ 5</span><span class="ka">წმ</span></div>
+        <div class="s07-tag s07-rtag"><i data-icon="layers"></i>ტრიაჟი</div>
+        <div class="s07-row s07-r1"><span class="stamp section"><i data-icon="users"></i>კლასისთვის</span>
+          <div class="s07-ex">რატომ ვერ აწერს PDA ხელს?<small>მასწავლებელი ამას მთელ კლასს უპასუხებს</small></div></div>
+        <div class="s07-row s07-r2"><span class="stamp">შემდეგ ნაწილში</span>
+          <div class="s07-ex">რა არის bump seed?<small>გაკვეთილი ამას შემდეგ ნაწილში ხსნის</small></div></div>
+        <div class="s07-row s07-r3"><span class="stamp ok"><i data-icon="check"></i>ნაპასუხებია</span>
+          <div class="s07-ex">programId ჰეშში შედის?<span class="s07-ans">კი. ამიტომ იგივე seeds სხვა პროგრამაში სხვა PDA-ს იძლევა.</span></div></div>
+        <div class="s07-row s07-r4"><span class="stamp ink s07-th"><i data-icon="arrow-up-right"></i>პირადი თემა</span><div></div></div>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        const S = Kit.scope('s07-triage');
+        const q = S.q, qa = S.qa;
+        const tl = gsap.timeline({ paused: true });
+
+        // ---------- the classroom (identical to s06's last frame)
+        const cr = Kit.classroom(q('.s07-cr'), {
+          caption: 'შედეგი მრუდის გარეთაა, ამიტომ პირადი გასაღები მას არ აქვს.',
+          tabTimes: { orange: '0:32', teal: '~3წთ', grass: '~3წთ' },
+        });
+        Kit.classroom.pdaBoard(cr.board, cr.boardSvg);   // s06's finished PDA page
+
+        // ---------- question cards, triage tag, flying stamp (inside the canvas)
+        const mk = (html, cls) => { const d = document.createElement('div'); d.className = cls; d.innerHTML = html; return d; };
+        const cardGio = mk(
+          '<div class="q-head"><span class="stamp pending">სორტირდება</span><span class="plus1">+1</span></div>' +
+          '<div class="q-title">რატომ ვერ აწერს PDA ხელს ტრანზაქციას?</div><div class="q-who">გიომ იკითხა</div>', 'q-card s07-card s07-cgio');
+        const cardMari = mk(
+          '<div class="q-head"><span class="stamp pending">სორტირდება</span><span class="plus1">+1</span></div>' +
+          '<div class="q-title">PDA თავად რატომ ვერ მოაწერს ხელს?</div><div class="q-who">მარიმ იკითხა</div>', 'q-card s07-card s07-cmari');
+        const cardGrp = mk(
+          '<div class="q-head"><span class="stamp section s07-gstamp">დაჯგუფდა · 2 იკითხა</span><span class="plus1">+1</span></div>' +
+          '<div class="q-title">რატომ ვერ აწერს PDA ხელს?</div>' +
+          '<div class="q-askers">' +
+            '<span class="who s07-a1" style="--c:var(--p-gio)"><i></i>გიო</span><span class="s07-said s07-a1">რატომ ვერ აწერს PDA ხელს ტრანზაქციას?</span>' +
+            '<span class="who s07-a2" style="--c:var(--p-mari)"><i></i>მარი</span><span class="s07-said s07-a2">PDA თავად რატომ ვერ მოაწერს ხელს?</span>' +
+          '</div>' +
+          '<div class="s07-note">მასწავლებელი ამას მთელ კლასს უპასუხებს</div>', 'q-card attention s07-card s07-grp');
+        cr.railList.append(cardGio, cardMari, cardGrp);
+        gsap.set(cardMari, { y: 262 });
+
+        const ctag = mk(Kit.icon('layers') + 'ტრიაჟი', 's07-tag s07-ctag');
+        const scan = mk('', 's07-scan');
+        const fly = mk(Kit.icon('arrow-up-right') + 'პირადი თემა', 'stamp ink s07-fly');
+        cr.canvas.append(scan, ctag, fly);
+        Kit.hydrateIcons(S.root);
+        // the class lies under acetate sheets on purpose: mark its text as intentionally layered (layout check)
+        cr.host.querySelectorAll('*').forEach((e) => e.setAttribute('data-layout-allow-occlusion', ''));
+
+        // ---------- views
+        const FULL = cr.view('full');
+        const VA = { scale: 0.885, x: 1920 - 2560 * 0.885, y: 885 - 1240 * 0.885 };   // rail + ask bar
+        const VB = { scale: 1.2, x: 1920 - 2560 * 1.2, y: 30 - 160 * 1.2 };            // rail close-up
+        const at = (cx, cy, v) => ({ x: cx * v.scale + v.x, y: cy * v.scale + v.y });
+
+        cr.frame(tl, 0.25, VA, { dur: 1.1 });
+
+        // ---------- გიო asks
+        const layer = q('.s07-layer');
+        const gio = Kit.makeCursor(layer, 'gio', 'გიო', { x: 2000, y: 700 });
+        const mari = Kit.makeCursor(layer, 'mari', 'მარი', { x: 2000, y: 760 });
+        const inputPt = at(900, 1166, VA);
+        const askPt = at(2400, 1170, VA);
+        Kit.cursorMove(tl, gio, 0.55, inputPt.x, inputPt.y - 8, { dur: 0.65 });
+        Kit.cursorClick(tl, gio, 1.2);
+        Kit.classAt(tl, cr.askInput, 'focus', 1.2, 3.5);
+        let t = Kit.typeText(tl, cr.askInput, 'რატომ ვერ აწერს PDA ხელს ტრანზაქციას?', 1.35, { placeholder: 'იკითხე ნებისმიერი რამ', caretUntil: 3.48 });
+        Kit.cursorMove(tl, gio, 2.6, askPt.x, askPt.y, { dur: 0.75 });
+        Kit.cursorClick(tl, gio, 3.48);
+        Kit.press(tl, cr.askBtn, 3.48, { hold: 0.12 });
+        Kit.cursorMove(tl, gio, 3.7, 2000, 640, { dur: 0.7 });
+        Kit.hingeIn(tl, cardGio, 3.6);
+        Kit.stamp(tl, cardGio.querySelector('.stamp'), 3.72);
+
+        // ---------- მარი asks (same input, after it clears)
+        const textAfterGio = 'PDA თავად რატომ ვერ მოაწერს ხელს?';
+        // input text: gio's text until 3.5, placeholder 3.5-4.35, then მარი types
+        Kit.cursorMove(tl, mari, 3.6, inputPt.x + 40, inputPt.y - 4, { dur: 0.6 });
+        Kit.cursorClick(tl, mari, 4.2);
+        // the ask button is the yellow action only while there is text to send
+        const askLive = (tt) => (tt >= 1.4 && tt < 3.6) || (tt >= 4.35 && tt < 6.51);
+        const setAsk = (tt) => { const on = askLive(tt); cr.askBtn.classList.toggle('btn-primary', on); cr.askBtn.classList.toggle('cr-idle', !on); };
+        Kit.track(tl, 0, 7, (s) => setAsk(s));
+        Kit.track(tl, 3.5, 6.6, (s) => {
+          const tt = 3.5 + s;
+          if (tt < 3.5) return;
+          if (tt < 4.35) { cr.askInput.innerHTML = (tt >= 4.2 ? '<span class="caret"></span>' : '') + '<span class="placeholder" data-layout-allow-occlusion>იკითხე ნებისმიერი რამ</span>'; return; }
+          const chars = Array.from(textAfterGio);
+          const n = Math.min(chars.length, Math.floor((tt - 4.35) * 18 + 1e-6));
+          if (tt < 6.39) cr.askInput.innerHTML = Kit.esc(chars.slice(0, n).join('')) + '<span class="caret"></span>';
+          else cr.askInput.innerHTML = '<span class="placeholder" data-layout-allow-occlusion>იკითხე ნებისმიერი რამ</span>';
+        });
+        Kit.classAt(tl, cr.askInput, 'focus', 4.2, 6.39);
+        Kit.cursorMove(tl, mari, 5.3, askPt.x, askPt.y, { dur: 0.8 });
+        Kit.cursorClick(tl, mari, 6.39);
+        Kit.press(tl, cr.askBtn, 6.39, { hold: 0.12 });
+        Kit.hingeIn(tl, cardMari, 6.5);
+        Kit.stamp(tl, cardMari.querySelector('.stamp'), 6.62);
+        Kit.cursorMove(tl, mari, 6.7, 2000, 760, { dur: 0.6 });
+
+        // ---------- triage: tag sweeps, cards merge
+        cr.frame(tl, 6.75, VB, { dur: 1.0 });
+        Kit.stepIn(tl, ctag, 7.55, { x: -12, y: 0 });
+        tl.set(scan, { visibility: 'hidden' }, 0);
+        tl.set(scan, { visibility: 'visible' }, 7.6);
+        tl.fromTo(scan, { height: 0 }, { height: 500, duration: 0.84, ease: 'steps(6)', immediateRender: false }, 7.6);
+        tl.fromTo(ctag, { y: 0 }, { y: 250, duration: 0.84, ease: 'steps(6)', immediateRender: false }, 7.6);
+        Kit.classAt(tl, cardGio, 'attention', 7.75, 9.29);
+        Kit.classAt(tl, cardMari, 'attention', 8.3, 9.29);
+        tl.to(scan, { opacity: 0, duration: 0.09, ease: 'steps(2)' }, 8.6);
+        tl.to(ctag, { y: 120, duration: 0.29, ease: 'steps(3)' }, 8.71);
+        // slide together into a stack
+        tl.to(cardMari, { y: 22, x: 10, rotation: 1.4, duration: 0.36, ease: 'steps(4)' }, 8.71);
+        tl.to(cardGio, { rotation: -1.2, duration: 0.36, ease: 'steps(4)' }, 8.71);
+        // merge: the stack swaps to one grouped card
+        tl.set([cardGio, cardMari], { visibility: 'hidden' }, 9.29);
+        tl.set([cardGio, cardMari], { opacity: 0 }, 9.29);   // their stamps were set visible by their own entrances
+        tl.set(cardGrp, { visibility: 'hidden' }, 0);
+        tl.set(cardGrp, { visibility: 'visible' }, 9.29);
+        tl.fromTo(cardGrp, { scale: 1.03, filter: 'blur(4px)', opacity: 0.5 }, { scale: 1, filter: 'blur(0px)', opacity: 1, duration: 0.09, ease: 'steps(2)', immediateRender: false }, 9.29);
+        Kit.stamp(tl, cardGrp.querySelector('.s07-gstamp'), 9.34, { from: 1.2 });
+        Kit.stepIn(tl, cardGrp.querySelectorAll('.s07-a1'), 9.58, { x: -8, y: 0 });
+        Kit.stepIn(tl, cardGrp.querySelectorAll('.s07-a2'), 9.87, { x: -8, y: 0 });
+        Kit.stepIn(tl, cardGrp.querySelector('.s07-note'), 10.45);
+        tl.to(ctag, { x: -30, duration: 1.4, ease: 'power3.inOut' }, 9.5);
+        Kit.stepOut(tl, ctag, 11.0);
+
+        // ---------- the four routes
+        cr.frame(tl, 10.9, FULL, { dur: 1.0 });
+        // focus economy, kept above 3:1 contrast: desaturate, drop opacity only a little; tabs keep opacity
+        const dimText = [cr.stage, cr.rail, cr.masthead, cr.controls, cr.binding];
+        const dimmed = dimText.concat([cr.tabRail]);
+        Kit.dim(tl, dimText, 11.61, { opacity: 0.8 });
+        Kit.dim(tl, cr.tabRail, 11.61, { opacity: 1 });
+        const sheet = q('.s07-routes');
+        Kit.hingeIn(tl, sheet, 11.61, { dur: 0.27, steps: 3 });
+        Kit.stepIn(tl, q('.s07-rtag'), 11.75, { x: -10, y: 0 });
+        const beats = [12.19, 12.77, 13.35, 13.94];
+        beats.forEach((b, i) => {
+          Kit.plot(tl, q('.s07-f' + (i + 1)), b - 0.22, { dur: 0.22, steps: 3 });
+          Kit.stamp(tl, q('.s07-r' + (i + 1) + ' .stamp'), b, { from: 1.18 });
+          const ex = q('.s07-r' + (i + 1) + ' .s07-ex');
+          if (ex) Kit.stepIn(tl, ex, b + 0.14, { x: -8, y: 0 });
+        });
+        Kit.stamp(tl, q('.s07-readout'), 14.52, { from: 1.12 });
+        // "პირადი თემა" lights up again (re-lands), then stays while the sheet goes
+        const th = q('.s07-th');
+        tl.fromTo(th, { scale: 1.14 }, { scale: 1, duration: 0.09, ease: 'steps(2)', immediateRender: false }, 15.4);
+        // fly: canvas coords of the sheet stamp at the 'full' view
+        const s0 = { x: (150 + 330 - FULL.x) / FULL.scale, y: (64 + 660 - FULL.y) / FULL.scale, scale: 1 / FULL.scale };
+        gsap.set(fly, { x: s0.x, y: s0.y, scale: s0.scale });
+        tl.set(fly, { visibility: 'hidden' }, 0);
+        tl.set(fly, { visibility: 'visible' }, 16.0);
+        tl.set(th, { visibility: 'hidden' }, 16.0);
+        Kit.hingeOut(tl, sheet, 16.0, { dur: 0.13 });
+        tl.set(sheet, { opacity: 0 }, 16.13);   // children set visible by their entrances must go too
+        Kit.undim(tl, dimmed, 16.26);
+        tl.to(fly, { x: 132, y: 336, scale: 1.3, duration: 0.9, ease: 'power3.inOut' }, 16.26);
+        // ნიკა's punch answers with a short ring step
+        tl.fromTo(cr.punches.nika.el, { scale: 1 }, { scale: 1.08, duration: 0.09, ease: 'steps(2)', immediateRender: false, yoyo: true, repeat: 1 }, 17.16);
+
+        tl.set({}, {}, 18);
+        window.__timelines = window.__timelines || {};
+        window.__timelines['s07-triage'] = tl;
+
+      })();
+    </script>
+  </div>
+</template>

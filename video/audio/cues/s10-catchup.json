@@ -1,0 +1,91 @@
+{
+ "scene": "s10-catchup",
+ "start": 112,
+ "note": "FILM seconds (112 + local).",
+ "cues": [
+  {
+   "t": 112.3,
+   "name": "paper"
+  },
+  {
+   "t": 113.18,
+   "name": "click"
+  },
+  {
+   "t": 113.45,
+   "name": "paper",
+   "gain": -2
+  },
+  {
+   "t": 113.76,
+   "name": "paper"
+  },
+  {
+   "t": 114.35,
+   "name": "swap"
+  },
+  {
+   "t": 114.94,
+   "name": "swap"
+  },
+  {
+   "t": 115.53,
+   "name": "swap"
+  },
+  {
+   "t": 116.0,
+   "name": "swap",
+   "gain": -4
+  },
+  {
+   "t": 116.41,
+   "name": "click"
+  },
+  {
+   "t": 116.71,
+   "name": "paper",
+   "gain": -2
+  },
+  {
+   "t": 116.71,
+   "name": "whoosh",
+   "gain": -3
+  },
+  {
+   "t": 116.75,
+   "name": "stamp",
+   "gain": -3
+  },
+  {
+   "t": 117.29,
+   "name": "paper"
+  },
+  {
+   "t": 117.6,
+   "name": "key",
+   "gain": -4,
+   "dur": 2.0
+  },
+  {
+   "t": 119.35,
+   "name": "paper",
+   "gain": -3
+  },
+  {
+   "t": 119.65,
+   "name": "paper"
+  },
+  {
+   "t": 120.24,
+   "name": "swap"
+  },
+  {
+   "t": 120.36,
+   "name": "swap"
+  },
+  {
+   "t": 121.0,
+   "name": "whoosh"
+  }
+ ]
+}

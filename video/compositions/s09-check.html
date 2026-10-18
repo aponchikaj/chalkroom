@@ -1,0 +1,325 @@
+<!--
+  s09-check (film 98-112 s, 14 s): check, ready gate, Q&A beat.
+
+  Handoff IN (from s08, read from compositions/s08-thread.html; CONVENTIONS section 14 was not
+  written yet): classroom view "full", segment 2 teal (segment line, teal tab current at 0:12,
+  page "გვერდი 2", code + bar chart on the board, caption about bump), grouped card (+1, note)
+  in the rail, ნიკა's thread mark, and the acetate check card in FILM px at left 290, y 640
+  (1240 x 520, stamp "შემოწმება 1" + prompt). s09 keeps raising that same card.
+  Handoff OUT (to s10): camera at view "lesson"; the board shows the Q&A page "გვერდი 3" (title,
+  sticky note with the grouped question, arrow, answer box, credit line "იკითხეს: გიომ და
+  მარიმ"); caption = the tutor's sentence; phase stamp "კითხვა-პასუხი"; hue teal.
+
+  Beats (102.86 BPM, 0.583 s; bars at 0, 2.33, 4.67, 7.0, 9.33, 11.67 local).
+  Local timeline (film = 98 + local):
+    0.00 check card rising       0.30 camera to the check + ready strip; strip swaps in
+    1.17 ანა picks B   1.75 გიო picks B   2.33 მარი picks A   2.92 ნიკა's answer arrives from the thread
+    3.50 reveal: B correct (green), A wrong (vermilion); 3.60 bars plot; 4.08 "4-დან 3 მიხვდა"
+    4.67 ანა presses "მზად ვარ"; 5.25 გიო, 5.83 მარი ready; 6.42 ნიკა "თემაშია, არ აჩერებს"
+    7.00 gate stamp "კლასი გრძელდება"; phase "კითხვა-პასუხი"
+    7.58 check card drops, camera to full; 8.17 the grouped card flies to the board
+    8.90 lands as a sticky note; camera to lesson; 9.33 arrow, 9.92 answer box, lines
+    9.40 caption types the tutor's sentence; 11.67 credit line
+-->
+<template id="s09-check-template">
+  <div data-composition-id="s09-check" data-width="1920" data-height="1080" data-duration="14">
+    <link rel="stylesheet" href="../assets/chalk.css" />
+    <link rel="stylesheet" href="../assets/classroom.css" />
+    <script src="../assets/vendor/gsap.min.js"></script>
+    <script src="../assets/kit.js"></script>
+    <script src="../assets/classroom.js"></script>
+    <style>
+      .s09-cr { position: absolute; inset: 0; }
+
+      /* check card: FILM px, the same acetate s08 raised (left 290, 1240 x 520) */
+      .acetate.s09-card { left: 290px; top: 0; width: 1240px; height: 520px; padding: 34px 48px; z-index: 6; }
+      .s09-chead { display: flex; align-items: center; gap: 18px; }
+      .s09-chead .s09-tally { margin-left: auto; font-family: var(--f-head); font-size: 30px; color: var(--ink-2); white-space: nowrap; }
+      .s09-chead .s09-tally .mono { font-size: 30px; color: var(--ink); }
+      .s09-prompt { font-family: var(--f-read); font-size: 44px; line-height: 1.25; color: var(--ink); margin-top: 22px; }
+      .s09-opts { position: absolute; left: 48px; top: 200px; width: 1144px; display: grid; grid-template-columns: 564px 564px; gap: 16px; }
+      .option.s09-opt { position: relative; height: 84px; white-space: nowrap; font-size: 31px; font-stretch: 92%; }
+      .s09-dots { position: absolute; left: 300px; top: -24px; display: flex; gap: 6px; }
+      .s09-dot { width: 44px; height: 44px; border-radius: 50%; background: var(--paper-3); box-shadow: 0 0 0 4px var(--r); display: flex; align-items: center;
+        justify-content: center; font-family: var(--f-head); font-size: 24px; font-weight: 800; font-stretch: 75%; color: var(--ink); position: relative; }
+      .s09-dot.ana { --r: var(--p-ana); } .s09-dot.gio { --r: var(--p-gio); } .s09-dot.mari { --r: var(--p-mari); } .s09-dot.nika { --r: var(--p-nika); }
+      .s09-dot .s09-arr { position: absolute; right: -10px; bottom: -10px; width: 24px; height: 24px; border-radius: 50%; background: var(--ink); color: var(--paper);
+        display: flex; align-items: center; justify-content: center; font-size: 16px; }
+      .s09-res { position: absolute; right: 18px; top: 0; bottom: 0; display: flex; align-items: center; gap: 12px; }
+      .s09-track { width: 104px; height: 26px; background: var(--paper-2); border: 1.5px solid var(--rule); position: relative; }
+      .s09-fill { position: absolute; left: 0; top: 0; bottom: 0; transform-origin: 0 50%; }
+      .s09-res .mono { font-size: 30px; color: var(--ink); width: 22px; }
+      .s09-hl { position: absolute; left: 48px; top: 410px; white-space: nowrap; font-family: var(--f-head); font-size: 60px; font-weight: 800; font-stretch: 78%; color: var(--ink); }
+      .s09-hl .mono { font-size: 54px; }
+      .s09-explain { position: absolute; left: 500px; top: 430px; font-family: var(--f-read); font-size: 32px; color: var(--ink-2); white-space: nowrap; }
+
+      /* rail card carried over from s08 (canvas px) */
+      .s09-flycard .q-head { margin-bottom: 12px; }
+      .s09-flycard .stamp { height: 46px; background: var(--leaf); }
+      .s09-flycard .q-askers { grid-template-columns: 96px 1fr; row-gap: 12px; }
+      .s09-flycard .q-askers .who { display: inline-flex; align-items: center; gap: 8px; }
+      .s09-flycard .q-askers .who i { display: inline-block; width: 14px; height: 14px; border-radius: 50%; background: var(--c); }
+      .s09-flycard .q-askers .s09-said { color: var(--ink); line-height: 1.3; }
+      .s09-note { font-family: var(--f-head); font-size: 28px; line-height: 1.3; color: var(--ink-2); margin-top: 16px; border-top: 1.5px solid var(--rule); padding-top: 14px; }
+      .s09-code { left: 70px; top: 96px; font-size: 28px; }
+      .s09-axis-l { position: absolute; font-family: var(--f-mono); font-size: 28px; color: var(--ink-3); }
+
+      /* ready strip (replaces the control bar), canvas px */
+      .s09-strip { position: absolute; left: 0; top: 1130px; width: 2560px; height: 110px; border-top: var(--rule-w) solid var(--ink); background: var(--paper); z-index: 2; }
+      .s09-strip > * { position: absolute; top: 0; height: 110px; display: flex; align-items: center; white-space: nowrap; }
+      .s09-strip .s09-rl { left: 80px; font-family: var(--f-head); font-size: 32px; font-weight: 750; font-stretch: 80%; color: var(--ink-2); }
+      .s09-person { gap: 14px; font-family: var(--f-head); font-size: 32px; font-weight: 650; font-stretch: 85%; color: var(--ink); }
+      .s09-person .punch.sm .mark { width: 28px; height: 28px; right: -9px; bottom: -9px; }
+      .s09-person .punch.sm .mark svg { width: 18px; height: 18px; }
+      .s09-person .punch.sm .mark.s09-ok { background: var(--ok); }
+      .s09-pa { left: 200px; } .s09-pg { left: 380px; } .s09-pm { left: 560px; }
+      .s09-pn { left: 770px; padding-left: 36px; border-left: 1.5px solid var(--rule); }
+      .s09-pn .s09-nl { font-weight: 450; color: var(--ink-2); }
+      .s09-count { left: 1330px; font-family: var(--f-head); font-size: 30px; color: var(--ink-2); gap: 10px; }
+      .s09-count .mono { font-size: 32px; color: var(--ink); }
+      .s09-readyb { left: 1560px; }
+      .s09-gate { left: 1400px; }
+      .s09-gate .stamp { background: var(--paper); }
+
+      /* Q&A page figures (board-local px) */
+      .s09-qa-note { left: 130px; top: 250px; width: 380px; white-space: normal; }
+      .s09-ans { left: 800px; top: 230px; width: 620px; height: 210px; flex-direction: column; line-height: 1.3; }
+      .s09-ans div { white-space: nowrap; }
+      .s09-credit { position: absolute; left: 800px; top: 470px; display: flex; align-items: center; gap: 12px; white-space: nowrap;
+        font-family: var(--f-head); font-size: 32px; font-weight: 650; font-stretch: 85%; color: var(--ok); }
+      .s09-credit .icon { width: 30px; height: 30px; stroke-width: 2.5; }
+      .s09-banner { position: absolute; left: 0; width: 1540px; top: 66px; text-align: center; }
+
+      .s09-flycard { z-index: 5; transform-origin: 0 0; }
+      .s09-over { position: absolute; inset: 0; }
+    </style>
+
+    <div id="s09-check-bg" class="paper-bg clip" data-start="0" data-duration="14" data-track-index="0"></div>
+    <div class="s09-cr"></div>
+    <div class="s09-over"></div>
+
+    <script>
+      (function () {
+        const S = Kit.scope('s09-check');
+        const q = S.q, qa = S.qa;
+        const tl = gsap.timeline({ paused: true });
+        const ic = (n) => Kit.icon(n);
+
+        const cr = Kit.classroom(q('.s09-cr'), {
+          punches: { nika: { thread: true } },
+          segment: 'ნაწილი 2 / 3: bump-ის პოვნა',
+          hue: 'teal',
+          currentTab: 'teal',
+          page: 'გვერდი 2',
+          caption: 'bump ეძებს პირველ მნიშვნელობას 255-დან ქვემოთ.',
+          tabTimes: { orange: '0:32', teal: '0:12', grass: '~3წთ' },
+          view: 'full',
+        });
+        cr.tabs.orange.el.classList.add('done');
+        // the class is the world under the overlays (check card, slips, leaves, subtitles):
+        // layering is intentional, so its texts carry the occlusion/overlap allowance
+        const allowUnder = (root) => {
+          [root, ...root.querySelectorAll('*')].forEach((e) => e.setAttribute('data-layout-allow-occlusion', ''));
+          root.setAttribute('data-layout-allow-overlap', '');
+          root.setAttribute('data-layout-allow-overflow', '');
+        };
+        const NS = 'http://www.w3.org/2000/svg';
+        const mk = (tag, cls, html, parent) => { const e = document.createElement(tag); e.className = cls; if (html !== undefined) e.innerHTML = html; (parent || cr.canvas).appendChild(e); return e; };
+        const shape = (tag, a) => { const e = document.createElementNS(NS, tag); for (const k in a) e.setAttribute(k, a[k]); e.setAttribute('class', a.class || 'stroke'); cr.boardSvg.appendChild(e); return e; };
+
+        // segment 2 page as s08 left it: code + bar chart
+        const seg2 = [];
+        seg2.push(mk('div', 'fig-code s09-code', 'let (pda, bump) =\n  Pubkey::find_program_address(\n    &[b"vault"], program_id);', cr.board));
+        seg2.push(shape('line', { x1: 140, y1: 360, x2: 140, y2: 660 }), shape('line', { x1: 140, y1: 660, x2: 600, y2: 660 }));
+        [[170, 380], [270, 520], [370, 590], [470, 625]].forEach(([x, y], i) => {
+          seg2.push(shape('rect', { x, y, width: 70, height: 660 - y, class: 'stroke accent fill-section' }));
+          const l = mk('div', 's09-axis-l', String(i + 1), cr.board); l.style.left = (x + 26) + 'px'; l.style.top = '672px'; seg2.push(l);
+        });
+        const yl = mk('div', 's09-axis-l', '%', cr.board); yl.style.left = '100px'; yl.style.top = '350px'; seg2.push(yl);
+
+        // grouped question card in the rail (as s08 left it)
+        const qc = mk('div', 'q-card attention s09-flycard',
+          '<div class="q-head"><span class="stamp section" style="color: var(--h-orange)">დაჯგუფდა · 2 იკითხა</span><span class="plus1">+1</span></div>' +
+          '<div class="q-title">რატომ ვერ აწერს PDA ხელს?</div>' +
+          '<div class="q-askers">' +
+            '<span class="who" style="--c:var(--p-gio)"><i></i>გიო</span><span class="s09-said">რატომ ვერ აწერს PDA ხელს ტრანზაქციას?</span>' +
+            '<span class="who" style="--c:var(--p-mari)"><i></i>მარი</span><span class="s09-said">PDA თავად რატომ ვერ მოაწერს ხელს?</span>' +
+          '</div>' +
+          '<div class="s09-note">მასწავლებელი ამას მთელ კლასს უპასუხებს</div>', cr.railList);
+
+        // ---- check card
+        const card = mk('div', 'acetate s09-card',
+          '<div class="s09-chead"><span class="stamp section">შემოწმება <span class="mono">1</span></span>' +
+          '<span class="s09-tally">პასუხი <span class="mono s09-tn">0/4</span></span></div>' +
+          '<div class="s09-prompt">ვის შეუძლია PDA-ს ხელის მოწერა?</div>' +
+          '<div class="s09-opts">' +
+          ['საფულის მფლობელს', 'პროგრამას', 'ნებისმიერს', 'არავის'].map((t, i) =>
+            '<div class="option s09-opt s09-o' + i + '"><span class="key">' + 'ABCD'[i] + '</span>' + t + '<div class="s09-dots"></div>' +
+            '<div class="s09-res"><div class="s09-track"><div class="s09-fill s09-f' + i + '"></div></div><span class="mono">' + [1, 3, 0, 0][i] + '</span></div></div>').join('') +
+          '</div>' +
+          '<div class="s09-hl"><span class="mono">4</span>-დან <span class="mono">3</span> მიხვდა</div>' +
+          '<div class="s09-explain">პასუხი: B. ხელს მხოლოდ პროგრამა აწერს.</div>', q('.s09-over'));
+        card.setAttribute('data-layout-allow-occlusion', '');
+        card.setAttribute('data-layout-allow-overflow', '');
+        const opts = qa('.s09-opt');
+        const opts_ = () => opts;
+        const dot = (who, letter, arrow) => {
+          const d = document.createElement('span');
+          d.className = 's09-dot ' + who;
+          d.innerHTML = letter + (arrow ? '<span class="s09-arr">' + ic('arrow-up-right') + '</span>' : '');
+          return d;
+        };
+        const dA = dot('ana', 'ა'), dG = dot('gio', 'გ'), dN = dot('nika', 'ნ', true), dM = dot('mari', 'მ');
+        opts[1].querySelector('.s09-dots').append(dA, dG, dN);
+        opts[0].querySelector('.s09-dots').append(dM);
+        q('.s09-f0').style.cssText += 'width:25%;background:var(--section)';
+        q('.s09-f1').style.cssText += 'width:75%;background:var(--ok)';
+
+        // ---- ready strip
+        const strip = mk('div', 's09-strip',
+          '<div class="s09-rl">მზად:</div>' +
+          '<div class="s09-person s09-pa"><span class="punch sm ana">ა<span class="mark s09-ok s09-ka">' + ic('check') + '</span></span>ანა</div>' +
+          '<div class="s09-person s09-pg"><span class="punch sm gio">გ<span class="mark s09-ok s09-kg">' + ic('check') + '</span></span>გიო</div>' +
+          '<div class="s09-person s09-pm"><span class="punch sm mari">მ<span class="mark s09-ok s09-km">' + ic('check') + '</span></span>მარი</div>' +
+          '<div class="s09-person s09-pn"><span class="punch sm nika">ნ<span class="mark s09-kn">' + ic('arrow-up-right') + '</span></span>ნიკა<span class="s09-nl">· თემაშია, არ აჩერებს</span></div>' +
+          '<div class="s09-count"><span class="mono s09-rc">0/3</span> მზადაა</div>' +
+          '<div class="s09-readyb"><span class="btn btn-primary s09-rb">მზად ვარ</span></div>' +
+          '<div class="s09-gate"><span class="stamp big ok s09-gs">' + ic('check') + 'კლასი გრძელდება</span></div>');
+
+        // ---- Q&A page figures (hidden until the page turns)
+        const bdiv = (cls, html) => mk('div', cls, html, cr.board);
+        const qaTitle = bdiv('fig-title s09-banner', 'კითხვა-პასუხი: რატომ ვერ აწერს PDA ხელს?');
+        const qaNote = bdiv('fig-note s09-qa-note', 'რატომ ვერ აწერს<br>PDA ხელს?');
+        const qaArrow = [shape('path', { d: 'M 530 335 H 790' }), shape('path', { d: 'M 768 321 L 791 335 L 768 349' })];
+        const qaBox = shape('rect', { x: 800, y: 230, width: 620, height: 210 });
+        const qaText = bdiv('fig-box s09-ans', '<div class="s09-a1">პირადი გასაღები არ არსებობს</div><div class="s09-a2">→ მხოლოდ პროგრამას შეუძლია</div><div class="s09-a3">ხელის მოწერა (invoke_signed)</div>');
+        const qaCredit = bdiv('s09-credit', 'იკითხეს: გიომ და მარიმ');
+
+        allowUnder(cr.host);
+        card.setAttribute('data-layout-allow-overlap', '');
+
+        /* ================= timeline ================= */
+        // V1: the room at 0.9565x with the ready strip at the bottom of the safe area
+        const V1 = { scale: 0.9565, x: 80, y: 885 - 1240 * 0.9565 };
+        const scr = (cx, cy) => ({ x: cx * V1.scale + V1.x, y: cy * V1.scale + V1.y });
+
+        // 0.00 the check card is rising (hinged at the bottom)
+        // 0.00 the check card s08 raised (y 640) keeps rising to rest at y 170
+        gsap.set(card, { y: 640, rotationX: 0, transformPerspective: 1400, transformOrigin: '50% 100%' });
+        tl.fromTo(card, { y: 640 }, { y: 170, duration: 0.45, ease: 'steps(5)', immediateRender: false }, 0.2);
+        Kit.stepIn(tl, opts_(), 0.5, { y: 8, stagger: 0.08 });
+        Kit.stepIn(tl, q('.s09-tally'), 0.7, { x: 8, y: 0 });
+        Kit.textAt(tl, cr.phase, [[0, 'ასწავლის'], [0.3, 'შემოწმება'], [7.0, 'კითხვა-პასუხი']]);
+        // 0.30 camera to the check and the ready strip; the control bar swaps for the ready strip
+        cr.frame(tl, 0.3, V1, { dur: 1.1 });
+        tl.to(cr.controls, { opacity: 0, duration: 0.066, ease: 'steps(2)' }, 0.36);
+        tl.set(cr.controls, { visibility: 'hidden' }, 0.43);
+        Kit.stepIn(tl, strip, 0.42, { y: 8 });
+        tl.set(qa('.s09-ka, .s09-kg, .s09-km, .s09-kn'), { visibility: 'hidden' }, 0);
+        // results hidden until the reveal
+        tl.set([...qa('.s09-res'), q('.s09-hl'), q('.s09-explain'), q('.s09-gate')], { visibility: 'hidden' }, 0);
+
+        // cursors
+        const ana = Kit.makeCursor(S.root, 'ana', 'ანა', { x: 420, y: 760 });
+        const gio = Kit.makeCursor(S.root, 'gio', 'გიო', { x: 1180, y: 760 });
+        const mari = Kit.makeCursor(S.root, 'mari', 'მარი', { x: 1600, y: 760 });
+        const curs = [ana, gio, mari];
+        tl.set(curs, { visibility: 'hidden' }, 0);
+        tl.set(curs, { visibility: 'visible' }, 0.6);
+        const pB = { x: 1150, y: 404 }, pA = { x: 560, y: 404 };
+        Kit.cursorMove(tl, ana, 0.55, pB.x - 40, pB.y + 10, { dur: 0.6 });
+        Kit.cursorMove(tl, gio, 0.95, pB.x + 60, pB.y + 22, { dur: 0.7 });
+        Kit.cursorMove(tl, mari, 1.45, pA.x + 20, pA.y + 14, { dur: 0.8 });
+        Kit.cursorClick(tl, ana, 1.17);
+        Kit.cursorClick(tl, gio, 1.75);
+        Kit.cursorClick(tl, mari, 2.33);
+        Kit.stepIn(tl, dA, 1.2, { y: 0, scale: 0.6 });
+        Kit.stepIn(tl, dG, 1.78, { y: 0, scale: 0.6 });
+        Kit.stepIn(tl, dM, 2.36, { y: 0, scale: 0.6 });
+        Kit.stamp(tl, dN, 2.92, { from: 1.3 });
+        Kit.textAt(tl, q('.s09-tn'), [[0, '0/4'], [1.2, '1/4'], [1.78, '2/4'], [2.36, '3/4'], [2.92, '4/4']]);
+
+        // 3.50 reveal
+        Kit.classAt(tl, opts[1], 'correct', 3.5);
+        Kit.classAt(tl, opts[0], 'wrong', 3.5);
+        tl.to([opts[2], opts[3]], { opacity: 0.55, duration: Kit.STEP, ease: 'steps(2)' }, 3.5);
+        tl.set(qa('.s09-res'), { visibility: 'visible' }, 3.6);
+        tl.fromTo([q('.s09-f0'), q('.s09-f1')], { scaleX: 0 }, { scaleX: 1, duration: 0.48, ease: 'steps(8)', immediateRender: false }, 3.6);
+        Kit.stepIn(tl, qa('.s09-res .mono'), 3.84, { y: 0, stagger: 0.05 });
+        Kit.stamp(tl, q('.s09-hl'), 4.08, { from: 1.1 });
+        Kit.stepIn(tl, q('.s09-explain'), 4.3, { x: -10, y: 0 });
+        // cursors drift down to the strip
+        Kit.cursorMove(tl, ana, 3.7, scr(1675, 1190).x - 30, scr(1675, 1190).y - 6, { dur: 0.8 });
+        Kit.cursorMove(tl, gio, 3.9, scr(560, 1215).x, scr(560, 1215).y, { dur: 0.9 });
+        Kit.cursorMove(tl, mari, 4.1, scr(1000, 1215).x, scr(1000, 1215).y, { dur: 0.9 });
+
+        // 4.67 ready gate, one per beat
+        Kit.cursorClick(tl, ana, 4.67, { press: q('.s09-rb'), hold: null });
+        Kit.stamp(tl, q('.s09-ka'), 4.72, { from: 1.4 });
+        Kit.stamp(tl, q('.s09-kg'), 5.25, { from: 1.4 });
+        Kit.stamp(tl, q('.s09-km'), 5.83, { from: 1.4 });
+        Kit.textAt(tl, q('.s09-rc'), [[0, '0/3'], [4.72, '1/3'], [5.25, '2/3'], [5.83, '3/3']]);
+        Kit.stamp(tl, q('.s09-kn'), 6.42, { from: 1.4 });
+        tl.fromTo(q('.s09-pn .s09-nl'), { opacity: 0.4, x: -10 }, { opacity: 1, x: 0, duration: Kit.STEP, ease: 'steps(2)', immediateRender: false }, 6.42);
+        tl.set(q('.s09-pn .s09-nl'), { visibility: 'hidden' }, 0);
+        tl.set(q('.s09-pn .s09-nl'), { visibility: 'visible' }, 6.42);
+        // the binding mirrors the strip
+        Kit.stepIn(tl, [cr.punches.ana.ready, cr.punches.gio.ready, cr.punches.mari.ready], 4.72, { y: 0, scale: 0.6, stagger: 0.555 });
+        // 7.00 the gate opens
+        tl.to([q('.s09-readyb'), q('.s09-count')], { opacity: 0, duration: 0.066, ease: 'steps(2)' }, 6.96);
+        tl.set([q('.s09-readyb'), q('.s09-count')], { visibility: 'hidden' }, 7.03);
+        tl.set(q('.s09-gate'), { visibility: 'visible' }, 7.0);
+        Kit.stamp(tl, q('.s09-gs'), 7.0, { from: 1.2 });
+
+        // 7.58 the check card drops; camera to the whole room
+        tl.to(card, { y: 1100, duration: 0.27, ease: 'steps(4)' }, 7.58);
+        tl.set(card, { visibility: 'hidden' }, 7.76);
+        tl.to(curs, { opacity: 0, duration: 0.066, ease: 'steps(2)' }, 7.58);
+        tl.set(curs, { visibility: 'hidden' }, 7.65);
+        cr.frame(tl, 7.6, 'full', { dur: 0.9 });
+        // the strip gives way to the control bar again
+        tl.to(strip, { opacity: 0, duration: 0.066, ease: 'steps(2)' }, 8.1);
+        tl.set(strip, { visibility: 'hidden' }, 8.17);
+        tl.set(cr.controls, { visibility: 'visible', opacity: 1 }, 8.17);
+
+        // 8.17 page turn on the board: the PDA page steps out
+        const pdaEls = seg2;
+        tl.to(pdaEls, { opacity: 0, duration: 0.066, ease: 'steps(2)' }, 8.17);
+        tl.set(pdaEls, { visibility: 'hidden' }, 8.24);
+        Kit.textAt(tl, cr.pageNo, [[0, 'გვერდი 2'], [8.2, 'გვერდი 3']]);
+        Kit.stepIn(tl, qaTitle, 8.4, { y: 6 });
+
+        // 8.17 the grouped card flies from the rail to the board
+        const fromX = 1854, fromY = 262, toX = 220 + 130, toY = 190 + 250;
+        tl.fromTo(qc, { x: 0, y: 0, scale: 1 }, { x: toX - fromX, y: toY - fromY, scale: 380 / 580, duration: 0.7, ease: 'power3.inOut', immediateRender: false }, 8.2);
+        tl.to(qc, { opacity: 0, filter: 'blur(6px)', duration: 0.12, ease: 'steps(2)' }, 8.9);
+        tl.set(qc, { visibility: 'hidden' }, 9.02);
+        tl.set(qaNote, { visibility: 'hidden' }, 0);
+        tl.set(qaNote, { visibility: 'visible' }, 8.92);
+        tl.fromTo(qaNote, { opacity: 0, filter: 'blur(6px)' }, { opacity: 1, filter: 'blur(0px)', duration: 0.14, ease: 'steps(2)', immediateRender: false }, 8.92);
+
+        // 9.0 camera into the lesson; the answer plots
+        cr.frame(tl, 9.0, 'lesson', { dur: 1.1 });
+        Kit.plot(tl, qaArrow, 9.33, { dur: 0.42, stagger: 0.12 });
+        Kit.plot(tl, qaBox, 9.92, { dur: 0.6 });
+        Kit.stepIn(tl, q('.s09-a1'), 10.2, { x: -8, y: 0 });
+        Kit.stepIn(tl, q('.s09-a2'), 10.5, { x: -8, y: 0 });
+        Kit.stepIn(tl, q('.s09-a3'), 10.8, { x: -8, y: 0 });
+        // the tutor speaks: one seek-safe track owns the caption text
+        const CAP0 = 'bump ეძებს პირველ მნიშვნელობას 255-დან ქვემოთ.';
+        const CAP1 = Array.from('პირადი გასაღები არ არსებობს, ამიტომ ხელს მხოლოდ პროგრამა აწერს.');
+        Kit.track(tl, 0, 14, (s) => {
+          if (s < 8.17) cr.caption.textContent = CAP0;
+          else if (s < 9.4) cr.caption.textContent = '';
+          else cr.caption.textContent = CAP1.slice(0, Math.min(CAP1.length, Math.floor((s - 9.4) * 22))).join('');
+        });
+        // 11.67 credit line
+        Kit.stepIn(tl, qaCredit, 11.67, { x: -10, y: 0 });
+
+        tl.set({}, {}, 14);
+        window.__timelines = window.__timelines || {};
+        window.__timelines['s09-check'] = tl;
+      })();
+    </script>
+  </div>
+</template>

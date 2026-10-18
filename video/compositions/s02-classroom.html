@@ -1,0 +1,227 @@
+<!--
+  s02-classroom (film 11-22 s, 11 s): one person stalls the room.
+
+  Handoff IN (from s01): s01 ends on its empty course leaf, dimmed, as a 672 x 168 rect
+  centred at (960, 464). Here that rect is the front desk (world 480 x 120 at 720,150) seen
+  through the camera at scale 1.4, so frame 0 matches; it undims and the camera pulls back.
+  Handoff OUT (to s03): camera at scale 2 centred on the quiet punch (blue ring, 76 px world =
+  152 px on screen) at frame centre (960, 464), everything else gone. s03 starts on that frame.
+
+  Local timeline (film = 11 + local; beats every 0.579 s, bars 0 / 2.32 / 4.63 / 6.95 / 9.26):
+    0.10 desk undims, board strokes plot   0.20-1.60 camera pulls back to the room
+    0.50-2.02 twenty punches step in        2.32 one ring turns orange: "ცნობისმოყვარე"
+    2.90-6.37 ten "?" stamps pile up (count 1-10), the other punches lose colour, the
+              "კლასი ელოდება" timer runs; 6.37 timer turns vermilion
+    6.95 camera moves to the quiet punch at the back ("მორცხვი")
+    7.75 a slip hinges in, 7.90 types "მეც ეს მინდოდა მეკითხა", hesitates
+    9.55 deletes it letter by letter, unsent   9.60 the room steps away
+    9.90-10.95 camera pushes into the quiet punch
+-->
+<template id="s02-classroom-template">
+  <div data-composition-id="s02-classroom" data-width="1920" data-height="1080" data-duration="11">
+    <link rel="stylesheet" href="../assets/chalk.css" />
+    <script src="../assets/vendor/gsap.min.js"></script>
+    <script src="../assets/kit.js"></script>
+    <style>
+      .s02-camera { position: absolute; inset: 0; transform-origin: 960px 464px; }
+      /* the desk: matches s01's last rect at camera 1.4, so border/radius/shadow are /1.4 */
+      .s02-desk {
+        position: absolute; left: 720px; top: 150px; width: 480px; height: 120px; padding: 0;
+        border-width: 1.07px; border-radius: 2.86px;
+        box-shadow: 0 1.07px 0 var(--rule), 0 15px 30px -19.3px rgba(60, 45, 15, 0.45);
+      }
+      .s02-desk svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+      .s02-desk .stroke { stroke-width: 3; }
+
+      .s02-timer { position: absolute; left: 1290px; top: 156px; display: flex; flex-direction: column; gap: 4px; }
+      .s02-timer-label { font-family: var(--f-head); font-size: 30px; font-weight: 700; font-stretch: 82%; color: var(--ink-2); white-space: nowrap; }
+      .s02-timer-num { font-family: var(--f-mono); font-size: 52px; font-weight: 600; color: var(--ink); line-height: 1.05; }
+      .s02-timer.s02-hurt .s02-timer-num { color: var(--errata); }
+      .s02-timer.s02-hurt .s02-timer-label { color: var(--errata); }
+
+      .s02-seat { position: absolute; width: 76px; height: 76px; }
+      .s02-seat .punch { position: absolute; left: 0; top: 0; }
+      .s02-name {
+        position: absolute; left: -120px; width: 316px; top: 90px; text-align: center; white-space: nowrap;
+        font-family: var(--f-head); font-size: 30px; font-weight: 700; font-stretch: 82%; color: var(--ink);
+      }
+      .s02-curious .s02-name { top: -50px; }
+      .s02-count {
+        position: absolute; left: 90px; top: 18px; min-width: 44px; height: 40px; padding: 0 8px;
+        background: var(--ink); color: var(--paper); border-radius: 3px;
+        font-family: var(--f-mono); font-size: 28px; font-weight: 700; line-height: 40px; text-align: center;
+      }
+      .s02-qw { position: absolute; width: 56px; height: 56px; }
+      .s02-q {
+        width: 56px; height: 56px; display: flex; align-items: center; justify-content: center;
+        background: var(--leaf); border: 3px solid var(--ink); border-radius: 3px;
+        font-family: var(--f-head); font-size: 38px; font-weight: 800; color: var(--ink); line-height: 1;
+      }
+
+      .s02-slip {
+        position: absolute; left: 925px; top: 610px; width: 490px; height: 84px; padding: 0 16px 0 24px;
+        display: flex; align-items: center; justify-content: space-between; gap: 12px;
+        background: var(--leaf); border: 1.5px solid var(--ink); border-radius: 3px; box-shadow: var(--shadow-leaf);
+      }
+      .s02-slip-text { font-family: var(--f-read); font-size: 30px; color: var(--ink); white-space: nowrap; }
+      .s02-slip .btn { height: 52px; padding: 0 14px; border-color: var(--rule-2); color: var(--ink-3); }
+      .s02-slip .btn svg { width: 26px; height: 26px; }
+    </style>
+
+    <div id="s02-classroom-bg" class="paper-bg clip" data-start="0" data-duration="11" data-track-index="0"></div>
+
+    <div class="s02-camera" data-layout-allow-overflow>
+      <div class="leaf s02-desk">
+        <svg viewBox="0 0 480 120">
+          <path class="stroke s02-d1" d="M40 40 L250 40" />
+          <path class="stroke s02-d2" d="M40 78 L190 78" />
+          <rect class="stroke s02-d3" x="300" y="28" width="70" height="60" />
+          <circle class="stroke accent s02-d4" cx="418" cy="58" r="24" />
+        </svg>
+      </div>
+      <div class="s02-timer">
+        <div class="s02-timer-label">კლასი ელოდება</div>
+        <div class="s02-timer-num">0:00</div>
+      </div>
+      <div class="s02-qs"></div>
+      <div class="s02-room"></div>
+      <div class="s02-slip">
+        <span class="s02-slip-text"></span>
+        <span class="btn s02-slip-btn"><i data-icon="send"></i></span>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        const S = Kit.scope('s02-classroom');
+        const q = S.q, qa = S.qa;
+        const tl = gsap.timeline({ paused: true });
+        Kit.hydrateIcons(S.root);
+        const B = 0.5789;
+
+        const cam = q('.s02-camera');
+        const desk = q('.s02-desk');
+
+        // ---- build the room: 4 rows x 5 punches
+        const COLS = [540, 750, 960, 1170, 1380];
+        const ROWS = [370, 500, 630, 760];
+        const RINGS = ['var(--p-gio)', 'var(--h-teal)', 'var(--p-mari)', 'var(--h-violet)', 'var(--p-ana)',
+          'var(--h-ultra)', 'var(--h-grass)', 'var(--p-nika)', 'var(--h-sienna)', 'var(--p-mari)',
+          'var(--h-teal)', 'var(--p-ana)', 'var(--p-gio)', 'var(--h-violet)', 'var(--h-orange)',
+          'var(--p-mari)', 'var(--h-grass)', 'var(--h-ultra)', 'var(--p-nika)', 'var(--p-gio)'];
+        const room = q('.s02-room');
+        const seats = [];
+        ROWS.forEach((y, r) => COLS.forEach((x, c) => {
+          const i = r * 5 + c;
+          const seat = document.createElement('div');
+          seat.className = 's02-seat';
+          seat.setAttribute('data-layout-allow-overflow', '');
+          seat.style.left = (x - 38) + 'px';
+          seat.style.top = (y - 38) + 'px';
+          let cls = 'punch';
+          if (i === 0) seat.classList.add('s02-curious');
+          if (i === 18) { seat.classList.add('s02-shy'); cls += ' nika'; }
+          seat.innerHTML = '<span class="' + cls + '"' + (i === 0 || i === 18 ? '' : ' style="--ring:' + RINGS[i] + '"') + '></span>';
+          room.appendChild(seat);
+          seats.push(seat);
+        }));
+        const curious = seats[0], shy = seats[18];
+        const others = seats.filter((s, i) => i !== 0);
+        const curiousPunch = curious.querySelector('.punch');
+        const curName = document.createElement('div');
+        curName.className = 's02-name'; curName.textContent = 'ცნობისმოყვარე';
+        curious.appendChild(curName);
+        const count = document.createElement('div');
+        count.className = 's02-count'; count.textContent = '1';
+        curious.appendChild(count);
+        const shyName = document.createElement('div');
+        shyName.className = 's02-name'; shyName.textContent = 'მორცხვი';
+        shy.appendChild(shyName);
+        // curious starts as a plain grey ring, turns orange at 2.32
+        curiousPunch.style.setProperty('--ring', 'var(--rule-2)');
+
+        // ---- 0.00 handoff: desk seen at camera 1.4, centred, dimmed
+        const K0 = 1.4;
+        gsap.set(cam, { scale: K0, x: 0, y: K0 * (464 - 210) });
+        gsap.set(desk, { filter: 'saturate(0.35)', opacity: 0.5 });
+        tl.fromTo(desk, { filter: 'saturate(0.35)', opacity: 0.5 }, { filter: 'saturate(1)', opacity: 1, duration: 0.09, ease: 'steps(2)', immediateRender: false }, 0.1);
+        Kit.plot(tl, q('.s02-d1'), 0.25, { dur: 0.45 });
+        Kit.plot(tl, q('.s02-d2'), 0.6, { dur: 0.36 });
+        Kit.plot(tl, q('.s02-d3'), 0.9, { dur: 0.45 });
+        Kit.plot(tl, q('.s02-d4'), 1.3, { dur: 0.45 });
+        Kit.camera(tl, cam, 0.2, { scale: 1, x: 0, y: 0 }, { dur: 1.4, ease: 'power3.inOut' });
+
+        // punches step in, front row first
+        Kit.stepIn(tl, seats.map((s) => s.querySelector('.punch')), 0.5, { y: 0, scale: 0.7, stagger: 0.08 });
+        tl.set([curName, count, shyName], { visibility: 'hidden' }, 0);
+
+        // ---- 2.32 the curious one: ring turns orange, label
+        Kit.track(tl, 0, 2.321, (s) => curiousPunch.style.setProperty('--ring', s >= 2.32 ? 'var(--h-orange)' : 'var(--rule-2)'));
+        tl.fromTo(curiousPunch, { scale: 1.12 }, { scale: 1, duration: 0.09, ease: 'steps(2)', immediateRender: false }, 2.32);
+        Kit.stepIn(tl, curName, 2.42);
+
+        // ---- ten questions pile up beside it
+        const QT = [2.895, 3.474, 4.053, 4.632, 4.921, 5.211, 5.5, 5.789, 6.079, 6.368];
+        const rnd = Kit.rng(42);
+        const qs = q('.s02-qs');
+        const qEls = QT.map((t, i) => {
+          const w = document.createElement('div');
+          w.className = 's02-qw';
+          const col = i % 4, row = Math.floor(i / 4);
+          const x = 140 + col * 66 + (rnd() - 0.5) * 22;
+          const y = 300 + row * 70 + (rnd() - 0.5) * 22 + (col % 2) * 14;
+          w.style.left = x + 'px'; w.style.top = y + 'px';
+          w.style.transform = 'rotate(' + ((rnd() - 0.5) * 18).toFixed(1) + 'deg)';
+          w.innerHTML = '<div class="s02-q">?</div>';
+          qs.appendChild(w);
+          Kit.stamp(tl, w.querySelector('.s02-q'), t, { from: 1.25 });
+          return w;
+        });
+        Kit.stepIn(tl, count, QT[0], { y: 0, scale: 1.2 });
+        Kit.textAt(tl, count, QT.map((t, i) => [i === 0 ? 0 : t, String(i + 1)]));
+
+        // each question drains a little colour from everyone else
+        gsap.set(others, { filter: 'saturate(1)', opacity: 1 });
+        QT.forEach((t, i) => {
+          const a = i / 10, b = (i + 1) / 10;
+          tl.fromTo(others,
+            { filter: 'saturate(' + (1 - 0.8 * a).toFixed(3) + ')', opacity: 1 - 0.45 * a },
+            { filter: 'saturate(' + (1 - 0.8 * b).toFixed(3) + ')', opacity: 1 - 0.45 * b, duration: 0.09, ease: 'steps(2)', immediateRender: false }, t);
+        });
+
+        // the class waits: timer runs, then turns vermilion
+        Kit.stepIn(tl, q('.s02-timer'), QT[0], { x: -8, y: 0 });
+        Kit.countTo(tl, q('.s02-timer-num'), 0, 580, QT[0], 4.0, { format: (n) => Math.floor(n / 60) + ':' + String(n % 60).padStart(2, '0') });
+        Kit.classAt(tl, q('.s02-timer'), 's02-hurt', 6.368);
+        // a slow push for secondary motion while the questions pile up
+        Kit.camera(tl, cam, 2.32, { scale: 1.05, x: 30, y: 6 }, { dur: 4.4, ease: 'sine.inOut' });
+
+        // ---- 6.95 focus moves to the quiet punch at the back
+        Kit.camera(tl, cam, 6.95, { scale: 1.6, x: -1.6 * (1170 - 960), y: -1.6 * (690 - 464) }, { dur: 1.1, ease: 'power3.inOut' });
+        tl.fromTo(shy, { filter: 'saturate(0.2)', opacity: 0.55 }, { filter: 'saturate(1)', opacity: 1, duration: 0.09, ease: 'steps(2)', immediateRender: false }, 7.2);
+        Kit.stepIn(tl, shyName, 7.4);
+
+        // the question writes itself, hesitates, deletes, unsent
+        const slip = q('.s02-slip');
+        const slipText = q('.s02-slip-text');
+        const QS = 'მეც ეს მინდოდა მეკითხა';
+        Kit.hingeIn(tl, slip, 7.75, { origin: '50% 100%' });
+        const tTyped = Kit.typeText(tl, slipText, QS, 7.9, { caretUntil: 9.55 });
+        Kit.deleteText(tl, slipText, QS, 9.55);
+
+        // ---- 9.60 the room steps away; 9.90 push into the quiet punch
+        const away = [desk, q('.s02-timer'), qs, curious].concat(others.filter((s) => s !== shy));
+        tl.to(away, { opacity: 0, scale: 0.92, duration: 0.09, ease: 'steps(2)' }, 9.6);
+        tl.set(away, { visibility: 'hidden' }, 9.69);
+        Kit.stepOut(tl, curName, 7.0, { y: 0 });
+        Kit.stepOut(tl, slip, 10.55, { y: 0 });
+        Kit.stepOut(tl, shyName, 10.62, { y: 0 });
+        Kit.camera(tl, cam, 9.9, { scale: 2, x: -2 * (1170 - 960), y: -2 * (760 - 464) }, { dur: 1.05, ease: 'power3.inOut' });
+
+        tl.set({}, {}, 11);
+        window.__timelines = window.__timelines || {};
+        window.__timelines['s02-classroom'] = tl;
+      })();
+    </script>
+  </div>
+</template>

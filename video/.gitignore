@@ -1,0 +1,12 @@
+renders/
+snapshots/
+node_modules/
+.hyperframes/
+.cache/
+*.log
+.DS_Store
+
+# Audio is rebuilt deterministically by tools/audio/*.py (see README.md); keep WAVs out of git.
+audio/**/*.wav
+audio/*.png
+# The recorded voice is the one WAV that cannot be rebuilt: keep a copy outside git.

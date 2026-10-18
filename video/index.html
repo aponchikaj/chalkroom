@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ka">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=1920, height=1080" />
+  <title>Chalkroom Live (ka)</title>
+  <script src="assets/vendor/gsap.min.js"></script>
+  <link rel="stylesheet" href="assets/chalk.css" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 1920px; height: 1080px; overflow: hidden; background: #f2ede0; }
+    #film { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: #f2ede0; }
+    .scene-host, .subs-host, .overlay-host { position: absolute; inset: 0; }
+    .scene-host { z-index: 1; }
+    .subs-host { z-index: 20; }
+    .overlay-host { z-index: 30; pointer-events: none; }
+  </style>
+</head>
+<body>
+  <!-- Root film. Scene windows come from script.json (scenes[].start/end). If they change, update data-start/data-duration here. -->
+  <div id="film" data-composition-id="film" data-start="0" data-duration="150" data-width="1920" data-height="1080">
+    <!-- 1. Scenes (each mounts compositions/<id>.html; its timeline runs in LOCAL time from data-start) -->
+    <div id="host-s01-alone" class="scene-host clip" data-composition-id="s01-alone" data-composition-src="compositions/s01-alone.html" data-start="0" data-duration="11" data-track-index="1"></div>
+    <div id="host-s02-classroom" class="scene-host clip" data-composition-id="s02-classroom" data-composition-src="compositions/s02-classroom.html" data-start="11" data-duration="11" data-track-index="2"></div>
+    <div id="host-s03-one-to-one" class="scene-host clip" data-composition-id="s03-one-to-one" data-composition-src="compositions/s03-one-to-one.html" data-start="22" data-duration="8" data-track-index="3"></div>
+    <div id="host-s04-reveal" class="scene-host clip" data-composition-id="s04-reveal" data-composition-src="compositions/s04-reveal.html" data-start="30" data-duration="10" data-track-index="4"></div>
+    <div id="host-s05-join" class="scene-host clip" data-composition-id="s05-join" data-composition-src="compositions/s05-join.html" data-start="40" data-duration="10" data-track-index="5"></div>
+    <div id="host-s06-lesson" class="scene-host clip" data-composition-id="s06-lesson" data-composition-src="compositions/s06-lesson.html" data-start="50" data-duration="14" data-track-index="6"></div>
+    <div id="host-s07-triage" class="scene-host clip" data-composition-id="s07-triage" data-composition-src="compositions/s07-triage.html" data-start="64" data-duration="18" data-track-index="7"></div>
+    <div id="host-s08-thread" class="scene-host clip" data-composition-id="s08-thread" data-composition-src="compositions/s08-thread.html" data-start="82" data-duration="16" data-track-index="8"></div>
+    <div id="host-s09-check" class="scene-host clip" data-composition-id="s09-check" data-composition-src="compositions/s09-check.html" data-start="98" data-duration="14" data-track-index="9"></div>
+    <div id="host-s10-catchup" class="scene-host clip" data-composition-id="s10-catchup" data-composition-src="compositions/s10-catchup.html" data-start="112" data-duration="10" data-track-index="10"></div>
+    <div id="host-s11-agents" class="scene-host clip" data-composition-id="s11-agents" data-composition-src="compositions/s11-agents.html" data-start="122" data-duration="16" data-track-index="11"></div>
+    <div id="host-s12-end" class="scene-host clip" data-composition-id="s12-end" data-composition-src="compositions/s12-end.html" data-start="138" data-duration="12" data-track-index="12"></div>
+
+    <!-- 2. Subtitles (generated: node tools/build-subs.mjs) -->
+    <div id="host-subtitles" class="subs-host clip" data-composition-id="subtitles" data-composition-src="compositions/subtitles.html" data-start="0" data-duration="150" data-track-index="20"></div>
+
+    <!-- 3. Film surface: paper grain and vignette over everything -->
+    <div class="overlay-host"><div class="film-grain"></div><div class="film-vignette"></div></div>
+
+    <!-- Audio stems (built by the audio pass, see CONVENTIONS.md) -->
+    <audio id="music" src="audio/music_ducked.wav" data-start="0" data-duration="150" data-volume="1"></audio>
+    <!-- SFX stem, rebuilt from audio/cues/*.json by tools/audio/mix_sfx.py -->
+    <audio id="sfx" src="audio/sfx.wav" data-start="0" data-duration="150" data-volume="1"></audio>
+    <!-- Voiceover slot: uncomment once audio/voice.wav is recorded (retime script.json cues first).
+    <audio id="voice" src="audio/voice.wav" data-start="0" data-duration="150" data-volume="1"></audio>
+    -->
+  </div>
+  <script>
+    window.__timelines = window.__timelines || {};
+    // The root timeline only fixes the film length; scenes own their motion.
+    const tl = gsap.timeline({ paused: true });
+    tl.set({}, {}, 150);
+    window.__timelines["film"] = tl;
+  </script>
+</body>
+</html>

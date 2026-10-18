@@ -1,0 +1,106 @@
+{
+  "scene": "s03-one-to-one",
+  "start": 22,
+  "note": "t is FILM seconds. gain is dB (tools/audio/mix_sfx.py).",
+  "cues": [
+    {
+      "t": 22.35,
+      "name": "paper"
+    },
+    {
+      "t": 23.143,
+      "name": "swap"
+    },
+    {
+      "t": 23.714,
+      "name": "key",
+      "dur": 0.5,
+      "gain": -8
+    },
+    {
+      "t": 24.286,
+      "name": "swap"
+    },
+    {
+      "t": 24.857,
+      "name": "chime"
+    },
+    {
+      "t": 25.43,
+      "name": "whoosh",
+      "gain": -3
+    },
+    {
+      "t": 25.6,
+      "name": "paper",
+      "gain": -4
+    },
+    {
+      "t": 25.84,
+      "name": "paper",
+      "gain": -4
+    },
+    {
+      "t": 25.9,
+      "name": "plot"
+    },
+    {
+      "t": 26.857,
+      "name": "click"
+    },
+    {
+      "t": 26.957,
+      "name": "swap",
+      "gain": -3
+    },
+    {
+      "t": 27.177,
+      "name": "thud"
+    },
+    {
+      "t": 27.429,
+      "name": "click"
+    },
+    {
+      "t": 27.529,
+      "name": "swap",
+      "gain": -3
+    },
+    {
+      "t": 27.749,
+      "name": "thud"
+    },
+    {
+      "t": 28.0,
+      "name": "click"
+    },
+    {
+      "t": 28.1,
+      "name": "swap",
+      "gain": -3
+    },
+    {
+      "t": 28.286,
+      "name": "click",
+      "gain": -4
+    },
+    {
+      "t": 28.32,
+      "name": "thud"
+    },
+    {
+      "t": 28.571,
+      "name": "click",
+      "gain": -4
+    },
+    {
+      "t": 28.857,
+      "name": "paper"
+    },
+    {
+      "t": 29.66,
+      "name": "paper",
+      "gain": -2
+    }
+  ]
+}

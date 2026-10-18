@@ -1,0 +1,27 @@
+{
+  "scene": "s04-reveal",
+  "start": 30,
+  "note": "t is FILM seconds (scene start 30 + local time). Names from the fixed SFX list in CONVENTIONS.md.",
+  "cues": [
+    { "t": 30.30, "name": "paper" },
+    { "t": 30.75, "name": "swap" },
+    { "t": 31.30, "name": "whoosh" },
+    { "t": 31.35, "name": "paper" },
+    { "t": 31.95, "name": "plot" },
+    { "t": 32.40, "name": "plot" },
+    { "t": 32.75, "name": "stamp" },
+    { "t": 32.88, "name": "stamp" },
+    { "t": 33.01, "name": "stamp" },
+    { "t": 33.14, "name": "stamp" },
+    { "t": 33.27, "name": "stamp" },
+    { "t": 33.40, "name": "stamp" },
+    { "t": 33.50, "name": "swap" },
+    { "t": 34.60, "name": "stamp" },
+    { "t": 35.80, "name": "swap" },
+    { "t": 37.90, "name": "swap" },
+    { "t": 38.05, "name": "pop" },
+    { "t": 38.19, "name": "pop" },
+    { "t": 38.33, "name": "pop" },
+    { "t": 38.47, "name": "pop" }
+  ]
+}

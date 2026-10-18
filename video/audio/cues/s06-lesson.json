@@ -1,0 +1,83 @@
+{
+  "scene": "s06-lesson",
+  "start": 50,
+  "note": "t is FILM seconds (scene start + local time). Names from the fixed SFX list in CONVENTIONS.md.",
+  "cues": [
+    {
+      "t": 50.12,
+      "name": "plot"
+    },
+    {
+      "t": 50.58,
+      "name": "plot"
+    },
+    {
+      "t": 51.17,
+      "name": "whoosh"
+    },
+    {
+      "t": 51.3,
+      "name": "swap"
+    },
+    {
+      "t": 51.55,
+      "name": "paper"
+    },
+    {
+      "t": 51.65,
+      "name": "stamp"
+    },
+    {
+      "t": 51.75,
+      "name": "plot"
+    },
+    {
+      "t": 52.33,
+      "name": "stamp"
+    },
+    {
+      "t": 52.92,
+      "name": "plot"
+    },
+    {
+      "t": 53.5,
+      "name": "plot"
+    },
+    {
+      "t": 54.08,
+      "name": "swap"
+    },
+    {
+      "t": 54.67,
+      "name": "whoosh"
+    },
+    {
+      "t": 55.4,
+      "name": "swap"
+    },
+    {
+      "t": 55.83,
+      "name": "plot"
+    },
+    {
+      "t": 56.42,
+      "name": "plot"
+    },
+    {
+      "t": 57.0,
+      "name": "whoosh"
+    },
+    {
+      "t": 58.17,
+      "name": "swap"
+    },
+    {
+      "t": 59.33,
+      "name": "stamp"
+    },
+    {
+      "t": 60.5,
+      "name": "stamp"
+    }
+  ]
+}

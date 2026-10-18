@@ -1,0 +1,275 @@
+<!--
+  s01-alone (film 0-11 s, 11 s): alone with a video.
+
+  Handoff IN: film start.
+  Handoff OUT (to s02): the course leaf, dimmed (saturate 0.35, opacity 0.5), empty, as a
+  672 x 168 rect centred at (960, 464), camera at identity. s02 starts on that same rect
+  (its front desk, seen at camera scale 1.4).
+
+  Local timeline = film time (beats every 0.579 s, bars 0 / 2.32 / 4.63 / 6.95 / 9.26):
+    0.00 camera close on the playing video (leaf tilted), slide bullets print one by one
+    2.32 camera pans to the forum      3.47 cursor clicks the box    3.55 types the question
+    5.21 presses send                  5.30 the post hinges in       5.79 "0 პასუხი" stamp
+    6.37 / 6.95 / 7.53 timestamp ticks 1 / 3 / 7 days, replies stay at zero
+    6.95 camera pulls back: the whole course leaf, progress bar visible
+    7.60 progress creeps to 12% and stalls; 8.11 the rest turns into a dashed vermilion line
+    9.26 the leaf slides down and dims  9.80 contents fold away  10.0-10.85 shrinks to the desk
+-->
+<template id="s01-alone-template">
+  <div data-composition-id="s01-alone" data-width="1920" data-height="1080" data-duration="11">
+    <link rel="stylesheet" href="../assets/chalk.css" />
+    <script src="../assets/vendor/gsap.min.js"></script>
+    <script src="../assets/kit.js"></script>
+    <style>
+      .s01-camera { position: absolute; inset: 0; transform-origin: 960px 464px; }
+      .s01-leaf {
+        position: absolute; left: 210px; top: 70px; width: 1500px; height: 780px; padding: 0;
+        overflow: hidden;
+      }
+      .s01-content { position: absolute; inset: 0; }
+      .s01-head {
+        position: absolute; left: 60px; right: 60px; top: 30px; height: 70px;
+        display: flex; align-items: center; justify-content: space-between;
+        border-bottom: 1.5px solid var(--ink);
+      }
+      .s01-title { font-family: var(--f-head); font-size: 40px; font-weight: 750; font-stretch: 82%; color: var(--ink); white-space: nowrap; }
+      .s01-title .mono { font-size: 34px; font-weight: 500; }
+      .s01-dots { display: flex; gap: 10px; }
+      .s01-dots i { display: block; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--rule-2); }
+      .s01-dots i.on { background: var(--ink-3); border-color: var(--ink-3); }
+
+      /* the video player */
+      .s01-player { position: absolute; left: 60px; top: 128px; width: 900px; height: 540px; border: 1.5px solid var(--rule-2); border-radius: 3px; background: var(--paper-2); overflow: hidden; }
+      .s01-screen { position: absolute; left: 0; top: 0; width: 900px; height: 470px; }
+      .s01-slide { position: absolute; left: 40px; top: 40px; width: 560px; height: 340px; background: var(--leaf); border: 1.5px solid var(--rule); }
+      .s01-slide .s01-sl-title { position: absolute; left: 36px; top: 34px; width: 300px; height: 26px; background: var(--rule-2); border-radius: 2px; }
+      .s01-slide .s01-sl-line { position: absolute; left: 36px; height: 14px; background: var(--paper-3); border-radius: 2px; }
+      .s01-slide .s01-sl-dot { position: absolute; left: 36px; width: 14px; height: 14px; border-radius: 50%; background: var(--rule-2); }
+      .s01-slide svg { position: absolute; left: 330px; top: 110px; width: 200px; height: 190px; overflow: visible; }
+      .s01-slide .s01-shape { fill: none; stroke: var(--rule-2); stroke-width: 4; }
+      .s01-lect-head { position: absolute; left: 700px; top: 150px; width: 92px; height: 92px; border-radius: 50%; background: var(--rule-2); }
+      .s01-lect-body { position: absolute; left: 650px; top: 256px; width: 192px; height: 214px; border-radius: 96px 96px 0 0; background: var(--rule-2); }
+      .s01-lect-desk { position: absolute; left: 620px; top: 392px; width: 250px; height: 78px; background: var(--paper-3); border-top: 3px solid var(--rule-2); }
+      .s01-controls { position: absolute; left: 0; right: 0; top: 470px; height: 70px; background: var(--leaf); border-top: 1.5px solid var(--rule-2); }
+      .s01-pause { position: absolute; left: 30px; top: 22px; width: 26px; height: 28px; }
+      .s01-pause i { position: absolute; top: 0; width: 8px; height: 28px; background: var(--ink-3); }
+      .s01-pause i:last-child { left: 16px; }
+      .s01-track { position: absolute; left: 86px; top: 33px; width: 560px; height: 5px; background: var(--rule); }
+      .s01-played { position: absolute; left: 0; top: 0; height: 5px; width: 560px; background: var(--ink-3); transform-origin: 0 50%; }
+      .s01-head-dot { position: absolute; left: -10px; top: -8px; width: 20px; height: 20px; border-radius: 50%; background: var(--ink-3); }
+      .s01-time { position: absolute; right: 26px; top: 17px; font-family: var(--f-mono); font-size: 28px; color: var(--ink-3); }
+
+      /* progress */
+      .s01-prog-label { position: absolute; left: 60px; top: 690px; font-family: var(--f-head); font-size: 32px; font-weight: 700; font-stretch: 82%; color: var(--ink-2); white-space: nowrap; }
+      .s01-prog-label .mono { font-weight: 600; }
+      .s01-prog-label .s01-pct.s01-hurt { color: var(--errata); }
+      .s01-bar { position: absolute; left: 60px; top: 744px; width: 900px; height: 12px; background: var(--paper-3); border-radius: 2px; }
+      .s01-fill { position: absolute; left: 0; top: 0; height: 12px; width: 900px; background: var(--ink); border-radius: 2px; transform-origin: 0 50%; }
+      .s01-stall { position: absolute; left: 168px; top: 738px; width: 792px; height: 24px; overflow: visible; }
+      .s01-stall line { stroke: var(--errata); stroke-width: 6; stroke-dasharray: 18 12; stroke-linecap: butt; }
+      .s01-stall-bg { position: absolute; left: 168px; top: 744px; width: 792px; height: 12px; background: var(--leaf); }
+
+      /* forum */
+      .s01-forum { position: absolute; left: 1010px; top: 128px; width: 430px; height: 628px; background: var(--paper); border: 1.5px solid var(--rule); border-radius: 3px; }
+      .s01-forum-title { position: absolute; left: 24px; top: 20px; font-family: var(--f-head); font-size: 36px; font-weight: 750; font-stretch: 82%; color: var(--ink); white-space: nowrap; }
+      .s01-box {
+        position: absolute; left: 22px; top: 86px; width: 386px; height: 124px; padding: 14px 16px;
+        background: var(--leaf); border: 2.5px solid var(--rule-2); border-radius: 4px;
+        font-family: var(--f-head); font-size: 30px; line-height: 1.3; color: var(--ink);
+      }
+      .s01-box.s01-focus { border-color: var(--ink); }
+      .s01-box .placeholder { color: var(--ink-3); }
+      .s01-send-wrap { position: absolute; right: 22px; top: 226px; }
+      .s01-post {
+        position: absolute; left: 22px; top: 312px; width: 386px; padding: 18px 18px 18px;
+        background: var(--leaf); border: 1.5px solid var(--rule-2); border-radius: 4px; box-shadow: var(--shadow-leaf);
+      }
+      .s01-post-who { display: flex; align-items: center; gap: 14px; }
+      .s01-post-who .punch { box-shadow: var(--shadow-punch), 0 0 0 4px var(--p-nika); }
+      .s01-post-name { font-family: var(--f-head); font-size: 28px; font-weight: 700; font-stretch: 82%; color: var(--ink-2); }
+      .s01-post-q { margin-top: 14px; font-family: var(--f-head); font-size: 30px; font-weight: 680; font-stretch: 86%; line-height: 1.25; color: var(--ink); }
+      .s01-post-meta { margin-top: 18px; display: flex; align-items: center; justify-content: space-between; }
+      .s01-ago { font-family: var(--f-head); font-size: 28px; color: var(--ink-3); white-space: nowrap; }
+      .s01-ago .mono { font-size: 28px; color: var(--ink-2); font-weight: 600; }
+      .s01-zero { background: var(--leaf); }
+      .s01-zero .mono { font-weight: 700; }
+      .s01-replies { position: absolute; left: 22px; top: 566px; width: 386px; height: 40px; }
+      .s01-replies i { display: block; height: 10px; margin-bottom: 14px; border-radius: 2px; background: repeating-linear-gradient(90deg, var(--rule) 0 14px, transparent 14px 24px); }
+      .s01-replies i:last-child { width: 60%; }
+
+      .s01-curs { position: absolute; inset: 0; pointer-events: none; }
+    </style>
+
+    <div id="s01-alone-bg" class="paper-bg clip" data-start="0" data-duration="11" data-track-index="0"></div>
+
+    <div class="s01-camera" data-layout-allow-overflow>
+      <div class="leaf s01-leaf" data-layout-allow-overflow>
+        <div class="s01-content">
+          <div class="s01-head">
+            <div class="s01-title">ონლაინ კურსი · ლექცია <span class="mono">4 / 38</span></div>
+            <div class="s01-dots"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
+
+          <div class="s01-player">
+            <div class="s01-screen">
+              <div class="s01-slide">
+                <div class="s01-sl-title"></div>
+                <div class="s01-sl-dot s01-b1" style="top: 112px"></div><div class="s01-sl-line s01-b1" style="top: 112px; left: 64px; width: 220px"></div>
+                <div class="s01-sl-dot s01-b2" style="top: 162px"></div><div class="s01-sl-line s01-b2" style="top: 162px; left: 64px; width: 180px"></div>
+                <div class="s01-sl-dot s01-b3" style="top: 212px"></div><div class="s01-sl-line s01-b3" style="top: 212px; left: 64px; width: 236px"></div>
+                <div class="s01-sl-dot s01-b4" style="top: 262px"></div><div class="s01-sl-line s01-b4" style="top: 262px; left: 64px; width: 150px"></div>
+                <svg viewBox="0 0 200 190">
+                  <rect class="s01-shape s01-fig1" x="4" y="10" width="80" height="56" />
+                  <path class="s01-shape s01-fig2" d="M84 38 L150 38" />
+                  <circle class="s01-shape s01-fig3" cx="172" cy="38" r="22" />
+                  <path class="s01-shape s01-fig4" d="M44 66 L44 140 L172 140 L172 60" />
+                </svg>
+              </div>
+              <div class="s01-lect-body"></div>
+              <div class="s01-lect-head"></div>
+              <div class="s01-lect-desk"></div>
+            </div>
+            <div class="s01-controls">
+              <div class="s01-pause"><i></i><i></i></div>
+              <div class="s01-track"><div class="s01-played"></div><div class="s01-head-dot"></div></div>
+              <div class="s01-time mono">12:04 / 48:10</div>
+            </div>
+          </div>
+
+          <div class="s01-prog-label">პროგრესი <span class="mono s01-pct">10%</span></div>
+          <div class="s01-bar"><div class="s01-fill"></div></div>
+          <div class="s01-stall-bg"></div>
+          <svg class="s01-stall" viewBox="0 0 792 24"><line x1="0" y1="12" x2="792" y2="12" /></svg>
+
+          <div class="s01-forum">
+            <div class="s01-forum-title">კითხვა ფორუმზე</div>
+            <div class="s01-box"></div>
+            <div class="s01-send-wrap"><span class="btn btn-primary sm s01-send">გაგზავნა</span></div>
+            <div class="s01-post">
+              <div class="s01-post-who"><span class="punch sm"></span><span class="s01-post-name">შენ</span></div>
+              <div class="s01-post-q">რატომ ვერ აწერს PDA ხელს?</div>
+              <div class="s01-post-meta">
+                <span class="s01-ago">ახლა</span>
+                <span class="stamp errata s01-zero"><span class="mono">0</span> პასუხი</span>
+              </div>
+            </div>
+            <div class="s01-replies"><i></i><i></i></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="s01-curs"></div>
+
+    <script>
+      (function () {
+        const S = Kit.scope('s01-alone');
+        const q = S.q, qa = S.qa;
+        const tl = gsap.timeline({ paused: true });
+        const B = 0.5789; // one beat
+
+        const cam = q('.s01-camera');
+        const leaf = q('.s01-leaf');
+
+        // world -> screen for a camera {k, x, y} with origin (960, 464)
+        const w2s = (c, wx, wy) => [960 + c.k * (wx - 960) + c.x, 464 + c.k * (wy - 464) + c.y];
+        // leaf-local -> world (leaf at 210, 70; rotation ignored, it is straight by then)
+        const L = (lx, ly) => [210 + lx, 70 + ly];
+
+        // ---- 0.00 open close on the player (centre world 720, 468), leaf tilted
+        const CAM0 = { k: 1.25, x: -1.25 * (720 - 960), y: -1.25 * (424 - 464) };
+        const CAM1 = { k: 1.31, x: -1.31 * (712 - 960), y: -1.31 * (420 - 464) };
+        const CAMF = { k: 1.18, x: -1.18 * (1300 - 960), y: -1.18 * (455 - 464) }; // forum
+        gsap.set(cam, { scale: CAM0.k, x: CAM0.x, y: CAM0.y });
+        gsap.set(leaf, { rotation: -2.2 });
+        Kit.camera(tl, cam, 0, { scale: CAM1.k, x: CAM1.x, y: CAM1.y }, { dur: 2.3, ease: 'sine.inOut' });
+
+        // the video plays: playhead runs all scene long, time code ticks
+        tl.fromTo(q('.s01-played'), { scaleX: 0.25 }, { scaleX: 0.31, duration: 11, ease: 'none', immediateRender: false }, 0);
+        tl.fromTo(q('.s01-head-dot'), { x: 140 }, { x: 174, duration: 11, ease: 'none', immediateRender: false }, 0);
+        gsap.set(q('.s01-played'), { scaleX: 0.25 });
+        gsap.set(q('.s01-head-dot'), { x: 140 });
+        Kit.countTo(tl, q('.s01-time'), 724, 735, 0, 11, { format: (n) => Math.floor(n / 60) + ':' + String(n % 60).padStart(2, '0') + ' / 48:10' });
+
+        // slide bullets print one by one, the figure plots (the lecture keeps going)
+        [0.25, 0.25 + B, 0.25 + 2 * B, 0.25 + 3 * B].forEach((t, i) => Kit.stepIn(tl, qa('.s01-b' + (i + 1)), t, { x: -6, y: 0 }));
+        Kit.plot(tl, q('.s01-fig1'), 0.6, { dur: 0.45 });
+        Kit.plot(tl, q('.s01-fig2'), 1.2, { dur: 0.36 });
+        Kit.plot(tl, q('.s01-fig3'), 1.5, { dur: 0.45 });
+        Kit.plot(tl, q('.s01-fig4'), 2.1, { dur: 0.54 });
+
+        // ---- 2.32 pan to the forum, the leaf straightens a little
+        Kit.camera(tl, cam, 2.32, { scale: CAMF.k, x: CAMF.x, y: CAMF.y }, { dur: 1.0, ease: 'power3.inOut' });
+        tl.to(leaf, { rotation: -0.8, duration: 1.0, ease: 'power3.inOut' }, 2.32);
+
+        // cursor ("you", blue) drives the forum, in screen space
+        const curs = Kit.makeCursor(q('.s01-curs'), 'nika', 'შენ', { x: 960, y: 780 });
+        tl.set(curs, { visibility: 'hidden' }, 0);
+        tl.set(curs, { visibility: 'visible' }, 2.6);
+        const boxS = w2s(CAMF, ...L(1010 + 22 + 150, 128 + 86 + 40));
+        const sendS = w2s(CAMF, ...L(1010 + 430 - 22 - 34, 128 + 226 + 22));
+        Kit.cursorMove(tl, curs, 2.62, boxS[0], boxS[1], { dur: 0.8 });
+        Kit.cursorClick(tl, curs, 3.47);
+        const parkS = w2s(CAMF, ...L(1010 + 40, 128 + 226 + 12));
+        Kit.cursorMove(tl, curs, 3.8, parkS[0], parkS[1], { dur: 0.5 });
+        Kit.classAt(tl, q('.s01-box'), 's01-focus', 3.47, 5.21);
+        // one seek-safe track owns the box text: placeholder, typing with caret, cleared after send
+        const box = q('.s01-box');
+        const QTXT = Array.from('რატომ ვერ აწერს PDA ხელს?');
+        const PH = '<span class="placeholder">დაწერე კითხვა</span>';
+        const T0 = 3.55, CPS = 18;
+        const tEnd = T0 + QTXT.length / CPS;
+        Kit.track(tl, 0, 5.32, (s) => {
+          if (s < 3.47 || s >= 5.3) { box.innerHTML = PH; return; }
+          const n = Math.max(0, Math.min(QTXT.length, Math.floor((s - T0) * CPS + 1e-6)));
+          box.innerHTML = Kit.esc(QTXT.slice(0, n).join('')) + '<span class="caret"></span>';
+        });
+        Kit.cursorMove(tl, curs, tEnd - 0.3, sendS[0], sendS[1], { dur: 0.5 });
+        Kit.cursorClick(tl, curs, 5.21, { press: q('.s01-send') });
+        Kit.cursorMove(tl, curs, 5.6, 640, 560, { dur: 0.9 });
+        Kit.hingeIn(tl, q('.s01-post'), 5.3);
+
+        // ---- 5.79 nobody answers: vermilion stamp; time passes
+        Kit.stamp(tl, q('.s01-zero'), 5.79, { from: 1.18 });
+        Kit.textAt(tl, q('.s01-ago'), [
+          [0, 'ახლა'],
+          [6.37, '<span class="mono">1</span> დღე'],
+          [6.95, '<span class="mono">3</span> დღე'],
+          [7.53, '<span class="mono">7</span> დღე'],
+        ], { html: true });
+        tl.fromTo(q('.s01-ago'), { y: -6 }, { y: 0, duration: 0.09, ease: 'steps(2)', immediateRender: false }, 6.37);
+        tl.fromTo(q('.s01-ago'), { y: -6 }, { y: 0, duration: 0.09, ease: 'steps(2)', immediateRender: false }, 6.95);
+        tl.fromTo(q('.s01-ago'), { y: -6 }, { y: 0, duration: 0.09, ease: 'steps(2)', immediateRender: false }, 7.53);
+
+        // ---- 6.95 pull back: the whole course leaf
+        Kit.camera(tl, cam, 6.95, { scale: 1, x: 0, y: 0 }, { dur: 1.15, ease: 'expo.inOut' });
+        tl.to(leaf, { rotation: 0, duration: 1.15, ease: 'expo.inOut' }, 6.95);
+
+        // progress block comes into view with the pull back
+        Kit.stepIn(tl, [q('.s01-prog-label'), q('.s01-bar')], 7.15, { y: 6 });
+        // progress creeps to 12% and stalls
+        gsap.set(q('.s01-fill'), { scaleX: 0.10 });
+        tl.fromTo(q('.s01-fill'), { scaleX: 0.10 }, { scaleX: 0.12, duration: 0.18, ease: 'steps(2)', immediateRender: false }, 7.6);
+        Kit.textAt(tl, q('.s01-pct'), [[0, '10%'], [7.69, '12%']]);
+        // the rest of the bar turns into a dashed vermilion line (revealed like a plot)
+        const stall = q('.s01-stall');
+        const stallBg = q('.s01-stall-bg');
+        tl.set([stall, stallBg], { visibility: 'hidden' }, 0);
+        tl.set([stall, stallBg], { visibility: 'visible' }, 8.11);
+        tl.fromTo([stall, stallBg], { clipPath: 'inset(-50% 100% -50% 0%)' }, { clipPath: 'inset(-50% 0% -50% 0%)', duration: 0.56, ease: 'steps(8)', immediateRender: false }, 8.11);
+        Kit.classAt(tl, q('.s01-pct'), 's01-hurt', 8.11);
+
+        // ---- 9.26 the leaf slides down and dims (focus economy)
+        tl.to(leaf, { y: 60, duration: 0.42, ease: 'power3.out' }, 9.26);
+        Kit.dim(tl, leaf, 9.3);
+        // contents fold away, then the empty leaf shrinks to the s02 desk rect
+        tl.fromTo(q('.s01-content'), { opacity: 1, y: 0 }, { opacity: 0, y: -6, duration: 0.066, ease: 'steps(2)', immediateRender: false }, 9.8);
+        tl.to(leaf, { x: 624 - 210, y: 380 - 70, width: 672, height: 168, duration: 0.85, ease: 'power3.inOut' }, 10.0);
+        tl.set(curs, { visibility: 'hidden' }, 6.95);
+
+        tl.set({}, {}, 11);
+        window.__timelines = window.__timelines || {};
+        window.__timelines['s01-alone'] = tl;
+      })();
+    </script>
+  </div>
+</template>
