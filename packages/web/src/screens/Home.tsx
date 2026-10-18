@@ -223,7 +223,7 @@ export function Home() {
             )}
           </div>
         </div>
-        <footer className="entry-foot">Hacktoberfest Georgia 2026, by GeoSafety. The tutor's voice plays on your own device, with captions.</footer>
+        <footer className="entry-foot">The tutor's voice plays on your own device, with captions.</footer>
       </article>
     </main>
   );

@@ -4,7 +4,7 @@
 // not read better than the 2D hero, and its models were not Draco-packed as the plan asks. Honest copy only: no numbers except product
 // limits, and nothing the product does not do.
 import { useEffect, useRef, useState, type FormEvent, type MouseEvent } from 'react';
-import { ArrowRight, BookOpen } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { navigate } from '../../lib/router';
 import { prefersReducedMotion } from '../../ui/motion';
 import { useCurrentSection } from './hooks';
@@ -157,10 +157,6 @@ export default function Landing() {
             </section>
           </main>
 
-          <footer className="ld-colophon">
-            <p><BookOpen size={14} aria-hidden /> Chalkroom Live, made for Hacktoberfest Georgia 2026 by GeoSafety.</p>
-            <p>It grows out of <a href="https://github.com/kotebibo/chalkroom" rel="noreferrer" target="_blank">Chalkroom</a>, an open-source AI classroom for one learner.</p>
-          </footer>
         </div>
       </div>
     </div>
