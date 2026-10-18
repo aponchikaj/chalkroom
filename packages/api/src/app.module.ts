@@ -1,4 +1,5 @@
 import { Controller, Get, Logger, Module } from '@nestjs/common';
+import type { HealthRes } from '@chalk/schema';
 import { config } from './config';
 import { CoreModule } from './core/core.module';
 import { AgentsModule } from './agents/agents.module';
@@ -39,7 +40,7 @@ import { LocalEmbeddings } from './rag/embeddings/local.embeddings';
 @Controller()
 class HealthController {
   @Get('health')
-  health() { return { ok: true, embeddings: config.embeddings.provider, model: config.model, modelId: config.model === 'mock' ? null : config.agentModels.lead, agents: config.model === 'mock' ? null : config.agentModels }; }
+  health(): HealthRes { return { ok: true, embeddings: config.embeddings.provider, model: config.model, modelId: config.model === 'mock' ? null : config.agentModels.lead, agents: config.model === 'mock' ? null : config.agentModels }; }
 }
 
 @Module({

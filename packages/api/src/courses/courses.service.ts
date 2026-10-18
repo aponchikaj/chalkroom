@@ -2,7 +2,7 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import type { z } from 'zod';
 import type { Api, CourseCard, CourseRow, FaqRow, LobbyRoom, Phase } from '@chalk/schema';
-import { SupabaseService, must } from '../core/supabase.service';
+import { SupabaseService, allRows, must } from '../core/supabase.service';
 import { ModelPort } from '../agents/model.port';
 import { mergeFaq } from '../triage/faq-match';
 import { draftSyllabus, hasTopics } from './syllabus-draft';
@@ -20,12 +20,15 @@ export class CoursesService {
     if (!rows.length) return [];
     const ids = rows.map((c) => c.id);
     const ownerIds = [...new Set(rows.map((c) => c.owner_id).filter((x): x is string => !!x))];
-    const [owners, rooms, ratings] = await Promise.all([
+    // rooms run and ratings of up to 100 courses pass the 1000-row cap: read them a page at a time
+    const [owners, roomRows, ratingRows] = await Promise.all([
       ownerIds.length ? this.db.from('profiles').select('id, display_name').in('id', ownerIds) : Promise.resolve({ data: [], error: null }),
-      this.db.from('rooms').select('course_id').in('course_id', ids).not('started_at', 'is', null),
-      this.db.from('course_ratings').select('course_id, user_id, stars').in('course_id', ids),
+      allRows<{ course_id: string }>((from, to) => this.db.from('rooms').select('course_id').in('course_id', ids).not('started_at', 'is', null).order('id').range(from, to), 'rooms run'),
+      allRows<RatingRow>((from, to) => this.db.from('course_ratings').select('course_id, user_id, stars').in('course_id', ids).order('course_id').order('user_id').range(from, to), 'ratings'),
     ]);
-    for (const r of [owners, rooms, ratings]) if (r.error) throw new Error(r.error.message);
+    if (owners.error) throw new Error(owners.error.message);
+    const rooms = { data: roomRows };
+    const ratings = { data: ratingRows };
     const counts = new Map<string, number>();
     for (const r of (rooms.data ?? []) as { course_id: string }[]) counts.set(r.course_id, (counts.get(r.course_id) ?? 0) + 1);
     const names = new Map(((owners.data ?? []) as { id: string; display_name: string }[]).map((p) => [p.id, p.display_name]));

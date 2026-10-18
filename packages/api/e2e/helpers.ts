@@ -66,7 +66,8 @@ export async function createRoom(host: TestUser, title = 'Solana PDAs'): Promise
 
 export async function joinRoom(u: TestUser, inviteCode: string): Promise<JoinRoomRes> {
   const r = await api<JoinRoomRes>(u, 'POST', '/rooms/join', { inviteCode, displayName: u.name, color: u.color });
-  if (r.status !== 201) throw new Error(`join room: ${r.status} ${JSON.stringify(r.body)}`);
+  // 201 for a new member, 200 for one coming back
+  if (r.status !== 201 && r.status !== 200) throw new Error(`join room: ${r.status} ${JSON.stringify(r.body)}`);
   return r.body;
 }
 

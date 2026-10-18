@@ -4,7 +4,7 @@ import { ENDPOINTS, fillPath } from './catalog.js';
 
 const COLORS = ['#f2d16b', '#8fc7e8', '#a8dc9f', '#f4a6c8', '#f6b26b', '#c3a6f4'];
 const NAMES = ['Ana', 'Gio', 'Nika', 'Eve', 'Luka', 'Mari'];
-const CTX_KEYS = ['username', 'roomId', 'code', 'mainStreamId', 'phase', 'segment', 'checkId', 'questionId', 'threadId', 'blockId', 'blockVersion'];
+const CTX_KEYS = ['username', 'roomId', 'code', 'mainStreamId', 'phase', 'segment', 'checkId', 'questionId', 'threadId', 'blockId', 'blockVersion', 'courseId', 'cardId', 'sourceId'];
 
 const state = {
   cfg: null,

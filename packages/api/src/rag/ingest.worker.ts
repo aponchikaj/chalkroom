@@ -2,6 +2,7 @@
 // text per page, chunks it, embeds it (when an embedding provider is set), stores the chunks
 // and marks the source ready or failed. When the queue is empty it gives vectors to chunks
 // stored without one (sources indexed before embeddings were on).
+import { createHash } from 'node:crypto';
 import { Injectable, Logger, type OnApplicationBootstrap, type OnModuleDestroy } from '@nestjs/common';
 import type { SourceRow } from '@chalk/schema';
 import { SupabaseService } from '../core/supabase.service';
@@ -139,7 +140,10 @@ export class IngestWorker implements OnApplicationBootstrap, OnModuleDestroy {
   async indexNow(scope: { room_id?: string; course_id?: string }, kind: 'syllabus' | 'notes' | 'faq' | 'transcript', title: string, pages: Page[]) {
     let id: string | null = null;
     try {
-      const ins = await this.db.from('sources').insert({ room_id: scope.room_id ?? null, course_id: scope.course_id ?? null, kind, title: title.slice(0, 200), status: 'processing' }).select('id').single();
+      // sources_dedupe: the same text is indexed once per room or course (a syllabus once per course)
+      const checksum = createHash('sha256').update(`${kind}\n${pages.map((p) => p.text).join('\n')}`).digest('hex');
+      const ins = await this.db.from('sources').insert({ room_id: scope.room_id ?? null, course_id: scope.course_id ?? null, kind, title: title.slice(0, 200), status: 'processing', checksum }).select('id').single();
+      if (ins.error?.code === '23505') return; // already indexed
       if (ins.error) throw new Error(ins.error.message);
       id = ins.data.id as string;
       const counts = await this.store(id, pages);

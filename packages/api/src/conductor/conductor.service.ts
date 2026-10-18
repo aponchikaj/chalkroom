@@ -15,6 +15,7 @@ import { UsageMeter } from '../agents/metered.model';
 import { RetrieveService } from '../rag/retrieve.service';
 import { IngestWorker } from '../rag/ingest.worker';
 import { RoomConductor } from './room-conductor';
+import { releasable } from './release';
 import { config } from '../config';
 
 @Injectable()
@@ -91,8 +92,12 @@ export class ConductorService implements OnApplicationBootstrap, OnModuleDestroy
         else { this.owned.delete(id); this.rooms.delete(id); }
       }
       if (held.size) {
-        const atGate = await this.supa.db.from('rooms').select('id').in('id', [...held]).eq('phase', 'check');
-        for (const row of atGate.data ?? []) void this.rooms.get(row.id as string)?.tick();
+        const rows = await this.supa.db.from('rooms').select('id, phase').in('id', [...held]);
+        if (rows.error) throw new Error(rows.error.message);
+        const phases = new Map((rows.data ?? []).map((x) => [x.id as string, x.phase as string]));
+        // rooms in the lobby, ended or deleted: let idle conductors and their leases go
+        for (const id of releasable([...held], phases, (x) => this.rooms.get(x)?.idle ?? true)) await this.release(id);
+        for (const [id, phase] of phases) if (phase === 'check') void this.rooms.get(id)?.tick();
       }
     }
     if (config.resumeRooms) await this.resume();
@@ -116,6 +121,8 @@ export class ConductorService implements OnApplicationBootstrap, OnModuleDestroy
    *  once instead of after the 30 s timeout (the row stays: it records the group). */
   async onModuleDestroy() {
     if (this.heartbeat) clearInterval(this.heartbeat);
+    // stop what is running here; the next instance resumes the rooms from the database
+    for (const c of this.rooms.values()) c.shutdown();
     const ids = [...this.owned.keys()];
     if (ids.length) await this.supa.db.from('room_leases').update({ seen_at: new Date(0).toISOString() }).in('room_id', ids).eq('conductor_id', config.instanceId);
   }

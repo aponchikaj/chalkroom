@@ -12,7 +12,8 @@ const PDF = makePdf(['Accounts hold data and lamports.', 'A PDA has no private k
 
 async function upload(u: TestUser, roomId: string, bytes: Uint8Array, contentType: string, fileName: string) {
   const up = await api<SourceUploadRes>(u, 'POST', `/rooms/${roomId}/sources/upload-url`, { fileName, contentType, size: bytes.length });
-  expect(up.status).toBe(201);
+  // a signed URL creates nothing yet: 200
+  expect(up.status).toBe(200);
   const put = await u.sb.storage.from('resources').uploadToSignedUrl(up.body.path, up.body.token, bytes, { contentType });
   expect(put.error).toBeNull();
   return up.body.path;
@@ -49,6 +50,9 @@ describe('file sources', () => {
     const { room } = await createRoom(ana);
     const first = await api<SourceRow>(ana, 'POST', `/rooms/${room.id}/sources`, { path: await upload(ana, room.id, PDF, 'application/pdf', 'a.pdf'), title: 'A' });
     const again = await api<SourceRow>(ana, 'POST', `/rooms/${room.id}/sources`, { path: await upload(ana, room.id, PDF, 'application/pdf', 'b.pdf'), title: 'B' });
+    expect(first.status).toBe(201);
+    // nothing new was created: 200 with the existing row
+    expect(again.status).toBe(200);
     expect(again.body.id).toBe(first.body.id);
   });
 

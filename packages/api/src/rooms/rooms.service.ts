@@ -47,7 +47,10 @@ export class RoomsService {
 
   async requireMember(roomId: string, userId: string): Promise<MemberRow> {
     const m = await this.member(roomId, userId);
-    if (!m) throw new ForbiddenException('not a member of this room');
+    if (!m) {
+      await this.get(roomId); // 404 when the room does not exist at all
+      throw new ForbiddenException('not a member of this room');
+    }
     if (m.banned) throw new ForbiddenException('you were removed from this room');
     return m;
   }
@@ -56,6 +59,11 @@ export class RoomsService {
     const room = await this.get(roomId);
     if (room.host_id !== userId) throw new ForbiddenException('only the host can do this');
     return room;
+  }
+
+  /** Live actions stop once the class ended (the recap, notes and materials stay open). */
+  refuseEnded(room: Pick<RoomRow, 'phase'>) {
+    if (room.phase === 'ended') throw new ConflictException('the class has ended');
   }
 
   /** Every member, including those who left. */
@@ -154,11 +162,14 @@ export class RoomsService {
     return r.data as RoomRow;
   }
 
+  /** `created`: a new member (201); false for one coming back (200). */
   async join(userId: string, body: z.infer<typeof Api.joinRoom>) {
     const room = await this.byCode(body.inviteCode);
     const { displayName, color } = await this.identity(userId, body);
     const existing = await this.member(room.id, userId);
     if (existing?.banned) throw new ForbiddenException('you were removed from this room');
+    // members come back to the recap of an ended class; nobody new joins it
+    if (!existing) this.refuseEnded(room);
     // the seat limit itself is the enforce_seats trigger (atomic, also on rejoin)
     const r = await this.db.from('room_members').upsert({
       room_id: room.id, user_id: userId, role: existing?.role ?? 'learner',
@@ -166,7 +177,7 @@ export class RoomsService {
     }).select('*').single();
     if (roomFull(r.error)) throw new ConflictException('the room is full');
     const member = must(r, 'join') as MemberRow;
-    return { room, member };
+    return { room, member, created: !existing };
   }
 
   /** B6: mute (cannot ask), unmute, kick (banned: cannot rejoin or read the room). */
@@ -177,8 +188,14 @@ export class RoomsService {
     if (!r.data?.length) throw new NotFoundException('not a member of this room');
   }
 
+  /** Leaving twice is fine; someone who never joined gets 403 (404 for an unknown room). */
   async leave(roomId: string, userId: string) {
-    await this.db.from('room_members').update({ left_at: new Date().toISOString() }).eq('room_id', roomId).eq('user_id', userId);
+    const r = await this.db.from('room_members').update({ left_at: new Date().toISOString() }).eq('room_id', roomId).eq('user_id', userId).select('user_id');
+    if (r.error) throw new Error(`leave: ${r.error.message}`);
+    if (!r.data?.length) {
+      await this.get(roomId);
+      throw new ForbiddenException('not a member of this room');
+    }
   }
 
   async ready(roomId: string, userId: string, segment: number) {
@@ -202,8 +219,12 @@ export class RoomsService {
 
   async react(roomId: string, userId: string, shapeId: string, kind: 'confused' | 'got_it') {
     await this.requireMember(roomId, userId);
+    this.refuseEnded(await this.get(roomId));
     const cur = await this.db.from('reactions').select('kind').eq('room_id', roomId).eq('user_id', userId).eq('shape_id', shapeId).maybeSingle();
-    if (cur.data?.kind === kind) await this.db.from('reactions').delete().eq('room_id', roomId).eq('user_id', userId).eq('shape_id', shapeId);
-    else await this.db.from('reactions').upsert({ room_id: roomId, user_id: userId, shape_id: shapeId, kind });
+    if (cur.error) throw new Error(`reaction: ${cur.error.message}`);
+    const w = cur.data?.kind === kind
+      ? await this.db.from('reactions').delete().eq('room_id', roomId).eq('user_id', userId).eq('shape_id', shapeId)
+      : await this.db.from('reactions').upsert({ room_id: roomId, user_id: userId, shape_id: shapeId, kind });
+    if (w.error) throw new Error(`reaction: ${w.error.message}`);
   }
 }

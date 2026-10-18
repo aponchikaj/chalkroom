@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { Api, type CourseCard, type CourseRow, type FaqRow, type LobbyRoom } from '@chalk/schema';
 import { AuthGuard, CurrentUser, type AuthUser } from '../core/auth.guard';
 import { ZodPipe } from '../core/zod.pipe';
+import { RateLimit } from '../core/rate-limit';
 import { CoursesService } from './courses.service';
 
 @Controller()
@@ -27,6 +28,8 @@ export class CoursesController {
   }
 
   @Post('courses')
+  // drafting a syllabus calls the model: the same budget as creating rooms
+  @RateLimit('create-course', 20, 3600000)
   create(@CurrentUser() u: AuthUser, @Body(new ZodPipe(Api.createCourse)) b: z.infer<typeof Api.createCourse>): Promise<CourseRow> {
     return this.svc.create(u.id, b);
   }

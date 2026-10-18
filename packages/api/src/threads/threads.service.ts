@@ -40,9 +40,18 @@ export class ThreadsService {
     return t;
   }
 
-  async open(roomId: string, userId: string, body: z.infer<typeof Api.openThread>): Promise<ThreadRow> {
+  /** The owner, or a joined classmate, who was not removed from the room. */
+  private async requireWriter(t: ThreadRow, userId: string) {
+    const m = await this.rooms.member(t.room_id, userId);
+    if (m?.banned) throw new ForbiddenException('you were removed from this room');
+    if (!m) throw new ForbiddenException('not a member of this room');
+  }
+
+  /** `created`: a new thread; false when an offer was accepted (the row already existed). */
+  async open(roomId: string, userId: string, body: z.infer<typeof Api.openThread>): Promise<{ thread: ThreadRow; created: boolean }> {
     await this.rooms.requireMember(roomId, userId);
     const room = await this.rooms.get(roomId);
+    this.rooms.refuseEnded(room);
     const leftMainSeq = await this.store.mainSeq(room);
     let thread: ThreadRow;
     if (body.threadId) {
@@ -63,7 +72,7 @@ export class ThreadsService {
     }
     await this.events.append(thread.stream_id, 'chat', { role: 'tutor', markdown: greeting(thread.topic) }, 'thread');
     void this.conductor.for(roomId).membersChanged();
-    return thread;
+    return { thread, created: !body.threadId };
   }
 
   /** Lane Q: a classmate who was peeking joins the thread and may post in it from now on. */
@@ -81,15 +90,15 @@ export class ThreadsService {
   async message(threadId: string, userId: string, text: string): Promise<void> {
     const t = await this.store.get(threadId);
     if (!canPost(t, userId)) throw new ForbiddenException('join this thread to write in it');
-    if (t.owner_id !== userId) {
-      const m = await this.rooms.member(t.room_id, userId);
-      if (!m || m.banned) throw new ForbiddenException('not a member of this room');
-    }
+    // the owner too: a kicked owner keeps the row, not the right to use the tutor
+    await this.requireWriter(t, userId);
     if (t.status !== 'open') throw new ConflictException('this thread is not open');
     const asked = await this.events.append(t.stream_id, 'chat', { role: 'learner', markdown: text, authorId: userId }, userId);
     const prev = this.lanes.get(threadId) ?? Promise.resolve();
     const next = prev.then(() => this.reply(t, text, asked.seq, userId)).catch((e) => this.log.error(`thread ${threadId.slice(0, 8)}: ${(e as Error).stack ?? e}`));
     this.lanes.set(threadId, next);
+    // the last reply of the lane: forget the lane, so the map stays small
+    void next.then(() => { if (this.lanes.get(threadId) === next) this.lanes.delete(threadId); });
   }
 
   private async reply(t: ThreadRow, text: string, askedSeq: number, authorId: string) {
@@ -134,6 +143,7 @@ export class ThreadsService {
   /** Share to class: the thread's best answer becomes an answered cluster in the rail. */
   async share(threadId: string, userId: string, markdown?: string): Promise<ClusterRow> {
     const t = await this.owned(threadId, userId);
+    await this.requireWriter(t, userId);
     let answer = markdown?.trim();
     if (!answer) {
       const chats = (await this.events.after(t.stream_id)).filter((e) => e.kind === 'chat');

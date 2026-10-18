@@ -4,7 +4,7 @@
 //     except those marked @AllowWithoutMfa() answers 401 { code: "mfa_required" }.
 // Identity is cached per token for 60 s; second-factor facts are read on every request
 // (one RPC), so a newly verified factor takes effect at once.
-import { ForbiddenException, Injectable, SetMetadata, UnauthorizedException, createParamDecorator, type CanActivate, type ExecutionContext } from '@nestjs/common';
+import { ForbiddenException, Injectable, ServiceUnavailableException, SetMetadata, UnauthorizedException, createParamDecorator, type CanActivate, type ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { SupabaseService } from './supabase.service';
 import { config } from '../config';
@@ -41,6 +41,11 @@ export function forgetFacts(userId: string) {
   for (const key of facts.keys()) if (key.startsWith(`${userId}:`)) facts.delete(key);
 }
 
+/** Supabase Auth could not answer (network, 5xx): not the token's fault, so not a 401. */
+export function authUnavailable(e: { status?: number; name?: string }): boolean {
+  return e.name === 'AuthRetryableFetchError' || (e.status ?? 0) >= 500;
+}
+
 /** Claims of a token Supabase already verified (getUser). */
 function claims(token: string): { aal?: string; session_id?: string; exp?: number } {
   try { return JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString()); } catch { return {}; }
@@ -58,6 +63,8 @@ export class AuthGuard implements CanActivate {
     let identity = cache.get(token)?.until! > Date.now() ? cache.get(token)!.user : null;
     if (!identity) {
       const { data, error } = await this.supa.db.auth.getUser(token);
+      // 503 keeps the web signed in (it signs out on 401); the client retries
+      if (error && authUnavailable(error)) throw new ServiceUnavailableException('sign-in check is unavailable; try again in a moment');
       if (error || !data.user) throw new UnauthorizedException('invalid token');
       identity = { id: data.user.id, anonymous: !!data.user.is_anonymous, email: data.user.email ?? null };
       // never past the token's own expiry

@@ -1,5 +1,6 @@
 // lane L: replays of finished classes, booking the next session, kudos: HTTP routes.
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Res, UseGuards } from '@nestjs/common';
+import type { Response } from 'express';
 import { z } from 'zod';
 import { Api, type KudosRes, type ReplayCard, type ReplayRes, type RoomRow } from '@chalk/schema';
 import { AuthGuard, CurrentUser, type AuthUser } from '../core/auth.guard';
@@ -25,9 +26,12 @@ export class LibraryController {
 
   /** Host: book the next session of this group. */
   @Post('rooms/:id/next')
-  next(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string,
-    @Body(new ZodPipe(Api.nextSession)) body: z.infer<typeof Api.nextSession>): Promise<RoomRow> {
-    return this.svc.next(id, u.id, body);
+  async next(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string,
+    @Body(new ZodPipe(Api.nextSession)) body: z.infer<typeof Api.nextSession>, @Res({ passthrough: true }) res: Response): Promise<RoomRow> {
+    const { room, created } = await this.svc.next(id, u.id, body);
+    // 201 for a new booking, 200 when an existing one moved
+    if (!created) res.status(200);
+    return room;
   }
 
   @Get('me/kudos')

@@ -19,7 +19,10 @@ export class ThreadStore {
   }
 
   async update(threadId: string, patch: Partial<ThreadRow>): Promise<ThreadRow> {
-    return must(await this.db.from('threads').update(patch).eq('id', threadId).select('*').single(), 'update thread') as ThreadRow;
+    const r = await this.db.from('threads').update(patch).eq('id', threadId).select('*').single();
+    // threads_one_active: accepting an offer raced another open thread of the same learner
+    if (r.error?.code === '23505') throw new ConflictException('you already have an open thread');
+    return must(r, 'update thread') as ThreadRow;
   }
 
   async hasActive(roomId: string, ownerId: string, statuses: ThreadRow['status'][] = ['offered', 'open']): Promise<boolean> {
@@ -31,9 +34,12 @@ export class ThreadStore {
   async offer(room: RoomRow, ownerId: string, topic: string): Promise<ThreadRow | null> {
     if (await this.hasActive(room.id, ownerId)) return null;
     const streamId = await this.events.createStream(room.id, 'thread');
-    return must(await this.db.from('threads').insert({
+    const r = await this.db.from('threads').insert({
       room_id: room.id, owner_id: ownerId, stream_id: streamId, topic: topic.slice(0, 120), status: 'offered',
-    }).select('*').single(), 'offer thread') as ThreadRow;
+    }).select('*').single();
+    // threads_one_offer: a parallel triage run offered one first
+    if (r.error?.code === '23505') return null;
+    return must(r, 'offer thread') as ThreadRow;
   }
 
   async createOpen(room: RoomRow, ownerId: string, topic: string, leftMainSeq: number): Promise<ThreadRow> {

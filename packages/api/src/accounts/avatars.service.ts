@@ -1,7 +1,7 @@
 // Profile pictures. Files never pass through the API: the client uploads to a signed URL and the
 // `avatars` bucket enforces type (png, jpeg, webp) and size (2 MiB). Commit then checks the file
 // is in the caller's own folder, points the profile at it, and removes the previous picture.
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import type { AvatarUploadRes, ProfileRow } from '@chalk/schema';
 import { SupabaseService } from '../core/supabase.service';
 
@@ -10,6 +10,7 @@ export type AvatarContentType = keyof typeof EXT;
 
 @Injectable()
 export class AvatarsService {
+  private log = new Logger('Avatars');
   constructor(private supa: SupabaseService) {}
 
   private get bucket() { return this.supa.db.storage.from('avatars'); }
@@ -41,8 +42,14 @@ export class AvatarsService {
 
   async clear(userId: string): Promise<void> {
     const before = await this.supa.db.from('profiles').select('avatar_path').eq('id', userId).single();
-    await this.supa.db.from('profiles').update({ avatar_path: null }).eq('id', userId);
+    if (before.error) throw new Error(`avatar: ${before.error.message}`);
+    const r = await this.supa.db.from('profiles').update({ avatar_path: null }).eq('id', userId);
+    if (r.error) throw new Error(`avatar: ${r.error.message}`);
     const old = before.data?.avatar_path as string | null;
-    if (old) await this.bucket.remove([old]);
+    // the profile no longer points at it; a file left behind is only logged
+    if (old) {
+      const gone = await this.bucket.remove([old]);
+      if (gone.error) this.log.warn(`avatar ${old}: not removed (${gone.error.message})`);
+    }
   }
 }

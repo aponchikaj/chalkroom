@@ -64,8 +64,19 @@ describe('offers', () => {
       await new Promise((r) => setTimeout(r, 4_600)); // one triage batch each
     }
     const offer = (await waitRow(nika, (r) => r.table === 'threads' && r.row.status === 'offered', 'an offer')).row as ThreadRow;
-    const r = await api<ThreadRow>(nika, 'POST', `/rooms/${room.id}/threads`, { threadId: offer.id });
-    expect(r.status).toBe(201);
+    // accepting and opening a new thread at once: one wins, the other is a 409 (never a 500)
+    const [r, raced] = await Promise.all([
+      api<ThreadRow>(nika, 'POST', `/rooms/${room.id}/threads`, { threadId: offer.id }),
+      api<ThreadRow>(nika, 'POST', `/rooms/${room.id}/threads`, { topic: 'at the same time' }),
+    ]);
+    expect([r.status, raced.status].sort()).toEqual(r.status === 200 ? [200, 409] : [201, 409]);
+    if (r.status !== 200) {
+      // the new thread won the race; close it and accept the offer
+      await api(nika, 'POST', `/threads/${raced.body.id}/close`);
+      Object.assign(r, await api<ThreadRow>(nika, 'POST', `/rooms/${room.id}/threads`, { threadId: offer.id }));
+    }
+    // accepting an offer updates the thread: 200, not 201
+    expect(r.status).toBe(200);
     expect(r.body).toMatchObject({ id: offer.id, status: 'open' });
     expect(r.body.left_main_seq).not.toBeNull();
     expect((await api(nika, 'POST', `/rooms/${room.id}/threads`, { threadId: offer.id })).status).toBe(409); // not on offer anymore

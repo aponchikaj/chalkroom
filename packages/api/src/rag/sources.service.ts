@@ -1,11 +1,11 @@
 // Sources: what a room's tutors may search. Files upload straight to the private `resources`
 // bucket through a signed URL; commit checks the path, removes duplicates by checksum and queues
 // the source for the ingest worker. Links are checked by the SSRF guard before they are queued.
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { createHash } from 'node:crypto';
 import type { z } from 'zod';
 import type { Api, RoomRow, SourceRow, SourceUploadRes } from '@chalk/schema';
-import { SupabaseService } from '../core/supabase.service';
+import { SupabaseService, must, requestOrServerError } from '../core/supabase.service';
 import { RoomsService } from '../rooms/rooms.service';
 import { guardUrl } from './fetch-page';
 import { IngestWorker } from './ingest.worker';
@@ -14,6 +14,7 @@ type Scope = 'room' | 'course';
 
 @Injectable()
 export class SourcesService {
+  private log = new Logger('Sources');
   constructor(private supa: SupabaseService, private rooms: RoomsService, private worker: IngestWorker) {}
 
   private get db() { return this.supa.db; }
@@ -46,7 +47,8 @@ export class SourcesService {
     return { path, token: r.data.token, signedUrl: r.data.signedUrl };
   }
 
-  async addFile(roomId: string, userId: string, b: z.infer<typeof Api.addSourceFile>): Promise<SourceRow> {
+  /** `created`: false when the same file was already a source here (the existing row comes back). */
+  async addFile(roomId: string, userId: string, b: z.infer<typeof Api.addSourceFile>): Promise<{ source: SourceRow; created: boolean }> {
     await this.rooms.requireMember(roomId, userId);
     const room = await this.rooms.get(roomId);
     const [folder, file, ...rest] = b.path.split('/');
@@ -57,20 +59,22 @@ export class SourcesService {
     const scope = await this.scopeOf(room, userId, b.scope);
     const dup = await this.db.from('sources').select('*').eq('checksum', checksum)
       .match(scope.room_id ? { room_id: scope.room_id } : { course_id: scope.course_id! }).maybeSingle();
+    if (dup.error) throw new Error(`source: ${dup.error.message}`);
     if (dup.data) {
-      await this.bucket.remove([b.path]);
+      const gone = await this.bucket.remove([b.path]);
+      if (gone.error) this.log.warn(`upload ${b.path}: duplicate not removed (${gone.error.message})`);
       // the same file failed before: try it again instead of returning the failure
-      if ((dup.data as SourceRow).status !== 'failed') return dup.data as SourceRow;
-      const again = await this.db.from('sources').update({ status: 'pending', error: null, attempts: 0 }).eq('id', dup.data.id).select('*').single();
+      if ((dup.data as SourceRow).status !== 'failed') return { source: dup.data as SourceRow, created: false };
+      const again = must(await this.db.from('sources').update({ status: 'pending', error: null, attempts: 0 }).eq('id', dup.data.id).select('*').single(), 'retry source') as SourceRow;
       this.worker.wake();
-      return again.data as SourceRow;
+      return { source: again, created: false };
     }
     const r = await this.db.from('sources').insert({
       ...scope, kind: 'file', title: b.title, uri: b.path, mime: dl.data.type || null, checksum, created_by: userId,
     }).select('*').single();
-    if (r.error) throw new BadRequestException(r.error.message);
+    if (r.error) throw requestOrServerError(r.error, 'source');
     this.worker.wake();
-    return r.data as SourceRow;
+    return { source: r.data as SourceRow, created: true };
   }
 
   async addUrl(roomId: string, userId: string, b: z.infer<typeof Api.addSourceUrl>): Promise<SourceRow> {
@@ -81,20 +85,26 @@ export class SourcesService {
     const scope = await this.scopeOf(room, userId, b.scope);
     // no title given: the worker replaces the URL with the page title
     const r = await this.db.from('sources').insert({ ...scope, kind: 'url', title: (b.title ?? url.toString()).slice(0, 200), uri: url.toString(), mime: 'text/html', created_by: userId }).select('*').single();
-    if (r.error) throw new BadRequestException(r.error.message);
+    if (r.error) throw requestOrServerError(r.error, 'source');
     this.worker.wake();
     return r.data as SourceRow;
   }
 
   async remove(sourceId: string, userId: string): Promise<void> {
     const r = await this.db.from('sources').select('*').eq('id', sourceId).maybeSingle();
+    if (r.error) throw new Error(`source: ${r.error.message}`);
     if (!r.data) throw new NotFoundException('source not found');
     const s = r.data as SourceRow;
     let allowed = s.created_by === userId;
     if (!allowed && s.room_id) allowed = (await this.rooms.get(s.room_id)).host_id === userId;
     if (!allowed && s.course_id) allowed = (await this.db.from('courses').select('owner_id').eq('id', s.course_id).single()).data?.owner_id === userId;
     if (!allowed) throw new ForbiddenException('only who added it, the host or the course owner can delete it');
-    if (s.kind === 'file' && s.uri) await this.bucket.remove([s.uri]);
-    await this.db.from('sources').delete().eq('id', sourceId);
+    // the row first (its chunks go with it); a file left in the bucket is only logged
+    const del = await this.db.from('sources').delete().eq('id', sourceId);
+    if (del.error) throw new Error(`delete source: ${del.error.message}`);
+    if (s.kind === 'file' && s.uri) {
+      const gone = await this.bucket.remove([s.uri]);
+      if (gone.error) this.log.warn(`source ${sourceId.slice(0, 8)}: file not removed (${gone.error.message})`);
+    }
   }
 }

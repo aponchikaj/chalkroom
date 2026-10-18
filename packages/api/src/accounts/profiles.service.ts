@@ -1,9 +1,9 @@
 // Profiles and settings: created by the on_auth_user_created trigger at signup (profile) or on
 // first save (settings); read and edited here. Account deletion lives here too.
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import type { z } from 'zod';
 import type { Api, MeRes, ProfileRow, PublicProfile, UserSettings } from '@chalk/schema';
-import { SupabaseService } from '../core/supabase.service';
+import { SupabaseService, requestOrServerError } from '../core/supabase.service';
 import { forgetUser, type AuthUser } from '../core/auth.guard';
 import { config } from '../config';
 import { usernameProblem } from './username';
@@ -14,6 +14,7 @@ export const avatarUrl = (path: string | null) => (path ? `${config.supabaseUrl}
 
 @Injectable()
 export class ProfilesService {
+  private log = new Logger('Profiles');
   constructor(private supa: SupabaseService) {}
 
   private get db() { return this.supa.db; }
@@ -44,7 +45,7 @@ export class ProfilesService {
     const patch = Object.fromEntries(Object.entries({ username: b.username, display_name: b.displayName, color: b.color, bio: b.bio }).filter(([, v]) => v !== undefined));
     const r = await this.db.from('profiles').update(patch).eq('id', userId).select('*').single();
     if (r.error?.code === '23505') throw new ConflictException('that username is taken');
-    if (r.error) throw new BadRequestException(r.error.message);
+    if (r.error) throw requestOrServerError(r.error, 'profile');
     return r.data as ProfileRow;
   }
 
@@ -56,7 +57,7 @@ export class ProfilesService {
 
   async updateSettings(userId: string, patch: Partial<UserSettings>): Promise<UserSettings> {
     const r = await this.db.from('user_settings').upsert({ user_id: userId, ...settingsPatchToRow(patch) }).select('*').single();
-    if (r.error) throw new BadRequestException(r.error.message);
+    if (r.error) throw requestOrServerError(r.error, 'settings');
     return settingsFromRow(r.data as SettingsRow);
   }
 
@@ -74,8 +75,10 @@ export class ProfilesService {
     const live = await this.db.from('rooms').select('id').eq('host_id', userId).neq('phase', 'ended').limit(1);
     if (live.error) throw new Error(live.error.message); // never delete on an unknown answer
     if (live.data?.length) throw new ConflictException('end the classes you host before deleting your account');
+    // the files go first; a failure is logged, never a reason to keep the account
     const files = await this.db.storage.from('avatars').list(userId);
-    if (files.data?.length) await this.db.storage.from('avatars').remove(files.data.map((f) => `${userId}/${f.name}`));
+    const gone = files.data?.length ? await this.db.storage.from('avatars').remove(files.data.map((f) => `${userId}/${f.name}`)) : null;
+    if (files.error || gone?.error) this.log.warn(`account ${userId.slice(0, 8)}: avatar files left behind (${(files.error ?? gone?.error)!.message})`);
     const r = await this.db.auth.admin.deleteUser(userId);
     if (r.error) throw new Error(r.error.message);
     forgetUser(userId);

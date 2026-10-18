@@ -2,7 +2,7 @@
 // they are how it gets passed. Authenticator apps (TOTP) use Supabase MFA on the client.
 import { Body, Controller, Get, HttpCode, Post, UseGuards } from '@nestjs/common';
 import { z } from 'zod';
-import { Api, type TwoFactorState } from '@chalk/schema';
+import { Api, type OkRes, type TwoFactorState } from '@chalk/schema';
 import { AllowWithoutMfa, AuthGuard, CurrentUser, type AuthUser } from '../core/auth.guard';
 import { ZodPipe } from '../core/zod.pipe';
 import { TwoFactorService } from './two-factor.service';
@@ -21,7 +21,7 @@ export class TwoFactorController {
 
   @Post('email/send')
   @HttpCode(202)
-  async send(@CurrentUser() u: AuthUser, @Body(new ZodPipe(Api.emailCodeSend)) b: z.infer<typeof Api.emailCodeSend>) {
+  async send(@CurrentUser() u: AuthUser, @Body(new ZodPipe(Api.emailCodeSend)) b: z.infer<typeof Api.emailCodeSend>): Promise<OkRes> {
     await this.twoFactor.send(u, b.purpose);
     return { ok: true };
   }

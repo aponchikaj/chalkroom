@@ -1,7 +1,7 @@
 // Rooms, membership, auth guard and validation: every rooms route, happy and error paths.
 import { afterAll, describe, expect, it } from 'vitest';
 import type { CreateRoomRes, RoomPreview } from '@chalk/schema';
-import { api, closeAll, createRoom, joinRoom, newUser, type TestUser } from './helpers';
+import { API, api, closeAll, createRoom, joinRoom, newUser, type TestUser } from './helpers';
 
 const users: TestUser[] = [];
 const user = async (name: string) => { const u = await newUser(name); users.push(u); return u; };
@@ -83,7 +83,8 @@ describe('POST /rooms/join', () => {
     const { room } = await createRoom(host);
     const first = await joinRoom(gio, room.invite_code);
     expect(first.member).toMatchObject({ user_id: gio.id, role: 'learner', display_name: 'Gio', left_at: null });
-    await joinRoom(gio, room.invite_code);
+    // joining again creates nothing: 200, not 201
+    expect((await api(gio, 'POST', '/rooms/join', { inviteCode: room.invite_code })).status).toBe(200);
     const preview = await api<RoomPreview>(null, 'GET', `/rooms/code/${room.invite_code}`);
     expect(preview.body.taken).toBe(2);
   });
@@ -144,6 +145,29 @@ describe('POST /rooms/:id/leave', () => {
     const gio = await user('Gio');
     expect((await api(gio, 'POST', '/rooms/not-a-uuid/leave')).status).toBe(400);
   });
+
+  it('returns 403 for someone who never joined, 404 for an unknown room, 204 when leaving twice', async () => {
+    const host = await user('Host');
+    const gio = await user('Gio');
+    const eve = await user('Eve');
+    const { room } = await createRoom(host);
+    await joinRoom(gio, room.invite_code);
+    expect((await api(eve, 'POST', `/rooms/${room.id}/leave`)).status).toBe(403);
+    expect((await api(eve, 'POST', `/rooms/${randomUuid()}/leave`)).status).toBe(404);
+    expect((await api(gio, 'POST', `/rooms/${room.id}/leave`)).status).toBe(204);
+    expect((await api(gio, 'POST', `/rooms/${room.id}/leave`)).status).toBe(204);
+  });
+});
+
+describe('rate limits', () => {
+  it('does not count refused bodies, and a 429 says when to retry (Retry-After)', async () => {
+    const host = await user('Host');
+    for (let i = 0; i < 25; i++) expect((await api(host, 'POST', '/rooms', { title: '' })).status).toBe(400);
+    for (let i = 0; i < 20; i++) expect((await api(host, 'POST', '/rooms', { title: `Room ${i}` })).status).toBe(201);
+    const r = await fetch(`${API}/rooms`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${host.token}` }, body: JSON.stringify({ title: 'one too many' }) });
+    expect(r.status).toBe(429);
+    expect(Number(r.headers.get('retry-after'))).toBeGreaterThan(0);
+  });
 });
 
 describe('host-only routes', () => {
@@ -172,6 +196,20 @@ describe('membership and RLS', () => {
     expect((await api(eve, 'POST', `/rooms/${room.id}/ready`, { segment: 0 })).status).toBe(403);
     expect((await api(eve, 'POST', `/rooms/${room.id}/reactions`, { shapeId: 'pda', kind: 'confused' })).status).toBe(403);
     expect((await api(eve, 'POST', `/rooms/${room.id}/checks/${randomUuid()}/answer`, { answer: 1 })).status).toBe(403);
+  });
+
+  it('returns 404, not 403, for learner actions on a room that does not exist', async () => {
+    const eve = await user('Eve');
+    const id = randomUuid();
+    for (const [path, body] of [
+      [`/rooms/${id}/ready`, { segment: 0 }],
+      [`/rooms/${id}/reactions`, { shapeId: 'pda', kind: 'confused' }],
+      [`/rooms/${id}/questions`, { text: 'hi' }],
+      [`/rooms/${id}/threads`, { topic: 'x' }],
+      [`/rooms/${id}/checks/${randomUuid()}/answer`, { answer: 1 }],
+      [`/rooms/${id}/sources/url`, { url: 'https://example.com/' }],
+    ] as const) expect((await api(eve, 'POST', path, body)).status, path).toBe(404);
+    expect((await api(eve, 'GET', `/rooms/${id}/sources`)).status).toBe(404);
   });
 
   it('lets members read the room and hides it from strangers', async () => {

@@ -47,6 +47,18 @@ describe('POST /rooms/:id/moderate', () => {
     expect((await api(gio, 'PUT', `/rooms/${room.id}/notes/${crypto.randomUUID()}`, { markdown: 'x', version: 0 })).status).toBe(403);
   });
 
+  it('kick also stops the owner of an open thread from posting in it or sharing it', async () => {
+    const { ana, gio, room } = await setup();
+    const t = await api(gio, 'POST', `/rooms/${room.id}/threads`, { topic: 'bump seeds' });
+    expect(t.status).toBe(201);
+    expect((await api(gio, 'POST', `/threads/${t.body.id}/messages`, { text: 'Why 255?' })).status).toBe(202);
+    await api(ana, 'POST', `/rooms/${room.id}/moderate`, { userId: gio.id, action: 'kick' });
+    const post = await api(gio, 'POST', `/threads/${t.body.id}/messages`, { text: 'still here?' });
+    expect(post.status).toBe(403);
+    expect(post.body.message).toMatch(/removed/);
+    expect((await api(gio, 'POST', `/threads/${t.body.id}/share`, {})).status).toBe(403);
+  });
+
   it('is host only, never on yourself, and only on members', async () => {
     const { ana, gio, room } = await setup();
     expect((await api(gio, 'POST', `/rooms/${room.id}/moderate`, { userId: ana.id, action: 'mute' })).status).toBe(403);

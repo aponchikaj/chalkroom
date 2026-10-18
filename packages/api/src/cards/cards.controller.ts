@@ -1,5 +1,6 @@
 // Class decks: each learner reviews a card on their own FSRS schedule (one card_reviews row each).
-import { Body, ConflictException, Controller, ForbiddenException, NotFoundException, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
+import { Body, ConflictException, Controller, ForbiddenException, NotFoundException, Param, ParseUUIDPipe, Post, Res, UseGuards } from '@nestjs/common';
+import type { Response } from 'express';
 import { z } from 'zod';
 import { Api, FsrsState, type CardReviewRow } from '@chalk/schema';
 import { AuthGuard, CurrentUser, type AuthUser } from '../core/auth.guard';
@@ -14,7 +15,7 @@ export class CardsController {
   constructor(private supa: SupabaseService, private rooms: RoomsService) {}
 
   @Post('cards/:id/review')
-  async review(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(Api.reviewCard)) body: z.infer<typeof Api.reviewCard>): Promise<CardReviewRow> {
+  async review(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(Api.reviewCard)) body: z.infer<typeof Api.reviewCard>, @Res({ passthrough: true }) res: Response): Promise<CardReviewRow> {
     const db = this.supa.db;
     const found = await db.from('cards').select('room_id, status').eq('id', id).maybeSingle();
     if (found.error) throw new Error(found.error.message);
@@ -27,6 +28,8 @@ export class CardsController {
     if (prev.error) throw new Error(prev.error.message);
     const old = prev.data ? FsrsState.safeParse(prev.data.fsrs) : null;
     const fsrs = reviewStep(old?.success ? old.data : null, body.rating);
+    // the first review creates the learner's schedule (201); later ones update it (200)
+    if (prev.data) res.status(200);
     return must(await db.from('card_reviews')
       .upsert({ card_id: id, user_id: u.id, fsrs, updated_at: new Date().toISOString() }, { onConflict: 'card_id,user_id' })
       .select('*').single(), 'review card') as CardReviewRow;

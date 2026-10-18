@@ -1,8 +1,9 @@
 // packages/api/src/threads/threads.controller.ts
 // Threads: one personal side tutor per learner. Routes are fixed by @chalk/schema (Api.openThread etc.).
-import { Body, Controller, HttpCode, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, HttpCode, Param, ParseUUIDPipe, Post, Res, UseGuards } from '@nestjs/common';
+import type { Response } from 'express';
 import { z } from 'zod';
-import { Api, type ClusterRow, type ThreadRow } from '@chalk/schema';
+import { Api, type ClusterRow, type OkRes, type ThreadRow } from '@chalk/schema';
 import { AuthGuard, CurrentUser, type AuthUser } from '../core/auth.guard';
 import { ZodPipe } from '../core/zod.pipe';
 import { ThreadsService } from './threads.service';
@@ -15,14 +16,17 @@ export class ThreadsController {
 
   @Post('rooms/:id/threads')
   @RateLimit('open-thread', 10, 60000)
-  open(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(Api.openThread)) b: z.infer<typeof Api.openThread>): Promise<ThreadRow> {
-    return this.threads.open(id, u.id, b);
+  async open(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(Api.openThread)) b: z.infer<typeof Api.openThread>, @Res({ passthrough: true }) res: Response): Promise<ThreadRow> {
+    const { thread, created } = await this.threads.open(id, u.id, b);
+    // 201 for a new thread, 200 for an accepted offer (the row existed)
+    if (!created) res.status(200);
+    return thread;
   }
 
   @Post('threads/:id/messages')
   @RateLimit('thread-message', 20, 60000)
   @HttpCode(202)
-  async message(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(Api.threadMessage)) b: z.infer<typeof Api.threadMessage>) {
+  async message(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(Api.threadMessage)) b: z.infer<typeof Api.threadMessage>): Promise<OkRes> {
     await this.threads.message(id, u.id, b.text);
     return { ok: true };
   }

@@ -1,6 +1,6 @@
 // Questions: stored as `pending`, then triage groups and routes them.
 // Each new question schedules triage for the room (TriageService: 4 s batch window).
-import { Body, Controller, ConflictException, ForbiddenException, HttpCode, HttpException, Logger, NotFoundException, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, ConflictException, ForbiddenException, HttpCode, Logger, NotFoundException, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
 import { z } from 'zod';
 import { Api, LIVE, type QuestionRow } from '@chalk/schema';
 import { AuthGuard, CurrentUser, type AuthUser } from '../core/auth.guard';
@@ -14,15 +14,6 @@ import { planTriage, type ClusterWrite } from '../triage/triage-plan';
 import { oldClusterAfter, unmergeRefusal, unmergedRoute, type UnmergeQuestion } from './unmerge-plan';
 import { RateLimit } from '../core/rate-limit';
 
-const recent = new Map<string, number[]>();
-function rateLimit(userId: string) {
-  const now = Date.now();
-  const times = (recent.get(userId) ?? []).filter((t) => now - t < 60_000);
-  if (times.length >= LIVE.questionsPerMinute) throw new HttpException('Too many questions; wait a moment.', 429);
-  times.push(now);
-  recent.set(userId, times);
-}
-
 @Controller()
 @UseGuards(AuthGuard)
 export class QuestionsController {
@@ -31,13 +22,12 @@ export class QuestionsController {
   constructor(private supa: SupabaseService, private rooms: RoomsService, private triage: TriageService, private triageAgent: TriageAgent, private retrieve: RetrieveService) {}
 
   @Post('rooms/:id/questions')
-  @RateLimit('ask', 20, 60000)
+  @RateLimit('ask', LIVE.questionsPerMinute, 60000)
   async ask(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(Api.ask)) body: z.infer<typeof Api.ask>): Promise<QuestionRow> {
     const member = await this.rooms.requireMember(id, u.id);
     if (member.muted) throw new ForbiddenException('the host muted you in this room');
-    if (member.banned) throw new ForbiddenException('you were removed from this room');
-    rateLimit(u.id);
     const room = await this.rooms.get(id);
+    this.rooms.refuseEnded(room);
     const q = must(await this.supa.db.from('questions').insert({
       room_id: id, author_id: u.id, author_name: member.display_name, text: body.text, anchor: body.anchor ?? null, segment: room.segment,
     }).select('*').single(), 'ask') as QuestionRow;
@@ -104,10 +94,13 @@ export class QuestionsController {
     const moved = must(await db.from('questions').update({ cluster_id: cluster.id, status: r.status }).eq('id', q.id).select('*').single(), 'unmerge question') as QuestionRow;
 
     const old = await db.from('clusters').select('answered').eq('id', oldId).maybeSingle();
+    if (old.error) throw new Error(`unmerge old cluster: ${old.error.message}`);
     if (old.data) {
       const w = oldClusterAfter(siblings, !!old.data.answered);
-      if (w.op === 'delete') await db.from('clusters').delete().eq('id', oldId);
-      else if (w.op === 'update') await db.from('clusters').update({ asker_count: w.asker_count, ...(w.title ? { title: w.title } : {}) }).eq('id', oldId);
+      const done = w.op === 'delete' ? await db.from('clusters').delete().eq('id', oldId)
+        : w.op === 'update' ? await db.from('clusters').update({ asker_count: w.asker_count, ...(w.title ? { title: w.title } : {}) }).eq('id', oldId)
+        : null;
+      if (done?.error) throw new Error(`unmerge old cluster: ${done.error.message}`);
     }
     return moved;
   }

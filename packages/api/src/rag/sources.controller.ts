@@ -1,5 +1,6 @@
 // RAG sources: list, upload a file (signed URL, then commit), add a link, delete.
-import { Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Post, Res, UseGuards } from '@nestjs/common';
+import type { Response } from 'express';
 import { z } from 'zod';
 import { Api, type SourceRow, type SourceUploadRes } from '@chalk/schema';
 import { AuthGuard, CurrentUser, type AuthUser } from '../core/auth.guard';
@@ -18,14 +19,18 @@ export class SourcesController {
   }
 
   @Post('rooms/:id/sources/upload-url')
+  @HttpCode(200) // a signed URL; the source is created by the commit below
   @RateLimit('source-upload', 30, 3600000)
   uploadUrl(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(Api.sourceUploadUrl)) b: z.infer<typeof Api.sourceUploadUrl>): Promise<SourceUploadRes> {
     return this.sources.uploadUrl(id, u.id, b);
   }
 
   @Post('rooms/:id/sources')
-  addFile(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(Api.addSourceFile)) b: z.infer<typeof Api.addSourceFile>): Promise<SourceRow> {
-    return this.sources.addFile(id, u.id, b);
+  async addFile(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(Api.addSourceFile)) b: z.infer<typeof Api.addSourceFile>, @Res({ passthrough: true }) res: Response): Promise<SourceRow> {
+    const { source, created } = await this.sources.addFile(id, u.id, b);
+    // 201 for a new source, 200 when the same file was there already
+    if (!created) res.status(200);
+    return source;
   }
 
   @Post('rooms/:id/sources/url')

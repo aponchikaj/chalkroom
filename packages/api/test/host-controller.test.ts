@@ -56,6 +56,8 @@ function setup(room: Partial<Row> = {}) {
     rooms: [{ id: ROOM, host_id: 'ana', phase: 'teaching', segment: 0, main_stream_id: 'main', gate_held: false, ...room }],
     room_members: [{ room_id: ROOM, user_id: 'ana', display_name: 'Ana' }, { room_id: ROOM, user_id: 'nika', display_name: 'Nika' }],
     questions: [], clusters: [], check_answers: [],
+    // the room's check (the answers route only knows checks of this room)
+    checks: [{ id: CHECK, room_id: ROOM }],
   };
   const notices: Row[] = [];
   const hostCalls: string[] = [];

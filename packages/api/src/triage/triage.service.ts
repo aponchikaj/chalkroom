@@ -2,7 +2,7 @@
 // Triage runs on its own lane per room, never on the conductor queue: teach() holds that queue
 // for a whole segment, and UX rule 2 needs every question out of `pending` within ~5 s.
 // Batch window: run LIVE.triageDebounceMs after the first pending question of a batch.
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, type OnModuleDestroy } from '@nestjs/common';
 import { LIVE, type ClusterRoute, type RoomRow } from '@chalk/schema';
 import { SupabaseService, must } from '../core/supabase.service';
 import { RoomsService } from '../rooms/rooms.service';
@@ -16,8 +16,9 @@ import type { FaqRow } from '@chalk/schema';
 interface Lane { timer: ReturnType<typeof setTimeout> | null; running: Promise<void> }
 
 @Injectable()
-export class TriageService {
+export class TriageService implements OnModuleDestroy {
   private lanes = new Map<string, Lane>();
+  private closed = false;
   private log = new Logger('Triage');
 
   constructor(private supa: SupabaseService, private rooms: RoomsService, private agent: TriageAgent, private threads: ThreadStore, private retrieve: RetrieveService) {}
@@ -30,6 +31,7 @@ export class TriageService {
 
   /** A question arrived. Joins the open batch, or opens one. */
   schedule(roomId: string) {
+    if (this.closed) return;
     const lane = this.lane(roomId);
     if (lane.timer) return;
     lane.timer = setTimeout(() => { lane.timer = null; void this.runNow(roomId); }, LIVE.triageDebounceMs);
@@ -39,12 +41,21 @@ export class TriageService {
   runNow(roomId: string): Promise<void> {
     const lane = this.lane(roomId);
     if (lane.timer) { clearTimeout(lane.timer); lane.timer = null; }
-    lane.running = lane.running.then(() => this.run(roomId)).catch((e) => {
+    const run = lane.running.then(() => this.run(roomId)).catch((e) => {
       this.log.error(`room ${roomId.slice(0, 8)}: ${(e as Error).stack ?? e}`);
       // a database blip must not leave questions pending until someone asks again
       setTimeout(() => this.schedule(roomId), 5_000).unref();
     });
-    return lane.running;
+    lane.running = run;
+    // nothing waiting after this run: the lane goes (the next question makes a new one)
+    void run.then(() => { if (this.lanes.get(roomId) === lane && lane.running === run && !lane.timer) this.lanes.delete(roomId); });
+    return run;
+  }
+
+  /** Shutdown: drop waiting batches; the next instance triages what is still pending. */
+  onModuleDestroy() {
+    this.closed = true;
+    for (const lane of this.lanes.values()) if (lane.timer) { clearTimeout(lane.timer); lane.timer = null; }
   }
 
   private get db() { return this.supa.db; }

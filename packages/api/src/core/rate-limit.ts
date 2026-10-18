@@ -1,8 +1,8 @@
 // Rate limits per user (or per IP for routes without a login): a sliding window of hit times.
 // In memory, per instance: enough to stop scripted abuse (guessing invite codes, spending the
 // model budget, filling storage); not a quota system.
-import { HttpException, Injectable, SetMetadata, UseGuards, applyDecorators, type CanActivate, type ExecutionContext } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
+import { BadRequestException, Catch, HttpException, Injectable, SetMetadata, UseGuards, applyDecorators, type ArgumentsHost, type CanActivate, type ExecutionContext } from '@nestjs/common';
+import { BaseExceptionFilter, Reflector } from '@nestjs/core';
 
 export class RateLimiter {
   private hits = new Map<string, number[]>();
@@ -17,6 +17,12 @@ export class RateLimiter {
     recent.push(now);
     this.hits.set(key, recent);
     return 0;
+  }
+
+  /** Takes back the newest hit of `key` (the request was refused before it did anything). */
+  refund(key: string) {
+    const ts = this.hits.get(key);
+    if (ts?.length) ts.pop();
   }
 
   size() { return this.hits.size; }
@@ -48,7 +54,25 @@ export class RateLimitGuard implements CanActivate {
     if (!limiter) { limiter = new RateLimiter(rule.limit, rule.windowMs); this.limiters.set(rule.name, limiter); }
     const who = (req.user?.id as string | undefined) ?? `ip:${req.ip as string}`;
     const wait = limiter.hit(who);
-    if (wait) throw new HttpException({ statusCode: 429, message: `too many requests; try again in ${Math.ceil(wait / 1000)} s` }, 429);
+    if (wait) {
+      const seconds = Math.ceil(wait / 1000);
+      ctx.switchToHttp().getResponse().setHeader('Retry-After', String(seconds));
+      throw new HttpException({ statusCode: 429, message: `too many requests; try again in ${seconds} s` }, 429);
+    }
+    // a body the pipes refuse (400) did nothing, so it gives its hit back (RefundBadRequests)
+    const l = limiter;
+    req.rateLimitRefund = () => l.refund(who);
     return true;
+  }
+}
+
+/** Global filter: a 400 (a body or parameter the pipes refused) gives back its rate-limit hit,
+ *  then answers as Nest would. */
+@Catch(BadRequestException)
+export class RefundBadRequests extends BaseExceptionFilter {
+  catch(e: BadRequestException, host: ArgumentsHost) {
+    const req = host.switchToHttp().getRequest<{ rateLimitRefund?: () => void }>();
+    req.rateLimitRefund?.();
+    super.catch(e, host);
   }
 }

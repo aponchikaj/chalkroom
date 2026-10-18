@@ -47,6 +47,8 @@ describe('class deck', () => {
     expect(r1.body.fsrs.reps).toBe(1);
     expect(new Date(r1.body.fsrs.due).getTime()).toBeGreaterThan(Date.now() - 1000);
     const r2 = await api<CardReviewRow>(gio, 'POST', `/cards/${card.id}/review`, { rating: 'easy' });
+    // the first review creates the schedule (201); later ones update it (200)
+    expect(r2.status).toBe(200);
     expect(r2.body.fsrs.reps).toBe(2);
 
     // each learner sees only their own schedule

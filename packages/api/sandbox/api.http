@@ -3,6 +3,11 @@
 # 2. npm run sandbox:tokens        (signs up three email users Ana, Gio, Eve into ./.env)
 # 3. Click "Send Request" above each block, top to bottom. Ids flow from earlier responses.
 # Tokens expire after 1 hour: run step 2 again on 401.
+# A Supabase Auth outage answers 503 (not 401), so the client retries and stays signed in.
+# Every 429 carries a Retry-After header (seconds). A request refused with 400 does not count
+# toward a rate limit.
+# Learner routes on a room that does not exist answer 404; 403 when the room exists and you are
+# not a member (or were removed).
 
 @api = {{$dotenv API_URL}}
 @supabase = {{$dotenv SUPABASE_URL}}
@@ -16,9 +21,23 @@
 @questionId = {{ask.response.body.$.id}}
 @checkId = {{checks.response.body.$[0].data.checkId}}
 @segment = {{checks.response.body.$[0].data.segment}}
+@gioId = {{me_gio.response.body.$.profile.id}}
+@avatarPath = {{avatar.response.body.$.path}}
+@courseId = {{course.response.body.$.id}}
+@duelId = {{duel.response.body.$.duelId}}
+@teachbackId = {{teachback.response.body.$.teachbackId}}
+@threadId = {{thread.response.body.$.id}}
+@blockId = {{blocks.response.body.$[0].id}}
+@blockVersion = {{blocks.response.body.$[0].version}}
+@cardId = {{cards.response.body.$[0].id}}
+@sourceId = {{source.response.body.$.id}}
+@sourcePath = {{upload.response.body.$.path}}
 
-### Health (no token)
+### Health (no token): model is mock, anthropic, gemini or groq
 GET {{api}}/health
+
+### Sandbox console settings (no token; only while the sandbox is on)
+GET {{api}}/sandbox/config.json
 
 ### My account (profile, email, settings, 2FA state)
 GET {{api}}/me
@@ -46,26 +65,38 @@ Content-Type: application/json
 GET {{api}}/me/2fa
 Authorization: Bearer {{ana}}
 
-### Email 2FA: send a code (purpose: enable | disable | login); read it at http://127.0.0.1:55424
+### Email 2FA: send a code (202; purpose: enable | disable | login); read it at http://127.0.0.1:55424
 POST {{api}}/me/2fa/email/send
 Authorization: Bearer {{ana}}
 Content-Type: application/json
 
 { "purpose": "enable" }
 
-### Email 2FA: verify the code
+### Email 2FA: verify the code (200)
 POST {{api}}/me/2fa/email/verify
 Authorization: Bearer {{ana}}
 Content-Type: application/json
 
 { "purpose": "enable", "code": "123456" }
 
-### Profile picture, step 1: signed upload URL (then upload the file to Storage, then commit)
+### Profile picture, step 1: signed upload URL (200; then upload the file to Storage, then commit)
+# @name avatar
 POST {{api}}/me/avatar/upload-url
 Authorization: Bearer {{ana}}
 Content-Type: application/json
 
 { "contentType": "image/png" }
+
+### Profile picture, step 2: commit the uploaded file (200, gives my account; 400 until the file is uploaded)
+POST {{api}}/me/avatar
+Authorization: Bearer {{ana}}
+Content-Type: application/json
+
+{ "path": "{{avatarPath}}" }
+
+### Profile picture: remove (204)
+DELETE {{api}}/me/avatar
+Authorization: Bearer {{ana}}
 
 ### Public profile of Gio (no email)
 GET {{api}}/users/{{me_gio.response.body.$.profile.username}}
@@ -75,6 +106,62 @@ Authorization: Bearer {{ana}}
 # @name me_gio
 GET {{api}}/me
 Authorization: Bearer {{gio}}
+
+### My kudos (questions and people my shared threads helped)
+GET {{api}}/me/kudos
+Authorization: Bearer {{gio}}
+
+### Course catalog (optional ?q= search)
+GET {{api}}/courses?q=solana
+Authorization: Bearer {{ana}}
+
+### Create a course (without syllabusMd the planner drafts one; rate limit 20 per hour, 429)
+# @name course
+POST {{api}}/courses
+Authorization: Bearer {{ana}}
+Content-Type: application/json
+
+{ "title": "Solana basics", "goal": "Accounts, PDAs and transactions", "visibility": "public" }
+
+### One course (404 for a private course that is not yours)
+GET {{api}}/courses/{{courseId}}
+Authorization: Bearer {{ana}}
+
+### Course FAQ (answers from earlier classes)
+GET {{api}}/courses/{{courseId}}/faq
+Authorization: Bearer {{ana}}
+
+### Edit the course (owner only, 403 otherwise; any subset)
+PATCH {{api}}/courses/{{courseId}}
+Authorization: Bearer {{ana}}
+Content-Type: application/json
+
+{ "goal": "Accounts, PDAs, transactions and fees" }
+
+### Error case: edit with nothing to update (400)
+PATCH {{api}}/courses/{{courseId}}
+Authorization: Bearer {{ana}}
+Content-Type: application/json
+
+{}
+
+### Fork the course (a private copy owned by Gio)
+POST {{api}}/courses/{{courseId}}/fork
+Authorization: Bearer {{gio}}
+Content-Type: application/json
+
+{ "title": "My Solana basics" }
+
+### Rate the course (204; one per user, replaces)
+POST {{api}}/courses/{{courseId}}/rating
+Authorization: Bearer {{gio}}
+Content-Type: application/json
+
+{ "stars": 5 }
+
+### Lobby: open public rooms with free seats
+GET {{api}}/lobby
+Authorization: Bearer {{ana}}
 
 ### Create a room (Ana hosts)
 # @name create
@@ -87,14 +174,14 @@ Content-Type: application/json
 ### Preview by invite code (no token)
 GET {{api}}/rooms/code/{{code}}
 
-### Gio joins
+### Gio joins (201 new member, 200 coming back; 409 when full, 409 "the class has ended" for someone new)
 POST {{api}}/rooms/join
 Authorization: Bearer {{gio}}
 Content-Type: application/json
 
 { "inviteCode": "{{code}}" }
 
-### Start the class (host only)
+### Start the class (host only; 202; 409 when the class already started or ended)
 POST {{api}}/rooms/{{roomId}}/start
 Authorization: Bearer {{ana}}
 Content-Type: application/json
@@ -107,7 +194,7 @@ GET {{supabase}}/rest/v1/events?room_id=eq.{{roomId}}&kind=eq.check&select=seq,d
 apikey: {{anon}}
 Authorization: Bearer {{ana}}
 
-### Ana answers the check (mcq: option index)
+### Ana answers the check (204; mcq: option index; 409 once closed)
 POST {{api}}/rooms/{{roomId}}/checks/{{checkId}}/answer
 Authorization: Bearer {{ana}}
 Content-Type: application/json
@@ -121,7 +208,48 @@ Content-Type: application/json
 
 { "answer": 0 }
 
-### Ana is ready
+### Who answered the check (host only; 404 for a check not in this room)
+GET {{api}}/rooms/{{roomId}}/host/checks/{{checkId}}/answers
+Authorization: Bearer {{ana}}
+
+### Quiz duel: start (host; 201; only while the class is at a check, 409 otherwise or when one runs)
+# @name duel
+POST {{api}}/rooms/{{roomId}}/duel
+Authorization: Bearer {{ana}}
+Content-Type: application/json
+
+{ "count": 5, "secondsPerQuestion": 20 }
+
+### Quiz duel: answer a question (204; 409 once closed or answered twice)
+POST {{api}}/rooms/{{roomId}}/duel/answer
+Authorization: Bearer {{gio}}
+Content-Type: application/json
+
+{ "duelId": "{{duelId}}", "index": 0, "answer": 1 }
+
+### Teach-back: start (host; 201; after the duel ends; concept defaults to the segment objective)
+# @name teachback
+POST {{api}}/rooms/{{roomId}}/teachback
+Authorization: Bearer {{ana}}
+Content-Type: application/json
+
+{ "concept": "Why a PDA has no private key" }
+
+### Teach-back: volunteer (204; 409 when someone already did)
+POST {{api}}/rooms/{{roomId}}/teachback/volunteer
+Authorization: Bearer {{gio}}
+Content-Type: application/json
+
+{ "teachbackId": "{{teachbackId}}" }
+
+### Teach-back: explain (204; the volunteer only, 403 otherwise)
+POST {{api}}/rooms/{{roomId}}/teachback/explain
+Authorization: Bearer {{gio}}
+Content-Type: application/json
+
+{ "teachbackId": "{{teachbackId}}", "text": "A PDA is derived from seeds and a program id, off the curve, so no key can sign for it; the program signs instead." }
+
+### Ana is ready (204; 409 unless the room is at the check of that segment)
 POST {{api}}/rooms/{{roomId}}/ready
 Authorization: Bearer {{ana}}
 Content-Type: application/json
@@ -135,21 +263,21 @@ Content-Type: application/json
 
 { "segment": {{segment}} }
 
-### Host action: skip | hold | resume | slower | end
+### Host action: skip | hold | resume | slower | end (202; 409 on an ended class)
 POST {{api}}/rooms/{{roomId}}/host
 Authorization: Bearer {{ana}}
 Content-Type: application/json
 
 { "action": "hold" }
 
-### Reaction on a shape (toggle): confused | got_it
+### Reaction on a shape (toggle; 204): confused | got_it (409 on an ended class)
 POST {{api}}/rooms/{{roomId}}/reactions
 Authorization: Bearer {{gio}}
 Content-Type: application/json
 
 { "shapeId": "pda", "kind": "confused" }
 
-### Ask a question
+### Ask a question (rate limit 6 per minute, 429; 409 on an ended class)
 # @name ask
 POST {{api}}/rooms/{{roomId}}/questions
 Authorization: Bearer {{gio}}
@@ -157,9 +285,16 @@ Content-Type: application/json
 
 { "text": "Why can a PDA not sign?" }
 
-### Anonymous +1 (toggle)
+### Anonymous +1 (toggle; 204)
 POST {{api}}/questions/{{questionId}}/vote
 Authorization: Bearer {{ana}}
+Content-Type: application/json
+
+{}
+
+### Take the question out of its group (asker or host; 200; 409 when it is not grouped with others)
+POST {{api}}/questions/{{questionId}}/unmerge
+Authorization: Bearer {{gio}}
 Content-Type: application/json
 
 {}
@@ -169,12 +304,61 @@ GET {{supabase}}/rest/v1/questions?room_id=eq.{{roomId}}&select=id,text,status,v
 apikey: {{anon}}
 Authorization: Bearer {{gio}}
 
+### Host tools: pause | resume | slower | skip (202; 409 when the class has not started or has ended; skip outside a check 409)
+POST {{api}}/rooms/{{roomId}}/host/control
+Authorization: Bearer {{ana}}
+Content-Type: application/json
+
+{ "action": "pause" }
+
+### Host tools: resume the tutor
+POST {{api}}/rooms/{{roomId}}/host/control
+Authorization: Bearer {{ana}}
+Content-Type: application/json
+
+{ "action": "resume" }
+
+### Host tools: re-explain shapes in the next Q&A (202; 409 when the class has not started or has ended)
+POST {{api}}/rooms/{{roomId}}/host/reexplain
+Authorization: Bearer {{ana}}
+Content-Type: application/json
+
+{ "shapeIds": ["pda"], "label": "the PDA diagram" }
+
+### Host tools: pin a question to the next Q&A (202; 409 when the class has not started or has ended)
+POST {{api}}/rooms/{{roomId}}/host/pin
+Authorization: Bearer {{ana}}
+Content-Type: application/json
+
+{ "questionId": "{{questionId}}" }
+
+### Moderate (host; 204): mute | unmute | kick (kicked members cannot rejoin or read the room)
+POST {{api}}/rooms/{{roomId}}/moderate
+Authorization: Bearer {{ana}}
+Content-Type: application/json
+
+{ "userId": "{{gioId}}", "action": "mute" }
+
+### Moderate: unmute Gio again
+POST {{api}}/rooms/{{roomId}}/moderate
+Authorization: Bearer {{ana}}
+Content-Type: application/json
+
+{ "userId": "{{gioId}}", "action": "unmute" }
+
 ### Error case: Eve is not a member (403)
 POST {{api}}/rooms/{{roomId}}/questions
 Authorization: Bearer {{eve}}
 Content-Type: application/json
 
 { "text": "let me in" }
+
+### Error case: unknown room (404)
+POST {{api}}/rooms/00000000-0000-4000-8000-000000000000/questions
+Authorization: Bearer {{eve}}
+Content-Type: application/json
+
+{ "text": "anyone here?" }
 
 ### Error case: no token (401)
 POST {{api}}/rooms
@@ -189,35 +373,70 @@ Content-Type: application/json
 
 { "title": "", "displayName": "A", "color": "red" }
 
-### Open a thread (or accept an offer with { "threadId": "..." })
+### Open a thread (201 new, 200 when accepting an offer with { "threadId": "..." }; 409 races and on an ended class)
+# @name thread
 POST {{api}}/rooms/{{roomId}}/threads
 Authorization: Bearer {{gio}}
 Content-Type: application/json
 
 { "topic": "bump seeds" }
 
-### Message the thread tutor (threadId from the open-thread response)
+### Message the thread tutor (202; 403 for a removed member, the thread owner too)
 POST {{api}}/threads/{{threadId}}/messages
 Authorization: Bearer {{gio}}
 Content-Type: application/json
 
 { "text": "Why does it start at 255?" }
 
-### Share the thread to the class as an answered cluster
+### Ana joins Gio's thread (200; then she may write in it; 409 for your own or a closed thread)
+POST {{api}}/threads/{{threadId}}/join
+Authorization: Bearer {{ana}}
+Content-Type: application/json
+
+{}
+
+### Share the thread to the class as an answered cluster (owner; 403 for a removed member, the owner too)
 POST {{api}}/threads/{{threadId}}/share
 Authorization: Bearer {{gio}}
 Content-Type: application/json
 
 {}
 
-### Close the thread
+### Close the thread (204)
 POST {{api}}/threads/{{threadId}}/close
 Authorization: Bearer {{gio}}
 Content-Type: application/json
 
 {}
 
+### Notes: blocks of this room, read through Supabase with RLS as Ana (gives blockId and version)
+# @name blocks
+GET {{supabase}}/rest/v1/note_blocks?room_id=eq.{{roomId}}&select=id,idx,version,markdown&order=idx.asc&limit=1
+apikey: {{anon}}
+Authorization: Bearer {{ana}}
+
+### Notes: edit a block (409 when version is stale)
+PUT {{api}}/rooms/{{roomId}}/notes/{{blockId}}
+Authorization: Bearer {{ana}}
+Content-Type: application/json
+
+{ "markdown": "A PDA has no private key: the program signs for it.", "version": {{blockVersion}} }
+
+### Cards: the class deck, read through Supabase with RLS as Gio (gives cardId)
+# @name cards
+GET {{supabase}}/rest/v1/cards?room_id=eq.{{roomId}}&status=eq.active&select=id,front,back&limit=1
+apikey: {{anon}}
+Authorization: Bearer {{gio}}
+
+### Cards: review (201 first review, 200 after; rating: again | hard | good | easy)
+POST {{api}}/cards/{{cardId}}/review
+Authorization: Bearer {{gio}}
+Content-Type: application/json
+
+{ "rating": "good" }
+
 ### Sources: add a link for the tutors
+# @name source
 POST {{api}}/rooms/{{roomId}}/sources/url
 Authorization: Bearer {{ana}}
 Content-Type: application/json
@@ -228,25 +447,26 @@ Content-Type: application/json
 GET {{api}}/rooms/{{roomId}}/sources
 Authorization: Bearer {{ana}}
 
-### Sources: upload URL for a file (then PUT the file to signedUrl, then commit)
+### Sources: upload URL for a file (200; then PUT the file to signedUrl, then commit)
+# @name upload
 POST {{api}}/rooms/{{roomId}}/sources/upload-url
 Authorization: Bearer {{ana}}
 Content-Type: application/json
 
 { "fileName": "handout.pdf", "contentType": "application/pdf", "size": 1024 }
 
-### Sources: commit the uploaded file
+### Sources: commit the uploaded file (201 new, 200 when the same file is already a source)
 POST {{api}}/rooms/{{roomId}}/sources
 Authorization: Bearer {{ana}}
 Content-Type: application/json
 
-{ "path": "<path from upload-url>", "title": "Handout" }
+{ "path": "{{sourcePath}}", "title": "PDA handout" }
 
-### Sources: remove
+### Sources: remove (204)
 DELETE {{api}}/sources/{{sourceId}}
 Authorization: Bearer {{ana}}
 
-### Leave the room
+### Leave the room (204; 403 for someone who never joined, 404 for an unknown room)
 POST {{api}}/rooms/{{roomId}}/leave
 Authorization: Bearer {{gio}}
 Content-Type: application/json
@@ -259,3 +479,36 @@ Authorization: Bearer {{ana}}
 Content-Type: application/json
 
 { "action": "end" }
+
+### Error case: Eve is new to an ended class (409 "the class has ended")
+POST {{api}}/rooms/join
+Authorization: Bearer {{eve}}
+Content-Type: application/json
+
+{ "inviteCode": "{{code}}" }
+
+### Error case: Eve leaves a room she never joined (403)
+POST {{api}}/rooms/{{roomId}}/leave
+Authorization: Bearer {{eve}}
+Content-Type: application/json
+
+{}
+
+### Book the next session of this group (host; 201 new booking, 200 when it moves the existing booking)
+POST {{api}}/rooms/{{roomId}}/next
+Authorization: Bearer {{ana}}
+Content-Type: application/json
+
+{ "startsAt": "2026-10-25T16:00:00.000Z", "title": "Solana PDAs, part 2" }
+
+### Replay library: finished public classes, newest first
+GET {{api}}/replays
+Authorization: Bearer {{ana}}
+
+### Replay of this class (members; anyone signed in for a finished public class; 403 otherwise)
+GET {{api}}/rooms/{{roomId}}/replay
+Authorization: Bearer {{gio}}
+
+### Delete my account (204; 409 while you host a room that has not ended; permanent: run sandbox:tokens again)
+DELETE {{api}}/me
+Authorization: Bearer {{eve}}

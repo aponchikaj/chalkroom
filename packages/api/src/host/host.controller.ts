@@ -5,9 +5,9 @@
 //   GET  /rooms/:id/host/checks/:checkId/answers   who answered a check (host only)
 // Every control posts a class notice. No model is called here: re-explain and pin only queue a
 // class-routed cluster, which the lead tutor (or the mock) answers in the Q&A beat as usual.
-import { BadRequestException, Body, Controller, ForbiddenException, Get, HttpCode, NotFoundException, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
+import { Body, ConflictException, Controller, ForbiddenException, Get, HttpCode, NotFoundException, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
 import { z } from 'zod';
-import { Api, type HostCheckAnswer, type QuestionRow } from '@chalk/schema';
+import { Api, type HostCheckAnswer, type HostClusterRes, type OkRes, type QuestionRow } from '@chalk/schema';
 import { AuthGuard, CurrentUser, type AuthUser } from '../core/auth.guard';
 import { ZodPipe } from '../core/zod.pipe';
 import { SupabaseService, must } from '../core/supabase.service';
@@ -32,18 +32,19 @@ export class HostController {
     return (m.data?.display_name as string | undefined) ?? 'The host';
   }
 
+  /** 409: the request is fine, the class is not in a state where it applies */
   private live(phase: string) {
-    if (phase === 'lobby') throw new BadRequestException('the class has not started');
-    if (phase === 'ended') throw new BadRequestException('the class has ended');
+    if (phase === 'lobby') throw new ConflictException('the class has not started');
+    if (phase === 'ended') throw new ConflictException('the class has ended');
   }
 
   @Post('control')
   @HttpCode(202)
   @RateLimit('host-control', 30, 60000)
-  async control(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(Api.hostControl)) body: z.infer<typeof Api.hostControl>) {
+  async control(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(Api.hostControl)) body: z.infer<typeof Api.hostControl>): Promise<OkRes> {
     const room = await this.rooms.requireHost(id, u.id);
     this.live(room.phase);
-    if (body.action === 'skip' && room.phase !== 'check') throw new BadRequestException('Skip moves the class on from a check. Wait for the check.');
+    if (body.action === 'skip' && room.phase !== 'check') throw new ConflictException('Skip moves the class on from a check. Wait for the check.');
     await this.events.append(room.main_stream_id, 'notice', hostNotice(body.action, await this.hostName(id, u.id)), u.id);
     const conductor = this.conductor.for(id);
     if (body.action === 'slower' || body.action === 'skip') void conductor.host(body.action);
@@ -68,7 +69,7 @@ export class HostController {
   @Post('reexplain')
   @HttpCode(202)
   @RateLimit('host-reexplain', 10, 60000)
-  async reexplain(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(Api.hostReexplain)) body: z.infer<typeof Api.hostReexplain>) {
+  async reexplain(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(Api.hostReexplain)) body: z.infer<typeof Api.hostReexplain>): Promise<HostClusterRes> {
     const room = await this.rooms.requireHost(id, u.id);
     this.live(room.phase);
     const db = this.supa.db;
@@ -89,7 +90,7 @@ export class HostController {
   @Post('pin')
   @HttpCode(202)
   @RateLimit('host-pin', 20, 60000)
-  async pin(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(Api.hostPin)) body: z.infer<typeof Api.hostPin>) {
+  async pin(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(Api.hostPin)) body: z.infer<typeof Api.hostPin>): Promise<HostClusterRes> {
     const room = await this.rooms.requireHost(id, u.id);
     this.live(room.phase);
     const db = this.supa.db;
@@ -121,6 +122,9 @@ export class HostController {
   @RateLimit('host-answers', 120, 60000)
   async answers(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string, @Param('checkId', ParseUUIDPipe) checkId: string): Promise<HostCheckAnswer[]> {
     await this.rooms.requireHost(id, u.id);
+    const check = await this.supa.db.from('checks').select('id').eq('id', checkId).eq('room_id', id).maybeSingle();
+    if (check.error) throw new Error(`check: ${check.error.message}`);
+    if (!check.data) throw new NotFoundException('no such check in this class');
     const rows = must(await this.supa.db.from('check_answers').select('user_id, correct').eq('room_id', id).eq('check_id', checkId), 'check answers') as { user_id: string; correct: boolean | null }[];
     return rows.map((r) => ({ userId: r.user_id, correct: r.correct }));
   }

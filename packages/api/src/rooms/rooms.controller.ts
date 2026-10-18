@@ -1,15 +1,17 @@
-import { BadRequestException, Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, ConflictException, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, Res, UseGuards } from '@nestjs/common';
+import type { Response } from 'express';
 import { z } from 'zod';
-import { Api, type CreateRoomRes, type JoinRoomRes, type RoomPreview } from '@chalk/schema';
+import { Api, type CreateRoomRes, type JoinRoomRes, type OkRes, type RoomPreview } from '@chalk/schema';
 import { AuthGuard, CurrentUser, type AuthUser } from '../core/auth.guard';
 import { ZodPipe } from '../core/zod.pipe';
 import { RoomsService } from './rooms.service';
 import { ConductorService } from '../conductor/conductor.service';
 import { RateLimit } from '../core/rate-limit';
+import { ActivitiesService } from '../activities/activities.service';
 
 @Controller('rooms')
 export class RoomsController {
-  constructor(private rooms: RoomsService, private conductor: ConductorService) {}
+  constructor(private rooms: RoomsService, private conductor: ConductorService, private activities: ActivitiesService) {}
 
   /** Pre-join screen: no membership (and no auth) needed. */
   @Get('code/:code')
@@ -28,10 +30,12 @@ export class RoomsController {
   @Post('join')
   @RateLimit('join', 20, 60000)
   @UseGuards(AuthGuard)
-  async join(@CurrentUser() u: AuthUser, @Body(new ZodPipe(Api.joinRoom)) body: z.infer<typeof Api.joinRoom>): Promise<JoinRoomRes> {
-    const res = await this.rooms.join(u.id, body);
-    void this.conductor.for(res.room.id).membersChanged();
-    return res;
+  async join(@CurrentUser() u: AuthUser, @Body(new ZodPipe(Api.joinRoom)) body: z.infer<typeof Api.joinRoom>, @Res({ passthrough: true }) res: Response): Promise<JoinRoomRes> {
+    const { room, member, created } = await this.rooms.join(u.id, body);
+    void this.conductor.for(room.id).membersChanged();
+    // 201 for a new member, 200 for one coming back
+    if (!created) res.status(200);
+    return { room, member };
   }
 
   @Post(':id/leave')
@@ -46,8 +50,10 @@ export class RoomsController {
   @Post(':id/start')
   @HttpCode(202)
   @UseGuards(AuthGuard)
-  async start(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
-    await this.rooms.requireHost(id, u.id);
+  async start(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string): Promise<OkRes> {
+    const room = await this.rooms.requireHost(id, u.id);
+    this.rooms.refuseEnded(room);
+    if (room.phase !== 'lobby') throw new ConflictException('the class has already started');
     void this.conductor.for(id).start();
     return { ok: true };
   }
@@ -63,8 +69,11 @@ export class RoomsController {
   @Post(':id/host')
   @HttpCode(202)
   @UseGuards(AuthGuard)
-  async host(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(Api.host)) body: z.infer<typeof Api.host>) {
-    await this.rooms.requireHost(id, u.id);
+  async host(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(Api.host)) body: z.infer<typeof Api.host>): Promise<OkRes> {
+    const room = await this.rooms.requireHost(id, u.id);
+    this.rooms.refuseEnded(room);
+    // End stops a running duel or teach-back too: nobody is left to answer it
+    if (body.action === 'end') this.activities.stop(id);
     void this.conductor.for(id).host(body.action);
     return { ok: true };
   }

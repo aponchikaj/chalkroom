@@ -3,7 +3,7 @@
 import { ConflictException, ForbiddenException, Injectable } from '@nestjs/common';
 import type { z } from 'zod';
 import type { Api, ClusterRow, KudosRes, MemberRow, QuestionRow, ReplayCard, ReplayRes, RoomRow, StreamEvent, ThreadRow } from '@chalk/schema';
-import { SupabaseService, must } from '../core/supabase.service';
+import { SupabaseService, allRows, must } from '../core/supabase.service';
 import { EventsService } from '../core/events.service';
 import { RoomsService } from '../rooms/rooms.service';
 import { ProfilesService } from '../accounts/profiles.service';
@@ -27,12 +27,14 @@ export class LibraryService {
       .order('ended_at', { ascending: false }).limit(REPLAYS_MAX), 'replays') as (RoomRow & { course: { title: string } | null })[];
     if (!rooms.length) return [];
     const ids = rooms.map((r) => r.id);
-    const [hosts, marks] = await Promise.all([
+    // chapter marks of up to 60 classes pass the 1000-row cap: read them a page at a time
+    const [hosts, marked] = await Promise.all([
       this.db.from('room_members').select('room_id, user_id, display_name').in('room_id', ids),
-      this.db.from('events').select('room_id, stream_id').in('room_id', ids).in('kind', CHAPTER_KINDS),
+      allRows<{ room_id: string; stream_id: string }>((from, to) => this.db.from('events').select('room_id, stream_id').in('room_id', ids).in('kind', CHAPTER_KINDS)
+        .order('stream_id').order('seq').range(from, to), 'chapters'),
     ]);
     if (hosts.error) throw new Error(hosts.error.message);
-    if (marks.error) throw new Error(marks.error.message);
+    const marks = { data: marked };
     const main = new Map(rooms.map((r) => [r.id, r.main_stream_id]));
     const chapters = new Map<string, number>();
     for (const m of marks.data ?? []) if (main.get(m.room_id) === m.stream_id) chapters.set(m.room_id, (chapters.get(m.room_id) ?? 0) + 1);
@@ -66,14 +68,16 @@ export class LibraryService {
    * syllabus continuing after the topic taught. Booking again while the next room still waits
    * in its lobby moves that booking instead of making a second room.
    */
-  async next(roomId: string, userId: string, body: z.infer<typeof Api.nextSession>): Promise<RoomRow> {
+  /** `created`: false when an existing booking was moved. */
+  async next(roomId: string, userId: string, body: z.infer<typeof Api.nextSession>): Promise<{ room: RoomRow; created: boolean }> {
     const room = await this.rooms.requireHost(roomId, userId);
     const title = body.title?.trim() || room.title;
     if (room.next_room_id) {
       const r = await this.db.from('rooms').select('*').eq('id', room.next_room_id).maybeSingle();
+      if (r.error) throw new Error(`next session: ${r.error.message}`);
       const booked = r.data as RoomRow | null;
       if (booked && booked.phase === 'lobby' && booked.host_id === userId) {
-        return this.rooms.update(booked.id, { starts_at: body.startsAt, title });
+        return { room: await this.rooms.update(booked.id, { starts_at: body.startsAt, title }), created: false };
       }
       if (booked && booked.phase !== 'ended') throw new ConflictException('the next session has already started');
     }
@@ -96,7 +100,7 @@ export class LibraryService {
       room_id: created.id, user_id: userId, role: 'host', display_name: who.display_name, color: who.color,
     }).select('*').single(), 'add host');
     await this.rooms.update(roomId, { next_room_id: created.id });
-    return created;
+    return { room: created, created: true };
   }
 
   private async identity(userId: string): Promise<Pick<MemberRow, 'display_name' | 'color'>> {

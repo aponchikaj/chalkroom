@@ -6,7 +6,7 @@
 //   POST /rooms/:id/teachback/explain    (volunteer)  204
 import { Body, Controller, HttpCode, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
 import type { z } from 'zod';
-import { Api } from '@chalk/schema';
+import { Api, type DuelStartRes, type TeachbackStartRes } from '@chalk/schema';
 import { AuthGuard, CurrentUser, type AuthUser } from '../core/auth.guard';
 import { ZodPipe } from '../core/zod.pipe';
 import { ActivitiesService } from './activities.service';
@@ -18,7 +18,7 @@ export class ActivitiesController {
 
   @Post(':id/duel')
   @HttpCode(201)
-  startDuel(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(Api.startDuel)) body: z.infer<typeof Api.startDuel>) {
+  startDuel(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(Api.startDuel)) body: z.infer<typeof Api.startDuel>): Promise<DuelStartRes> {
     return this.svc.startDuel(id, u.id, body);
   }
 
@@ -30,7 +30,7 @@ export class ActivitiesController {
 
   @Post(':id/teachback')
   @HttpCode(201)
-  startTeachback(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(Api.startTeachback)) body: z.infer<typeof Api.startTeachback>) {
+  startTeachback(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(Api.startTeachback)) body: z.infer<typeof Api.startTeachback>): Promise<TeachbackStartRes> {
     return this.svc.startTeachback(id, u.id, body);
   }
 

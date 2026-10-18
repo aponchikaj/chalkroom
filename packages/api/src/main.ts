@@ -8,6 +8,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { AppModule } from './app.module';
 import { config } from './config';
+import { RefundBadRequests } from './core/rate-limit';
 
 const app = await NestFactory.create<NestExpressApplication>(AppModule, { bodyParser: false });
 const local = /^http:\/\/(127\.0\.0\.1|localhost)[:/]/.test(process.env.SUPABASE_URL ?? '');
@@ -29,6 +30,8 @@ if (config.sandbox) {
 }
 // the web app's origins (WEB_URL); any local origin only while developing against the local stack
 app.enableCors({ origin: local ? [...config.webOrigins, /^http:\/\/(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+):\d+$/] : config.webOrigins, credentials: true });
+// a refused body or parameter (400) does not use up a rate limit
+app.useGlobalFilters(new RefundBadRequests(app.getHttpAdapter()));
 app.enableShutdownHooks();
 await app.listen(config.port, '0.0.0.0');
 new Logger('API').log(`listening on http://localhost:${config.port} (model: ${config.model})${config.sandbox ? `, sandbox on /sandbox/` : ''}`);

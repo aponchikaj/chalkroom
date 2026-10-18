@@ -42,6 +42,7 @@ export class MeController {
   }
 
   @Post('avatar/upload-url')
+  @HttpCode(200) // a signed URL; nothing is created until the commit
   @RateLimit('avatar-upload', 20, 3600000)
   avatarUploadUrl(@CurrentUser() u: AuthUser, @Body(new ZodPipe(Api.avatarUploadUrl)) b: z.infer<typeof Api.avatarUploadUrl>): Promise<AvatarUploadRes> {
     return this.avatars.uploadUrl(u.id, b.contentType);

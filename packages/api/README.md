@@ -39,7 +39,7 @@ mail, the embeddings port, sandbox.
 
 | Port | Adapters | Chosen by |
 |---|---|---|
-| `ModelPort` (`agents/model.port.ts`) | `MockModel`, `AnthropicModel` (inside `FallbackModel`) | `MODEL`, `ANTHROPIC_API_KEY` |
+| `ModelPort` (`agents/model.port.ts`) | `MockModel`; `AnthropicModel` or `GroqModel` (Groq and Gemini, OpenAI-compatible), each inside `FallbackModel` (the mock answers a failed call) and `MeteredModel` (room token budget) | `MODEL`, else the first key set: `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `GROQ_API_KEY` |
 | `MailPort` (`mail/mail.port.ts`) | `SmtpMail`, `ConsoleMail` | `SMTP_URL` |
 | `EmbeddingPort` (`rag/embeddings/embedding.port.ts`) | `LocalEmbeddings` (default), `NoEmbeddings` | `EMBEDDINGS`, `EMBEDDING_CACHE` |
 

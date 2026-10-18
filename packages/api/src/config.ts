@@ -54,14 +54,13 @@ export const config = {
   /** B1 pipelining (write the next segment during the gate). Off by default on Groq's free tier:
    *  it doubles the lead tutor's tokens per minute. PIPELINE=1/0 overrides. */
   pipeline: process.env.PIPELINE ? process.env.PIPELINE === '1' : !freeTier(),
-  /** dev console at /sandbox. On by default only against a local Supabase; SANDBOX=1/0 overrides. */
-  /** resume live rooms at boot. Off for extra instances (tests) so two APIs never drive one room. */
   /** B6: tokens (input + output) a room may spend before the backup tutor takes over */
   roomTokenBudget: Number(process.env.ROOM_TOKEN_BUDGET ?? 300_000),
-  /** this instance's id for room leases; stable across its own restarts (host + port) */
-  /** "<group>/<host:port>": instances take over abandoned rooms only within their group
-   *  (INSTANCE_GROUP; the e2e suite's API is "e2e", so the dev API never drives its rooms) */
+  /** this instance's id for room leases, stable across its own restarts: "<group>/<host:port>".
+   *  Instances take over abandoned rooms only within their group (INSTANCE_GROUP; the e2e
+   *  suite's API is "e2e", so the dev API never drives its rooms). INSTANCE_ID overrides. */
   instanceId: process.env.INSTANCE_ID ?? `${process.env.INSTANCE_GROUP ?? 'main'}/${hostname()}:${process.env.PORT ?? process.env.API_PORT ?? 3001}`,
+  /** resume live rooms at boot. Off for extra instances (tests) so two APIs never drive one room. */
   resumeRooms: process.env.RESUME_ROOMS !== '0',
   /** accounts required (B9): anonymous Supabase sessions are refused. REQUIRE_ACCOUNT=0 opts out. */
   requireAccount: process.env.REQUIRE_ACCOUNT !== '0',
@@ -91,5 +90,6 @@ export const config = {
   embeddings: {
     provider: (process.env.EMBEDDINGS === 'none' ? 'none' : 'local') as 'local' | 'none',
   },
+  /** dev console at /sandbox. On by default only against a local Supabase; SANDBOX=1/0 overrides. */
   sandbox: process.env.SANDBOX ? process.env.SANDBOX === '1' : /^http:\/\/(127\.0\.0\.1|localhost)[:/]/.test(process.env.SUPABASE_URL ?? ''),
 };

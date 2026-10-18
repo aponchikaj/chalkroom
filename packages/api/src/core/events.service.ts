@@ -2,7 +2,7 @@
 // append_event() assigns a gap-free seq, and the DB trigger broadcasts the committed row.
 import { Injectable } from '@nestjs/common';
 import { parseEventData, type StreamEvent, type StreamEventDataOf, type StreamEventKind, type StreamKind } from '@chalk/schema';
-import { SupabaseService, must } from './supabase.service';
+import { MAX_ROWS, SupabaseService, must } from './supabase.service';
 
 @Injectable()
 export class EventsService {
@@ -20,7 +20,7 @@ export class EventsService {
     const out: StreamEvent[] = [];
     let seq = afterSeq;
     while (out.length < limit) {
-      const page = Math.min(1000, limit - out.length);
+      const page = Math.min(MAX_ROWS, limit - out.length);
       const r = await this.supa.db.from('events').select('*').eq('stream_id', streamId).gt('seq', seq).order('seq').limit(page);
       const rows = must(r, 'list events') as StreamEvent[];
       out.push(...rows);

@@ -55,6 +55,10 @@ export class RoomConductor {
   private pendingSummary: Promise<void> = Promise.resolve();
   /** the host pressed End: the segment being streamed stops at its next chunk */
   private stopping = false;
+  /** jobs queued or running; 0 = idle (the heartbeat may let an idle, non-live room go) */
+  private pending = 0;
+  /** the API is shutting down: no new jobs */
+  private closed = false;
   /** the next segment, written while the class is at the gate (pipelining) */
   private next: { segment: number; chunks: ChunkBuffer<TeachChunk> } | null = null;
 
@@ -78,10 +82,24 @@ export class RoomConductor {
   }
   recover() { return this.enqueue('recover', () => this.doRecover()); }
 
+  get idle() { return this.pending === 0; }
+
+  /** Shutdown: stop the stream being taught and the gate timer, and take no more jobs. */
+  shutdown() {
+    this.closed = true;
+    this.stopping = true;
+    if (this.gateTimer) { clearTimeout(this.gateTimer); this.gateTimer = null; }
+    this.next?.chunks.cancel();
+    this.next = null;
+  }
+
   // -------------------------------------------------------------------------
 
   private enqueue<T>(what: string, fn: () => Promise<T>): Promise<T | undefined> {
+    if (this.closed) return Promise.resolve(undefined);
+    this.pending++;
     const p = this.queue.then(async () => {
+      if (this.closed) return undefined;
       // another instance drives this room: it reads the same rows and moves the room itself
       if (!(await this.deps.owns(this.roomId))) return undefined;
       return fn();
@@ -90,6 +108,8 @@ export class RoomConductor {
       this.log.error(`${what} failed: ${(e as Error).stack ?? e}`);
       await this.rescue(what).catch((e2) => this.log.error(`rescue failed: ${(e2 as Error).message}`));
     });
+    const done = () => { this.pending--; };
+    void this.queue.then(done, done);
     return p;
   }
 
@@ -341,7 +361,8 @@ export class RoomConductor {
     const rows = await this.db.from('clusters').select('title, answer, asker_count, reason').eq('room_id', room.id).or('answered.eq.true,route.eq.inline');
     const clusters = (rows.data ?? []).map((c) => ({ title: c.title as string, answer: c.answer as string | null, askers: c.asker_count as number, reason: c.reason as string | null }));
     const blocks = buildNotes({ plan: room.lesson_plan, summaries: summariesOf(events), checks: checkResults(events), clusters });
-    const ins = await this.db.from('note_blocks').insert(blocks.map((markdown, idx) => ({ room_id: room.id, idx, markdown })));
+    // note_blocks_room_idx: a second writer (another instance) keeps the first one's notes
+    const ins = await this.db.from('note_blocks').upsert(blocks.map((markdown, idx) => ({ room_id: room.id, idx, markdown })), { onConflict: 'room_id,idx', ignoreDuplicates: true });
     if (ins.error) this.log.error(`notes: ${ins.error.message}`);
     // B12: the next classes of the course can search these notes and answers
     if (room.course_id) {
@@ -352,8 +373,11 @@ export class RoomConductor {
     // new answers only: skip ones reused from the FAQ and the triage fallback, or rows pile up
     const faq = clusters.filter((c) => c.answer && c.answer !== FALLBACK_ANSWER && c.reason !== FAQ_REASON);
     if (room.course_id && faq.length) {
-      const f = await this.db.from('faq').insert(faq.map((c) => ({ course_id: room.course_id, topic_id: room.topic_id, question: c.title, answer: c.answer, askers_total: c.askers })));
-      if (f.error) this.log.warn(`faq: ${f.error.message}`);
+      // faq_course_question: one row per question (any case); one that exists is skipped
+      for (const c of faq) {
+        const f = await this.db.from('faq').insert({ course_id: room.course_id, topic_id: room.topic_id, question: c.title, answer: c.answer, askers_total: c.askers });
+        if (f.error && f.error.code !== '23505') this.log.warn(`faq: ${f.error.message}`);
+      }
     }
   }
 
@@ -370,7 +394,9 @@ export class RoomConductor {
       const questions = (asked.data ?? []).map((c) => `- Asked: ${c.title as string}`);
       const cards = await this.deps.scribe.proposeCards(await this.prefix(room), room.lesson_plan,
         (notes.data ?? []).map((b) => b.markdown as string).join('\n\n'), [...checks, ...questions].join('\n'), room.id);
-      const ins = await this.db.from('cards').insert(cards.map((c) => ({ room_id: room.id, course_id: room.course_id, front: c.front, back: c.back, status: 'active' })));
+      // cards_room_front: one card per front (the scribe may repeat one; a second writer is skipped)
+      const fronts = new Map(cards.map((c) => [c.front, c]));
+      const ins = await this.db.from('cards').upsert([...fronts.values()].map((c) => ({ room_id: room.id, course_id: room.course_id, front: c.front, back: c.back, status: 'active' })), { onConflict: 'room_id,front', ignoreDuplicates: true });
       if (ins.error) throw new Error(ins.error.message);
     } catch (e) {
       this.log.error(`deck: ${(e as Error).message}`);

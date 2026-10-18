@@ -46,6 +46,7 @@ export class ActivitiesService {
   /** Claim the room's one activity slot, or 409. */
   private async claim(roomId: string, userId: string): Promise<RoomRow> {
     const room = await this.rooms.requireHost(roomId, userId);
+    this.rooms.refuseEnded(room);
     if (this.live.has(roomId)) throw new ConflictException('an activity is already running');
     const why = refuseReason(room);
     if (why) throw new ConflictException(why);
@@ -57,6 +58,13 @@ export class ActivitiesService {
     return async <K extends StreamEventKind>(kind: K, data: StreamEventDataOf<K>, actor = 'lead') => {
       await this.events.append(room.main_stream_id, kind, data, actor);
     };
+  }
+
+  /** The class ended: stop its duel or teach-back now (each one frees its slot as it finishes). */
+  stop(roomId: string) {
+    const a = this.live.get(roomId);
+    if (a?.kind === 'duel') a.run.stop();
+    else if (a?.kind === 'teachback') a.run.cancel();
   }
 
   /** Hold the gate while the activity runs; returns how to put it back. */

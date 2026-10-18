@@ -1,7 +1,8 @@
 // Profiles, profile pictures, settings, public profiles and account deletion (B10).
 import { afterAll, describe, expect, it } from 'vitest';
 import { DEFAULT_SETTINGS, type AvatarUploadRes, type MeRes, type ProfileRow, type PublicProfile, type UserSettings } from '@chalk/schema';
-import { api, closeAll, createRoom, env, joinRoom, newUser, type TestUser } from './helpers';
+import { createClient } from '@supabase/supabase-js';
+import { TEST_PASSWORD, api, closeAll, createRoom, env, joinRoom, newUser, type TestUser } from './helpers';
 
 const users: TestUser[] = [];
 const user = async (name: string) => { const u = await newUser(name); users.push(u); return u; };
@@ -13,7 +14,8 @@ const publicUrl = (path: string) => `${env.VITE_SUPABASE_URL}/storage/v1/object/
 
 async function uploadAvatar(u: TestUser, bytes = PNG, contentType = 'image/png') {
   const up = await api<AvatarUploadRes>(u, 'POST', '/me/avatar/upload-url', { contentType: 'image/png' });
-  expect(up.status).toBe(201);
+  // a signed URL creates nothing yet: 200
+  expect(up.status).toBe(200);
   const put = await u.sb.storage.from('avatars').uploadToSignedUrl(up.body.path, up.body.token, bytes, { contentType });
   return { path: up.body.path, error: put.error };
 }
@@ -35,6 +37,19 @@ describe('PATCH /me', () => {
     const r = await api(gio, 'PATCH', '/me', { username: name.toUpperCase() });
     expect(r.status).toBe(409);
     expect(r.body.message).toMatch(/taken/);
+  });
+
+  it('signs up someone whose name another user already took in capitals', async () => {
+    const ana = await user('Ana');
+    const name = `mc${crypto.randomUUID().slice(0, 6)}`;
+    expect((await api(ana, 'PATCH', '/me', { username: name.toUpperCase() })).status).toBe(200);
+    // the same name in lower case: signup must pick the next free one, not fail
+    const sb = createClient(env.VITE_SUPABASE_URL!, env.VITE_SUPABASE_ANON_KEY!, { auth: { persistSession: false, autoRefreshToken: false } });
+    const { data, error } = await sb.auth.signUp({ email: `${name}-x@example.com`, password: TEST_PASSWORD, options: { data: { username: name } } });
+    expect(error).toBeNull();
+    const me = await api(null, 'GET', '/me', undefined, data.session!.access_token);
+    expect(me.status).toBe(200);
+    expect(me.body.profile.username).toBe(`${name}1`);
   });
 
   it.each([
