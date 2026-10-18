@@ -6,12 +6,21 @@ import { SupabaseService, must } from './supabase.service';
 
 @Injectable()
 export class EventsService {
+  /** told about every committed event (the server voice reads narration from it); never awaited */
+  private listeners = new Set<(ev: StreamEvent) => void>();
   constructor(private supa: SupabaseService) {}
+
+  onAppend(fn: (ev: StreamEvent) => void): () => void {
+    this.listeners.add(fn);
+    return () => { this.listeners.delete(fn); };
+  }
 
   async append<K extends StreamEventKind>(streamId: string, kind: K, data: StreamEventDataOf<K>, actor: string): Promise<StreamEvent<K>> {
     const valid = parseEventData(kind, data);
     const r = await this.supa.db.rpc('append_event', { p_stream: streamId, p_kind: kind, p_data: valid, p_actor: actor });
-    return must(r, `append ${kind}`) as StreamEvent<K>;
+    const ev = must(r, `append ${kind}`) as StreamEvent<K>;
+    for (const fn of this.listeners) { try { fn(ev as StreamEvent); } catch { /* a listener never fails an append */ } }
+    return ev;
   }
 
   /** Events after `afterSeq`, in order; all of them unless `limit` is given (pages of 1000, so

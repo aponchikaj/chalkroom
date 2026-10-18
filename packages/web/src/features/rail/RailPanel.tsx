@@ -11,6 +11,8 @@ import { MaterialsPanel } from '../materials/MaterialsPanel';
 import { primeSources, useMaterials } from '../materials/store';
 import { useRoom } from '../../room/store';
 import { transition } from '../../ui/motion';
+import { usePhone } from '../phone';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import './rail.css';
 
 type Tab = 'questions' | 'notes' | 'materials';
@@ -65,10 +67,41 @@ export function RailPanel() {
     select(TABS[(next + TABS.length) % TABS.length].id, true);
   };
 
+  // phones: the rail is a bottom sheet under the board; its handle lifts it over the board
+  const phone = usePhone();
+  const [full, setFullNow] = useState(false);
+  // putting the sheet back eases it down first (classroom.css: is-leaving), then lets go
+  const [leaving, setLeaving] = useState(false);
+  const leaveTimer = useRef(0);
+  const setFull = (v: boolean) => {
+    clearTimeout(leaveTimer.current);
+    if (v) { setLeaving(false); setFullNow(true); return; }
+    if (!full) return;
+    setLeaving(true);
+    leaveTimer.current = window.setTimeout(() => { setLeaving(false); setFullNow(false); }, 160);
+  };
+  useEffect(() => () => clearTimeout(leaveTimer.current), []);
+  useEffect(() => { if (!phone || ended) { clearTimeout(leaveTimer.current); setLeaving(false); setFullNow(false); } }, [phone, ended]);
+  const railRef = useRef<HTMLElement>(null);
+  // Escape puts the lifted sheet back and returns focus to its grip
+  useEffect(() => {
+    if (!phone || !full) return;
+    const key = (e: globalThis.KeyboardEvent) => {
+      if (e.key !== 'Escape' || e.defaultPrevented) return;
+      if (document.querySelector('.thread-layer, .host-controls.is-confirm, .host-sheet')) return;
+      e.preventDefault();
+      setFull(false);
+      railRef.current?.querySelector<HTMLButtonElement>('.rail-grip')?.focus();
+    };
+    window.addEventListener('keydown', key);
+    return () => window.removeEventListener('keydown', key);
+  });
+
   const countOf = (t: Tab) => (t === 'questions' ? counts.questions : t === 'notes' ? counts.notes : counts.materials);
 
   return (
-    <aside className="rail" aria-label="Questions, notes and materials">
+    <aside ref={railRef} className={`rail${phone && full ? ' is-full' : ''}${phone && leaving ? ' is-leaving' : ''}`} aria-label="Questions, notes and materials">
+      {phone && !ended && <SheetHandle full={full} setFull={setFull} />}
       <div className="rail-tabs" role="tablist" aria-label="Questions, notes and materials" onKeyDown={onKey}>
         {TABS.map((t) => {
           const n = countOf(t.id);
@@ -90,6 +123,34 @@ export function RailPanel() {
       </div>
       <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">{announcement}</p>
     </aside>
+  );
+}
+
+/** Phones: the grip on top of the rail sheet. Tap it, or drag it up or down, to lift the rail
+ *  over the board or put it back under the board. */
+function SheetHandle({ full, setFull }: { full: boolean; setFull: (v: boolean) => void }) {
+  const drag = useRef<{ y: number; moved: boolean } | null>(null);
+  return (
+    <button type="button" className="rail-grip" aria-expanded={full} aria-controls="rail-panel"
+      aria-label={full ? 'Put the questions back under the board' : 'Expand questions, notes and materials'}
+      onPointerDown={(e) => { drag.current = { y: e.clientY, moved: false }; }}
+      onPointerUp={(e) => {
+        const d = drag.current;
+        if (!d) return;
+        const dy = e.clientY - d.y;
+        if (Math.abs(dy) > 24) { d.moved = true; setFull(dy < 0); }
+      }}
+      onPointerCancel={() => { drag.current = null; }}
+      onClick={() => {
+        const moved = drag.current?.moved;
+        drag.current = null;
+        if (!moved) setFull(!full);
+      }}>
+      <span className="rail-grip-bar" aria-hidden />
+      <span className="rail-grip-word" aria-hidden>
+        {full ? <>Board<ChevronDown size={14} strokeWidth={2.25} /></> : <ChevronUp size={14} strokeWidth={2.25} />}
+      </span>
+    </button>
   );
 }
 

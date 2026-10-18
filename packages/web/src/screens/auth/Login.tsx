@@ -10,6 +10,8 @@ import { navigate } from '../../lib/router';
 import { signIn, useAuth } from '../../lib/auth';
 import { AuthLeaf, AuthMode, ICON, PasswordField, authProblem, goNext, inviteOf, queryNext, safeNext, withNext } from './shared';
 import { PageSkeleton } from '../../ui/PageSkeleton';
+// Last on purpose: PhoneNav pulls in entry.css, which must not jump ahead of this page's stylesheets.
+import { PhoneNav } from '../../ui/PhoneNav';
 
 // Sign up carries the colour picker and its contract (zod); /login loads it only when asked.
 const Signup = lazy(() => import('./Signup').then((m) => ({ default: m.Signup })));
@@ -61,13 +63,14 @@ function LoginForm({ gateNext, next, code, onSignUp }: { gateNext?: string; next
 
   return (
     <AuthLeaf title={joining} lede={lede}
-      cardNo={code ?? undefined}>
+      cardNo={code ?? undefined}
+      phoneNav={<PhoneNav title={code ? `Invite ${code}` : 'Log in'} back={{ label: 'Chalkroom Live home', go: '/' }} shared={false} />}>
       <form className="entry-form" onSubmit={submit} aria-labelledby="login-title" noValidate>
         {onSignUp && <AuthMode mode="login" onSwitch={onSignUp} />}
         <h2 id="login-title" className={onSignUp ? 'sr-only' : undefined}>{code ? 'Log in to your account' : 'Log in'}</h2>
         <div className="field">
           <label className="field-label" htmlFor="login-email">Email</label>
-          <input id="login-email" className="input input-lg" type="email" value={email} autoComplete="email" autoFocus
+          <input id="login-email" className="input input-lg" enterKeyHint="next" type="email" value={email} autoComplete="email" autoFocus
             inputMode="email" autoCapitalize="none" spellCheck={false} aria-invalid={!!error || undefined} onChange={(e) => setEmail(e.target.value)} />
         </div>
         <PasswordField id="login-password" label="Password" value={password} onChange={setPassword} autoComplete="current-password"

@@ -359,6 +359,24 @@ export const DEFAULT_SETTINGS: UserSettings = {
   tutorVoice: true, voiceRate: 1, captions: true, reducedMotion: false, theme: 'system', language: 'en', emailNotifications: true,
 };
 
+// ---------------------------------------------------------------------------
+// Server voice: the API speaks each narration sentence once (Kokoro), stores it in the public
+// Storage bucket `tts` at `<key>.wav`, and every learner plays that same file.
+// ---------------------------------------------------------------------------
+
+/** the one server voice (Kokoro af_heart); part of the key, so a new voice makes new files */
+export const TTS_VOICE = 'af_heart';
+/** the settings page sample ("Hear it"); the API makes it at boot, which also warms the model */
+export const TTS_SAMPLE = 'This is how I will sound when I teach your class.';
+/** longest sentence the server voice makes */
+export const TTS_MAX_CHARS = 600;
+/** What is hashed (SHA-256, lowercase hex) into a sentence's key. Web and API must agree. */
+export const ttsKeySource = (text: string, voice = TTS_VOICE) => `v1|${voice}|${text}`;
+/** GET /tts/:key and POST /tts. `ready` carries the public URL; `pending` is queued or being made. */
+export type TtsRes = { key: string; status: 'ready'; url: string } | { key: string; status: 'pending' } | { key: string; status: 'missing' };
+/** /health: which voice the server makes ('off': none, the web uses the system voice) */
+export type TtsEngine = 'kokoro' | 'off';
+
 export const Api = {
   /** POST /rooms → CreateRoomRes */
   createRoom: z.object({
@@ -462,6 +480,9 @@ export const Api = {
   joinThread: z.object({}),
   /** PUT /rooms/:id/notes/:blockId */
   editNote: z.object({ markdown: z.string().max(5000), version: z.number().int() }),
+  // --- server voice ---
+  /** POST /tts -> TtsRes: make one spoken sentence, exactly as splitSentences (@chalk/board) gives it */
+  tts: z.object({ text: z.string().min(1).max(TTS_MAX_CHARS) }),
 } as const;
 
 export type CreateRoomReq = z.input<typeof Api.createRoom>;

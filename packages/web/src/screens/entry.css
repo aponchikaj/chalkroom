@@ -112,7 +112,10 @@
   .lede { font-size: 1.1rem; margin-top: 14px; }
   .room-facts { gap: 10px 22px; }
   .entry-foot { margin-top: 28px; }
-  /* phones: dock over the running head, never over the board, a check card or the ask bar; any tap closes it */
-  .voice-prompt { top: calc(6px + env(safe-area-inset-top, 0px)); bottom: auto; left: 12px; right: 12px; transform: none; max-width: none; justify-content: space-between; }
+  /* phones: dock just under the class masthead (RoomRoute sets --vp-top), never over the running
+     head, a check card or the ask bar; any tap closes it */
+  .voice-prompt { top: var(--vp-top, calc(6px + env(safe-area-inset-top, 0px))); bottom: auto; left: 12px; right: 12px; transform: none; max-width: none; justify-content: space-between; }
   .voice-prompt span { flex: 1 1 0; min-width: 0; }
+  /* very narrow (or zoomed): the button takes its own row under the line */
+  @media (max-width: 300px) { .voice-prompt { flex-wrap: wrap; } .voice-prompt .btn { flex: 1 1 100%; } }
 }

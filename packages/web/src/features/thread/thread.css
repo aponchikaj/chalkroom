@@ -178,3 +178,32 @@
   .tl-composer .btn { min-height: 44px; }
   .slip { padding: 10px 12px; gap: 8px; }
 }
+
+/* phones: a full-height sheet. One header row (back, title, the class live as a small window),
+   the messages scroll under it, and the follow-up box stays at the bottom above the keyboard */
+@media (max-width: 760px) {
+  .thread-leaf { animation-name: tl-up; }
+  .tl-clip { display: none; }
+  .tl-head {
+    flex-wrap: nowrap; align-items: center; gap: 10px;
+    margin: 0 -12px; padding: 0 12px 10px; border-bottom: 1.5px solid var(--ink);
+  }
+  .tl-back { order: -1; margin: 0; align-self: center; min-height: 44px; padding: 0 12px 0 10px; gap: 4px; }
+  .tl-back-long { display: none; }
+  .tl-title { flex: 1 1 auto; flex-basis: auto; padding-top: 0; }
+  .tl-title h2 { font-size: var(--t-md); line-height: 1.2; }
+  .tl-who { margin-top: 1px; font-size: var(--t-xs); flex-wrap: nowrap; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+  .tl-pip { width: 84px; gap: 0; }
+  .tl-pip figcaption { display: none; }
+  .tl-pip .board-svg { border-radius: 2px; outline: 1px solid var(--rule-2); }
+  .tl-sec-toggle { min-height: 48px; }
+  .tl-board > .board-svg { max-height: 24dvh; }
+  .tl-composer {
+    position: sticky; bottom: 0; z-index: 3; margin: 0 -12px; padding: 8px 12px max(8px, env(safe-area-inset-bottom));
+    background: #f3f4ef; border-top: 1px solid var(--rule);
+  }
+  .tl-composer .textarea { font-size: 16px; }
+  .tl-send .btn { min-width: 44px; }
+  .tl-scroll { padding-bottom: env(safe-area-inset-bottom, 0px); }
+}
+@keyframes tl-up { from { opacity: 0; transform: translateY(calc(32px * var(--motion))); } to { opacity: 1; transform: none; } }

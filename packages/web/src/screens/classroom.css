@@ -163,35 +163,116 @@
   .masthead-people .binding-horizontal ul { gap: 12px; }
   .masthead-people .binding-ring { width: 24px; height: 24px; }
   .masthead-people .binding-count { font-size: var(--t-xs); white-space: nowrap; }
-
+  /* the lesson as a thin progress line under the masthead */
   .live-tabs-h { display: block; padding: 6px 12px 7px; border-bottom: 1.5px solid var(--ink); }
   .live-tabs-v, .live-binding { display: none; }
+}
 
-  /* the body scrolls as one page: board first, then the rail */
-  .live-body { display: flex; flex-direction: column; overflow-y: auto; overscroll-behavior: contain; }
-  .stage { flex: none; padding: 8px 8px 4px; gap: 6px; }
-  .stage-dock { max-height: none; overflow: visible; padding: 0; }
-  .stage-dock > .check-card, .stage-dock > .thread-slips { flex-basis: 100%; }
-  .board-wrap { flex: none; width: 100%; min-height: 160px; aspect-ratio: 1320 / 640; height: auto; }
-  /* two caption lines reserved, so a long sentence does not push the page below it */
-  .captions { min-height: calc(2.8em + 8px); font-size: 1rem; padding: 4px 6px; }
-  .pagestrip { padding-top: 4px; }
-  .live-rail { flex: 1 0 auto; min-height: 58vh; border-left: 0; border-top: 1.5px solid var(--ink); }
+/* ---------- phone: a native class screen, not a stacked desktop page ----------
+   The class is pinned to what the screen shows (the visual viewport, so the soft keyboard never
+   covers the ask box). Top to bottom: masthead (lane N), lesson line, the board pinned at full
+   width with its captions, the slips sheet (check, catch-up, thread offer) when there is one,
+   the rail as a bottom sheet that fills the rest (its grip lifts it over the board), and a
+   compact control bar of at most two rows. */
+@media (max-width: 760px) {
+  .live {
+    position: fixed; left: 0; right: 0; top: var(--vvt, 0px);
+    height: var(--vvh, 100dvh); overflow: hidden;
+  }
+
+  /* the body: a column that never scrolls as a whole; the rail and the slips scroll inside */
+  .live-body { display: flex; flex-direction: column; overflow: hidden; }
+  /* the stage's parts take their place in the column directly */
+  .stage { display: contents; }
+  .stage-head { flex: none; padding: 6px calc(8px + env(safe-area-inset-right, 0px)) 0 calc(8px + env(safe-area-inset-left, 0px)); }
+  .board-wrap {
+    flex: none; width: auto; min-height: 0; aspect-ratio: 1320 / 640; height: auto;
+    margin: 8px calc(8px + env(safe-area-inset-right, 0px)) 0 calc(8px + env(safe-area-inset-left, 0px));
+  }
+  /* captions: the tutor's line under the board, two lines kept so nothing below jumps */
+  .captions {
+    flex: none; min-height: calc(2.7em + 8px); font-size: 0.98rem; line-height: 1.35;
+    padding: 4px 14px; margin: 0 8px; border-top: 1px solid var(--rule);
+  }
+  /* board pages: a row of small title chips instead of thumbnails */
+  .pagestrip { order: 4; flex: none; gap: 6px; padding: 6px 8px 0; scrollbar-width: none; }
+  .pagestrip .thumb { width: auto; max-width: 48vw; min-height: 36px; display: inline-flex; align-items: center; padding: 0 10px; }
+  .pagestrip .thumb::before { content: ''; position: absolute; inset: -4px 0; }
+  .pagestrip .thumb .board-mini { display: none; }
+  .pagestrip .thumb span { position: static; max-width: none; font-size: 12px; background: none; padding: 0; color: inherit; }
+  .stage-head { order: 1; }
+  .board-wrap { order: 2; }
+  .captions { order: 3; }
+  .stage-dock { order: 5; }
+  .live-rail { order: 6; }
+
+  /* the slips sheet: a check, a catch-up, a thread offer. It rises over the rail like a card
+     laid on top of it, scrolls inside, and leaves the rail its tab row (the rail's peek) */
+  .stage-dock {
+    position: relative; z-index: 3;
+    flex: 0 1 auto; min-height: 0; max-height: none; overflow-y: auto; overscroll-behavior: contain;
+    display: flex; flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: 8px;
+    margin-top: 6px; padding: 18px 8px 10px;
+    border-top: 1.5px solid var(--ink); border-radius: 12px 12px 0 0;
+    background: var(--paper-2);
+    box-shadow: 0 -10px 18px -14px rgba(40, 30, 10, 0.5);
+    animation: sheet-up var(--dur-quick, 180ms) var(--ease-out, ease-out) both;
+  }
+  /* the grip drawn on top of the sheet */
+  .stage-dock::before {
+    content: ''; position: absolute; top: 7px; left: 50%; width: 36px; height: 4px; margin-left: -18px;
+    border-radius: 2px; background: var(--rule-2);
+  }
+  /* only the folded result chip: a slim strip, not a sheet */
+  .stage-dock:not(:has(> .check-card, > .thread-slips:not(:empty))) {
+    flex: none; padding: 6px 8px 0; border: 0; border-radius: 0; background: none; box-shadow: none; animation: none;
+  }
+  .stage-dock:not(:has(> .check-card, > .thread-slips:not(:empty)))::before { display: none; }
+  .stage-dock > .check-card, .stage-dock > .thread-slips { flex: none; }
+  .stage-dock > .check-chip { align-self: flex-start; min-height: 44px; }
+
+  /* the rail: a bottom sheet that fills what is left. With a slip sheet open it keeps only its
+     tab row, so Questions, Notes and Materials stay one tap away */
+  .live-rail {
+    position: relative; z-index: 2;
+    flex: 1 1 0; min-height: 84px; display: flex;
+    border-left: 0; border-top: 1.5px solid var(--ink); margin-top: 6px;
+    border-radius: 12px 12px 0 0; overflow: hidden;
+    box-shadow: 0 -10px 18px -14px rgba(40, 30, 10, 0.45);
+  }
+  .stage-dock:has(> .check-card, > .thread-slips:not(:empty)) ~ .live-rail { margin-top: 0; border-radius: 0; box-shadow: none; }
+  /* lifted: the rail covers the board, the slips and the captions, sliding up from below */
+  .live-rail:has(> .rail.is-full) {
+    position: absolute; inset: 0; z-index: 12; margin: 0; min-height: 0;
+    animation: sheet-up var(--dur-quick, 180ms) var(--ease-out, ease-out) both;
+  }
+  .live-rail:has(> .rail.is-full.is-leaving) { animation: sheet-down 160ms var(--ease-out, ease-out) both; }
   /* nothing to read in the rail before class starts: the invitation owns the page */
   .phase-lobby .live-rail { display: none; }
 
-  /* the lobby leaf lies over the whole page, so the board keeps its place underneath and
+  /* the lobby leaf lies over the whole body, so the board keeps its place underneath and
      nothing moves when the class starts */
   .live.phase-lobby .live-body { position: relative; }
   .live.phase-lobby .board-wrap { position: static; }
-  .live.phase-lobby .lobby-overlay { position: absolute; inset: 0; z-index: 6; display: block; padding: 8px; overflow: auto; background: var(--paper); }
+  .live.phase-lobby .lobby-overlay { position: absolute; inset: 0; z-index: 6; display: block; padding: 8px; overflow: auto; overscroll-behavior: contain; background: var(--paper); }
   /* the recap takes the board's place and grows with its content */
   .board-wrap:has(> .recap) { aspect-ratio: auto; container-type: normal; display: block; }
   .board-wrap:has(> .recap) > .board-svg { display: none; }
 
-  .thread-layer { position: fixed; top: 0; left: 0; right: 0; bottom: 0; padding: 0; z-index: 40; }
+  /* a thread is a full-height sheet over the class, pinned above the keyboard too */
+  .thread-layer {
+    position: fixed; left: 0; right: 0; top: var(--vvt, 0px); bottom: auto; height: var(--vvh, 100dvh);
+    padding: 0; z-index: 40;
+  }
 
-  .controlbar { flex-direction: row; flex-wrap: wrap; align-items: center; min-height: 0; padding: 6px calc(8px + env(safe-area-inset-right, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) calc(8px + env(safe-area-inset-left, 0px)); gap: 6px 8px; }
+  /* ---------- the control bar: at most two rows ----------
+     row 1, only while the ready gate is open: the count, the timer and I'm ready;
+     row 2: [Host] [Lost] [Got it] [ask box ............] [send] */
+  .controlbar {
+    flex-direction: row; flex-wrap: wrap; align-items: center; min-height: 0;
+    padding: 6px calc(8px + env(safe-area-inset-right, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) calc(8px + env(safe-area-inset-left, 0px));
+    gap: 6px;
+  }
   /* the class row's parts flow in the bar itself on phones */
   .controlbar-class { display: contents; }
   .controlbar .btn { min-height: 44px; }
@@ -199,11 +280,82 @@
   .controlbar-class > .activity-controls { display: none; }
   .host-sheet .activity-controls { display: flex; flex-wrap: wrap; gap: 8px; }
   .host-sheet .activity-controls .btn { flex: 1; min-height: 44px; justify-content: center; }
-  .controlbar-class > .host-controls { flex: 0 1 auto; }
-  /* the ready strip is the bar's first row in every phase (gate.css keeps it one row high) */
+  .controlbar-class > .host-controls { flex: none; }
+  /* the ready strip is the bar's first row, only when there is something to do or wait for */
   .controlbar-class > .ready-strip { order: -1; flex: 1 1 100%; }
-  .controlbar > .askbar { order: 3; flex: 1 1 100%; min-width: 0; }
-  .host-controls { padding-left: 0; border-left: 0; flex-wrap: wrap; }
+  .controlbar-class > .ready-strip.is-idle { display: none; }
+  .controlbar-class > .lost-got { flex: none; }
+  .controlbar > .askbar { order: 3; flex: 1 1 0; min-width: 0; }
+  .host-controls { padding-left: 0; border-left: 0; flex-wrap: nowrap; }
+  /* before class: Start class is the host's one action, across the bar; nothing to mark yet */
+  .phase-lobby .controlbar-class > .host-controls { flex: 1 1 100%; }
+  .phase-lobby .controlbar-class > .host-controls .btn.primary { flex: 1; justify-content: center; }
+  .phase-lobby .controlbar-class > .lost-got { display: none; }
+  /* typing: the box takes the whole row; the marks come back when it is done */
+  .controlbar:has(.askbar input:focus) > .controlbar-class > :is(.lost-got, .host-controls) { display: none; }
+  /* very narrow (a 390 px phone at 200 percent zoom): the ask box and send get their own row,
+     the host menu and the marks the row above */
+  @media (max-width: 300px) {
+    .controlbar > .askbar { flex: 1 1 100%; }
+  }
+
+  /* the soft keyboard is up: keep the board, the tutor's live line and the box, put the rest
+     away, and sit what is left on the ask box (like a chat), so no empty band opens between them */
+  .live.kb-open .live-tabs-h, .live.kb-open .stage-head, .live.kb-open .pagestrip,
+  .live.kb-open .stage-dock, .live.kb-open .live-rail { display: none; }
+  .live.kb-open .live-body { justify-content: flex-end; }
+  .live.kb-open .board-wrap { flex: 0 1 auto; min-height: 72px; }
+  .live.kb-open .captions { min-height: 0; padding-bottom: 6px; }
+  .live.kb-open .captions:has(> .faint) { display: none; }
+  /* and the masthead drops to its title row while typing */
+  .live.kb-open :is(.masthead-people, .masthead-sub) { display: none; }
+
+  /* a slip is open (a check, a catch-up, a thread offer): it gets the room it needs. The page
+     chips and the empty caption line step aside, the board gives height first (down to a
+     strip, the figure still fits inside it), and the sheet keeps its full content height (up
+     to 60 percent); the rail keeps its grip and tab row */
+  .live-body:has(> .stage > .stage-dock > :is(.check-card, .thread-slips:not(:empty))) :is(.pagestrip, .captions:has(> .faint)) { display: none; }
+  .live-body:has(> .stage > .stage-dock > :is(.check-card, .thread-slips:not(:empty))) .board-wrap { flex: 0 1 auto; min-height: 96px; max-height: 22dvh; }
+  .stage-dock:has(> .check-card, > .thread-slips:not(:empty)) { flex: 0 0 auto; max-height: 60%; }
+
+  /* the end-class confirm's dim layer: a real layer, so a tap on it keeps teaching */
+  .host-confirm-scrim {
+    position: fixed; inset: 0; z-index: 59; padding: 0; border: 0; margin: 0;
+    background: color-mix(in srgb, var(--ink) 38%, transparent);
+    -webkit-tap-highlight-color: transparent; cursor: default;
+  }
+}
+
+@keyframes sheet-down {
+  from { transform: none; opacity: 1; }
+  to { transform: translateY(calc(32px * var(--motion, 1))); opacity: 0; }
+}
+@keyframes sheet-up {
+  from { transform: translateY(calc(24px * var(--motion, 1))); opacity: 0.4; }
+  to { transform: none; opacity: 1; }
+}
+
+/* the end-of-class confirm becomes a sheet at the bottom of the screen */
+@media (max-width: 760px) {
+  .host-controls.is-confirm {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 60;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    padding: 22px calc(16px + env(safe-area-inset-right, 0px)) calc(16px + env(safe-area-inset-bottom, 0px)) calc(16px + env(safe-area-inset-left, 0px));
+    border: 0; border-top: 1.5px solid var(--ink); border-radius: 14px 14px 0 0;
+    background: var(--leaf);
+    box-shadow: 0 -12px 24px -12px rgba(40, 30, 10, 0.5);
+    animation: sheet-up var(--dur-quick, 180ms) var(--ease-out, ease-out) both;
+  }
+  .host-controls.is-confirm .host-confirm-q { grid-column: 1 / -1; font-size: var(--t-lg); font-stretch: 82%; font-weight: 750; }
+  .host-controls.is-confirm .btn { min-height: 48px; justify-content: center; }
+  .host-controls.is-confirm .errata { grid-column: 1 / -1; }
+}
+
+/* tablets: the 280 px rail keeps its three tabs inside it */
+@media (min-width: 761px) and (max-width: 1180px) {
+  .rail-tabs { gap: 2px; padding: 10px 8px 0; }
+  .rail-tab { gap: 4px; padding: 7px 6px 6px; letter-spacing: 0.04em; min-width: 0; }
+  .rail-count { min-width: 18px; }
 }
 
 /* phone, class over: the recap replaces the board in the page flow, so it never covers the captions */
@@ -211,7 +363,11 @@
   /* the page scrolls as one: the full recap first, then the notes */
   .live.phase-ended .live-body { display: block; overflow: auto; }
   .live.phase-ended .stage { display: block; }
-  .live.phase-ended .live-rail { max-height: none; }
+  .live.phase-ended .live-rail { max-height: none; min-height: 70vh; margin-top: 12px; border-radius: 0; box-shadow: none; overflow: visible; }
+  .live.phase-ended .stage { padding: 8px; }
+  .live.phase-ended .board-wrap { margin: 0; }
+  .live.phase-ended .recap-head > .row { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .live.phase-ended .recap-head > .row .btn { min-height: 44px; justify-content: center; }
   .live.phase-ended .board-wrap { container-type: normal; display: block; min-height: 0; aspect-ratio: auto; height: auto; }
   .live.phase-ended .board-wrap > .board-svg { display: none; }
   .live.phase-ended .recap { position: static; inset: auto; padding: 0; background: none; overflow: visible; }

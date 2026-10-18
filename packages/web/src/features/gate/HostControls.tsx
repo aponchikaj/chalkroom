@@ -75,14 +75,20 @@ export function HostControls() {
   }
 
   if (confirmEnd) {
+    const keep = () => setConfirmEnd(false);
+    const end = (
+      <button type="button" className="btn danger" disabled={!!busy} autoFocus={!phone}
+        onClick={() => gate('end', 'The class did not end. Try again.', keep)}>
+        <CircleStop {...ICON} />{busy === 'end' ? 'Ending' : 'End class'}
+      </button>
+    );
+    const stay = <button type="button" className="btn ghost" disabled={!!busy} autoFocus={phone} onClick={keep}>Keep teaching</button>;
+    if (phone) return <EndConfirmSheet onKeep={keep} end={end} stay={stay} error={error} />;
     return (
       <div className="host-controls is-confirm" role="group" aria-label="Confirm end class">
         <p className="host-confirm-q">End the class for everyone?</p>
-        <button type="button" className="btn danger" disabled={!!busy} autoFocus
-          onClick={() => gate('end', 'The class did not end. Try again.', () => setConfirmEnd(false))}>
-          <CircleStop {...ICON} />{busy === 'end' ? 'Ending' : 'End class'}
-        </button>
-        <button type="button" className="btn ghost" disabled={!!busy} onClick={() => setConfirmEnd(false)}>Keep teaching</button>
+        {end}
+        {stay}
         {error && <p className="errata" role="alert">{error}</p>}
       </div>
     );
@@ -148,6 +154,56 @@ export function HostControls() {
   );
 }
 
+/** Phones: the end-class confirm as a modal sheet. A dim layer under it keeps teaching when
+ *  tapped, Escape keeps teaching, and Tab stays inside the sheet. The rest of the page is inert
+ *  while it is open, and focus goes back to the Host button when it closes. */
+function EndConfirmSheet({ onKeep, end, stay, error }: { onKeep: () => void; end: ReactNode; stay: ReactNode; error: string }) {
+  const sheet = useRef<HTMLDivElement>(null);
+  const qId = useId();
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { e.preventDefault(); onKeep(); return; }
+      if (e.key !== 'Tab' || !sheet.current) return;
+      const f = [...sheet.current.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')];
+      if (!f.length) return;
+      const i = f.indexOf(document.activeElement as HTMLButtonElement);
+      if (e.shiftKey && i <= 0) { e.preventDefault(); f[f.length - 1].focus(); }
+      else if (!e.shiftKey && i === f.length - 1) { e.preventDefault(); f[0].focus(); }
+    };
+    window.addEventListener('keydown', key);
+    return () => window.removeEventListener('keydown', key);
+  }, [onKeep]);
+  useEffect(() => {
+    // make everything outside the sheet (and its dim layer) inert, level by level up to the root
+    const made: HTMLElement[] = [];
+    for (let el: HTMLElement | null = sheet.current; el && el.parentElement && el !== document.body; el = el.parentElement) {
+      for (const sib of el.parentElement.children) {
+        if (sib === el || !(sib instanceof HTMLElement) || sib.classList.contains('host-confirm-scrim') || sib.inert) continue;
+        sib.inert = true; made.push(sib);
+      }
+    }
+    return () => {
+      made.forEach((m) => { m.inert = false; });
+      // the sheet's opener, the Host menu, is closed by now: put focus back on its button
+      requestAnimationFrame(() => {
+        if (document.activeElement && document.activeElement !== document.body) return;
+        document.querySelector<HTMLButtonElement>('.host-menu-btn')?.focus();
+      });
+    };
+  }, []);
+  return (
+    <>
+      <button type="button" className="host-confirm-scrim" aria-label="Keep teaching" tabIndex={-1} onClick={onKeep} />
+      <div ref={sheet} className="host-controls is-confirm" role="alertdialog" aria-modal="true" aria-labelledby={qId}>
+        <p className="host-confirm-q" id={qId}>End the class for everyone?</p>
+        {end}
+        {stay}
+        {error && <p className="errata" role="alert">{error}</p>}
+      </div>
+    </>
+  );
+}
+
 /** Phones: one Host button; the controls open in a sheet above the control bar. */
 function HostMenu({ open, setOpen, paused, children }: { open: boolean; setOpen: (v: boolean) => void; paused: boolean; children: ReactNode }) {
   const btn = useRef<HTMLButtonElement>(null);
@@ -167,8 +223,8 @@ function HostMenu({ open, setOpen, paused, children }: { open: boolean; setOpen:
   }, [open, setOpen]);
   return (
     <>
-      <button ref={btn} type="button" className="btn host-menu-btn" aria-expanded={open} aria-controls={sheetId} onClick={() => setOpen(!open)}>
-        <Settings2 {...ICON} />Host{paused && <span className="host-menu-flag">paused</span>}<ChevronUp {...ICON} className={open ? '' : 'flip'} />
+      <button ref={btn} type="button" className={`btn host-menu-btn${paused ? ' is-paused' : ''}`} aria-expanded={open} aria-controls={sheetId} onClick={() => setOpen(!open)}>
+        <Settings2 {...ICON} /><span className="host-menu-word">Host</span>{paused && <span className="host-menu-flag">paused</span>}<ChevronUp {...ICON} className={open ? '' : 'flip'} />
       </button>
       {open && (
         <div ref={sheet} id={sheetId} className="host-sheet leaf hinge-in" role="group" aria-label="Host controls">

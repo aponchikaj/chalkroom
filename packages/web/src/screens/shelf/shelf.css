@@ -182,3 +182,80 @@
 
 /* Lane P guard: board.css has a bare .leaf { pointer-events: none } meant for the board svg group. */
 article.leaf, section.leaf, div.leaf, aside.leaf, figure.leaf { pointer-events: auto; }
+
+/* the phone "More" key under the replay button (ClassShelf.tsx renders it on phones only) */
+.shelf-more { margin-top: 12px; }
+.shelf-more-key {
+  display: flex; align-items: center; gap: 10px; min-height: 46px; padding: 0 12px; cursor: pointer; list-style: none;
+  border: 1.5px dashed var(--rule-2); border-radius: var(--r); color: var(--ink);
+  font-size: 0.8125rem; font-weight: 700; font-stretch: 86%; letter-spacing: 0.06em; text-transform: uppercase;
+  transition: background var(--step) steps(2);
+}
+.shelf-more-key::-webkit-details-marker { display: none; }
+.shelf-more-key:active { background: var(--paper-2); }
+.shelf-more-key:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.shelf-more-chev { transition: transform var(--dur-quick) var(--ease-out); }
+.shelf-more[open] .shelf-more-key { border-style: solid; border-color: var(--ink); border-radius: var(--r) var(--r) 0 0; }
+.shelf-more[open] .shelf-more-chev { transform: rotate(180deg); }
+.shelf-more > .shelf-actions { margin: 0; padding: 12px; border: 1.5px solid var(--ink); border-top: 0; border-radius: 0 0 var(--r) var(--r); flex-direction: column; align-items: stretch; animation: step-in var(--step) steps(2) both; }
+.shelf-more .shelf-export { margin-left: 0; flex-direction: column; align-items: stretch; }
+.shelf-more .shelf-export .btn { justify-content: flex-start; min-height: 44px; }
+
+/* ---------- phone pass (lane P): a compact head, tabs pinned while you read, flashcards as an
+   index card with the answer keys under the thumb ---------- */
+@media (max-width: 760px) {
+  .shelf-running { padding-bottom: 6px; }
+  .shelf-back { min-height: 44px; margin-left: -12px; }
+  .shelf-brand { font-size: 12px; }
+  .shelf-title { font-size: clamp(1.8rem, 9vw, 2.4rem); }
+  .shelf-facts { gap: 6px 16px; margin-top: 10px; }
+  .shelf-facts dd { font-size: 0.95rem; }
+  .shelf-title-row { gap: 12px; }
+  .shelf-rejoin { min-height: 50px !important; justify-content: center; }
+  .shelf-head { padding-bottom: 12px; border-bottom: 0; }
+
+  .shelf-tabs {
+    position: sticky; top: var(--phone-bar-h, 0px); z-index: 6;
+    margin: 0 -16px; padding: 6px 12px 0; gap: 3px;
+    background: var(--paper); box-shadow: 0 10px 14px -14px rgba(60, 45, 15, 0.45);
+  }
+  .shelf-tab { flex: 1 1 auto; min-width: 0; padding: 8px 6px 7px; font-size: 12px; justify-content: center; }
+  .shelf-tab[aria-selected='true'] { flex-grow: 1.3; }
+  .shelf-sec-head { gap: 6px 12px; }
+  .shelf-sec-sub { font-size: 0.875rem; }
+  .shelf-note-md { font-size: 1.02rem; }
+  .shelf-note-foot .btn { min-height: 44px; }
+  .shelf-q-by { font-size: 12px; }
+  .shelf-summary { gap: 10px; }
+
+  /* the study card: an index card, red head rule and blue lines, keys pinned under it */
+  .flash-study {
+    position: relative; margin-top: 16px; padding: 14px 16px 0; max-width: none;
+    background-color: var(--leaf);
+    background-image: linear-gradient(to bottom, transparent 0 46px, color-mix(in srgb, var(--errata) 55%, transparent) 46px 47.5px, transparent 47.5px);
+    border: 1px solid var(--leaf-edge); border-radius: 4px;
+    box-shadow: 0 1px 0 var(--rule), 0 18px 26px -18px rgba(60, 45, 15, 0.55);
+  }
+  .flash-meta { min-height: 30px; font-size: 0.875rem; }
+  .flash-face { padding: 18px 0 16px; }
+  .flash-side { font-size: 12px; }
+  .flash-text { font-size: 1.3rem; line-height: 1.45; }
+  .flash-back { border-top-color: var(--ink-3); }
+  .flash-study .kbd { display: none; }
+  .flash-actions, .flash-rate {
+    position: sticky; bottom: 0; z-index: 2;
+    margin: 0 -16px; padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+    background: var(--leaf); border-top: 1.5px solid var(--ink); border-radius: 0 0 4px 4px;
+  }
+  .flash-rate { gap: 8px; }
+  .flash-rate .btn, .flash-actions .btn { min-height: 54px; justify-content: center; font-size: 0.9rem; }
+  .flash-done { padding-bottom: 18px; }
+  .flash-row { padding: 14px 0; }
+  .flash-row-due { font-size: 0.875rem; }
+  .shelf-check-prompt { font-size: 1.05rem; }
+}
+@media (max-width: 760px) {
+  .shelf-panel { scroll-margin-top: calc(var(--phone-bar-h, 0px) + 58px); }
+  .shelf-more .shelf-actions .btn { width: 100%; justify-content: flex-start; }
+  .shelf-more .booknext-open .btn { width: auto; }
+}

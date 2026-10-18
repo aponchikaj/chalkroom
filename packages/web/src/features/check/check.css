@@ -152,3 +152,16 @@
   .check-card.worksheet { padding: 16px 12px 12px 24px; }
   .check-card.worksheet::after { left: 12px; }
 }
+
+/* phones: the check is a sheet over the rail (classroom.css); the tick moves beside the letter
+   so the option text keeps the width */
+@media (max-width: 760px) {
+  .check-card { padding: 12px 12px 14px; }
+  .sent-option { padding-right: 10px; }
+  .sent-option.is-mine { padding-right: 9.5px; }
+  .sent-option .sent-mark { order: -1; margin-left: 0; font-size: 0; gap: 0; padding-top: 3px; }
+  .sent-option.is-mine .key { display: none; }
+  .check-foot { gap: 10px; }
+  .check-foot .btn.primary { flex: 1 1 100%; min-height: 48px; justify-content: center; }
+  .check-head .btn { min-height: 44px; }
+}

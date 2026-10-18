@@ -2,7 +2,7 @@
 import type { z } from 'zod';
 import type {
   Api, AvatarUploadRes, CourseCard, CourseRow, FaqRow, KudosRes, LobbyRoom, ReplayCard, ReplayRes, RoomRow, CardReviewRow, CreateRoomRes, JoinRoomRes, MeRes, NoteBlockRow, ProfileRow, PublicProfile, QuestionRow, RoomPreview, SourceRow,
-  SourceUploadRes, ThreadRow, TwoFactorState, UserSettings,
+  SourceUploadRes, ThreadRow, TtsEngine, TtsRes, TwoFactorState, UserSettings,
 } from '@chalk/schema';
 import { ensureSession, supabase } from './supabase';
 
@@ -31,7 +31,10 @@ async function call<T>(method: string, path: string, body?: unknown, auth = true
 }
 
 export const api = {
-  health: () => call<{ ok: boolean; model: string }>('GET', '/health', undefined, false),
+  health: () => call<{ ok: boolean; model: string; tts?: TtsEngine }>('GET', '/health', undefined, false),
+  // server voice (lib/serverVoice.ts)
+  tts: (b: In<'tts'>) => call<TtsRes>('POST', '/tts', b),
+  ttsStatus: (key: string) => call<TtsRes>('GET', `/tts/${key}`),
   preview: (code: string) => call<RoomPreview>('GET', `/rooms/code/${encodeURIComponent(code)}`, undefined, false),
   createRoom: (b: In<'createRoom'>) => call<CreateRoomRes>('POST', '/rooms', b),
   joinRoom: (b: In<'joinRoom'>) => call<JoinRoomRes>('POST', '/rooms/join', b),

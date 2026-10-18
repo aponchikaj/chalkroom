@@ -9,8 +9,11 @@ import { navigate } from '../../lib/router';
 import { prefersReducedMotion } from '../../ui/motion';
 import { useCurrentSection } from './hooks';
 import { HeroClass } from './HeroClass';
+import { sectionHue, sectionInk } from '../../ui/section';
 import { QuestionsSection, ThreadsSection, AfterSection, BuiltSection } from './Sections';
 import './landing.css';
+// Last on purpose: PhoneNav pulls in entry.css, which must not jump ahead of this page's stylesheets.
+import { PhoneNav } from '../../ui/PhoneNav';
 
 const SECTIONS = [
   { id: 'start', tab: 'Start', hue: '--h-orange', on: 'var(--ink)' },
@@ -97,8 +100,12 @@ export default function Landing() {
 
   return (
     <div className="ld">
+      <PhoneNav banner groups={[{ title: 'Sections', rows: SECTIONS.map((s, i) => ({
+        key: `landing:${s.id}`, label: s.tab, run: () => goTo(s.id), hue: sectionHue(i), onHue: sectionInk(i),
+        page: <span className="mono">{i + 1}</span>, current: current === s.id,
+      })) }]} action={<a className="pn-action" href="/login" onClick={login}>Log in</a>} />
       <div className="ld-book">
-        <nav className="ld-tabs" aria-label="Sections" ref={tabsRef}>
+        <nav className="ld-tabs pn-hide" aria-label="Sections" ref={tabsRef}>
           <ol>
             {SECTIONS.map((s) => (
               <li key={s.id}>
@@ -110,7 +117,7 @@ export default function Landing() {
         </nav>
 
         <div className="ld-page page-fill">
-          <header className="ld-head">
+          <header className="ld-head pn-hide">
             <span className="ld-brand">Chalkroom Live</span>
             <nav aria-label="Account">
               <a className="ld-nav-wide" href="#questions" onClick={(e) => goTo('questions', e)}>How it works</a>

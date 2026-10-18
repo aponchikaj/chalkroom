@@ -13,6 +13,8 @@ import '../../ui/ui.css';
 import '../entry.css';
 import '../home/home.css';
 import './courses.css';
+// Last on purpose: PhoneNav pulls in entry.css, which must not jump ahead of this page's stylesheets.
+import { PhoneNav } from '../../ui/PhoneNav';
 
 type Load = { state: 'loading' } | { state: 'missing' } | { state: 'error'; text: string } | { state: 'ready'; course: CourseCard; faq: FaqRow[] };
 const ICON = { size: 16, strokeWidth: 2 } as const;
@@ -23,7 +25,7 @@ const STATUS_ICON: Record<SyllabusTopic['status'], typeof Circle> = { todo: Circ
 
 function Head() {
   return (
-    <header className="manual-head">
+    <header className="manual-head pn-hide">
       <button type="button" className="btn ghost small manual-back" onClick={goCourses}><ArrowLeft {...ICON} aria-hidden />All courses</button>
       <span className="manual-brand course-brand">Chalkroom Live</span>
     </header>
@@ -49,6 +51,7 @@ export function CoursePage({ courseId }: { courseId: string }) {
 
   return (
     <main className="entry">
+      <PhoneNav title="Course" back={{ label: 'All courses', go: '/#courses' }} current="home:courses" />
       <article className="manual leaf punched course-manual">
         <Head />
         {load.state === 'loading' && (

@@ -24,3 +24,7 @@
   .nf-page { filter: none; }
   .nf-title { font-size: clamp(2.2rem, 11vw, 3rem); }
 }
+@media (max-width: 760px) {
+  .nf-actions .btn { flex: 1 1 100%; min-height: 50px; justify-content: center; }
+  .nf-where { margin-top: 20px; }
+}

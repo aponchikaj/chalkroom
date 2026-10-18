@@ -11,6 +11,9 @@ type Item =
   | { k: 'say'; text: string }
   | { k: 'mark'; seq: number };
 
+/** sentences fetched ahead of the one being spoken */
+const PREFETCH = 3;
+
 export interface ActiveEffect { key: number; kind: 'highlight' | 'underline' | 'circle' | 'pulse'; ids: string[]; until: number }
 
 const DRAW_MS: Record<string, number> = {
@@ -156,6 +159,16 @@ export class Player {
     }
   }
 
+  /** The next `n` sentences to be spoken: the rest of this line, then the lines queued after it. */
+  private upcoming(rest: string[], n: number): string[] {
+    const out = rest.slice(0, n);
+    for (const it of this.queue) {
+      if (out.length >= n) break;
+      if (it.k === 'say') out.push(...splitSentences(it.text).slice(0, n - out.length));
+    }
+    return out;
+  }
+
   private sleep(ms: number) { return new Promise((r) => setTimeout(r, ms / this.pace)); }
 
   private async play(it: Item) {
@@ -166,11 +179,11 @@ export class Player {
       for (let i = 0; i < sentences.length; i++) {
         this.caption = sentences[i];
         this.emit();
-        // this sentence goes to the voice first, then the next one is made behind it (the
-        // Natural voice makes one sentence at a time, in order), at the same rate
+        // this sentence goes to the voice first, then the next ones are fetched behind it (the
+        // Natural voice's files come from the server), at the same rate
         this.speaker.settings.rate = this.pace * this.voiceRate;
         const spoken = this.speaker.speak(sentences[i]);
-        if (sentences[i + 1]) this.speaker.prefetch(sentences[i + 1]);
+        for (const next of this.upcoming(sentences.slice(i + 1), PREFETCH)) this.speaker.prefetch(next);
         await spoken;
         if (g !== this.gen) return;
         // paused mid-sentence: replay that sentence on resume

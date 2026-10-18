@@ -7,7 +7,14 @@ import { transition } from '../ui/motion';
 
 const listeners = new Set<() => void>();
 const notify = () => listeners.forEach((l) => l());
-window.addEventListener('popstate', () => { notify(); afterNavigate(false); });
+window.addEventListener('popstate', () => {
+  notify();
+  // the phone menu (ui/PhoneNav.tsx) closing pops its own history entry: same page, so no
+  // focus move and no page announcement
+  const w = window as { __pnClosing?: boolean };
+  if (w.__pnClosing) { w.__pnClosing = false; return; }
+  afterNavigate(false);
+});
 
 export function navigate(path: string, replace = false) {
   const from = location.pathname;

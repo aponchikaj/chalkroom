@@ -1,8 +1,8 @@
 // W2: /c/:roomId, one class on my shelf. The class as an open manual: a running head with
 // the class and my place in it, divider tabs on the fore edge for Notes, Flashcards,
 // Questions, Materials and Checks. Each class keeps its own; nothing here is shared across.
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
-import { ArrowLeft, ArrowRight, Play, RotateCw, TriangleAlert } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type KeyboardEvent } from 'react';
+import { ArrowLeft, ArrowRight, ChevronDown, Ellipsis, Play, RotateCw, TriangleAlert } from 'lucide-react';
 import type { CardReviewRow, NoteBlockRow } from '@chalk/schema';
 import { dueCards, fetchClassLibrary, type ClassLibrary } from '../../lib/library';
 import { navigate } from '../../lib/router';
@@ -20,10 +20,18 @@ import { BookNext } from '../library/BookNext';
 import { classKudos } from '../library/files';
 import '../../ui/ui.css';
 import './shelf.css';
+// Last on purpose: PhoneNav pulls in entry.css, which must not jump ahead of this page's stylesheets.
+import { PhoneNav } from '../../ui/PhoneNav';
 
 const TABS = ['notes', 'cards', 'questions', 'materials', 'checks'] as const;
 type Tab = (typeof TABS)[number];
 const LABEL: Record<Tab, string> = { notes: 'Notes', cards: 'Flashcards', questions: 'Questions', materials: 'Materials', checks: 'Checks' };
+/** phones: the five tabs fit across the leaf when Flashcards reads Cards */
+const SHORT: Partial<Record<Tab, string>> = { cards: 'Cards' };
+const PHONE = '(max-width: 760px)';
+const usePhone = () => useSyncExternalStore((l) => {
+  const m = matchMedia(PHONE); m.addEventListener('change', l); return () => m.removeEventListener('change', l);
+}, () => matchMedia(PHONE).matches);
 const ICON = { size: 16, strokeWidth: 2 } as const;
 const NOT_ON_SHELF = 'This class is not on your shelf';
 
@@ -102,6 +110,10 @@ function Shelf({ lib, tab, setTab, onReviewed, onNoteSaved }: {
   const ended = room.phase === 'ended';
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const i = TABS.indexOf(tab);
+  const phone = usePhone();
+  // phones: a chosen section opens at the top, just under the pinned tabs, not below the class head
+  const toPanel = () => requestAnimationFrame(() => document.querySelector('.shelf-panel')?.scrollIntoView({
+    block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }));
   // phones: the tab row may scroll sideways; keep the open tab in view
   useEffect(() => { tabRefs.current[tab]?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' }); }, [tab]);
 
@@ -119,9 +131,10 @@ function Shelf({ lib, tab, setTab, onReviewed, onNoteSaved }: {
 
   return (
     <main className="shelf">
+      <PhoneNav title="Class page" back={{ label: 'Back to your classes', go: '/#classes' }} />
       <article className="shelf-manual page-fill leaf punched" style={{ ['--section' as string]: sectionHue(i) }}>
         <header className="shelf-head">
-          <div className="shelf-running">
+          <div className="shelf-running pn-hide">
             <button type="button" className="btn ghost small shelf-back" onClick={goHome}>
               <ArrowLeft {...ICON} aria-hidden />Back to your classes
             </button>
@@ -152,10 +165,25 @@ function Shelf({ lib, tab, setTab, onReviewed, onNoteSaved }: {
               </a>
             )}
           </div>
-          <div className="shelf-actions">
-            {ended && amHost && <BookNext room={room} variant="shelf" />}
-            <Export lib={lib} />
-          </div>
+          {phone ? (
+            // phones: booking and export fold into one key under the replay button
+            <details className="shelf-more">
+              <summary className="shelf-more-key">
+                <Ellipsis {...ICON} aria-hidden />
+                <span className="grow">{ended && amHost ? 'Book the next session, export' : 'Export notes and cards'}</span>
+                <ChevronDown {...ICON} aria-hidden className="shelf-more-chev" />
+              </summary>
+              <div className="shelf-actions">
+                {ended && amHost && <BookNext room={room} variant="shelf" />}
+                <Export lib={lib} />
+              </div>
+            </details>
+          ) : (
+            <div className="shelf-actions">
+              {ended && amHost && <BookNext room={room} variant="shelf" />}
+              <Export lib={lib} />
+            </div>
+          )}
         </header>
 
         <div className="shelf-tabs" role="tablist" aria-label="Sections of this class" onKeyDown={onKey}>
@@ -164,8 +192,8 @@ function Shelf({ lib, tab, setTab, onReviewed, onNoteSaved }: {
               aria-selected={t === tab} tabIndex={t === tab ? 0 : -1}
               ref={(el) => { tabRefs.current[t] = el; }}
               className="shelf-tab" style={{ ['--hue' as string]: sectionHue(k), ['--on-hue' as string]: sectionInk(k) }}
-              onClick={() => setTab(t)}>
-              <span>{LABEL[t]}</span>
+              onClick={() => { setTab(t); if (phone) toPanel(); }}>
+              {phone && SHORT[t] ? <span>{SHORT[t]}</span> : <span>{LABEL[t]}</span>}
               {t === 'cards' && due > 0 && <span className="shelf-tab-count mono" aria-label={`${due} due now`}>{due}</span>}
             </button>
           ))}
@@ -186,9 +214,10 @@ function Shelf({ lib, tab, setTab, onReviewed, onNoteSaved }: {
 function Skeleton() {
   return (
     <main className="shelf" aria-busy="true">
+      <PhoneNav title="Class page" back={{ label: 'Back to your classes', go: '/#classes' }} />
       <article className="shelf-manual page-fill leaf punched">
         <header className="shelf-head">
-          <div className="shelf-running">
+          <div className="shelf-running pn-hide">
             <button type="button" className="btn ghost small shelf-back" onClick={goHome}><ArrowLeft {...ICON} aria-hidden />Back to your classes</button>
             <span className="shelf-brand">Chalkroom Live</span>
           </div>
@@ -209,8 +238,9 @@ function Skeleton() {
 function Missing() {
   return (
     <main className="shelf">
+      <PhoneNav title="Class page" back={{ label: 'Back to your classes', go: '/#classes' }} />
       <article className="shelf-manual page-fill leaf punched shelf-problem">
-        <header className="shelf-head"><div className="shelf-running"><span className="shelf-brand">Chalkroom Live</span></div></header>
+        <header className="shelf-head"><div className="shelf-running pn-hide"><span className="shelf-brand">Chalkroom Live</span></div></header>
         <h1 className="shelf-title">Not on your shelf</h1>
         <p className="shelf-lede">This class is not on your shelf. Join it with its invite code first.</p>
         <div className="shelf-problem-actions">
@@ -224,8 +254,9 @@ function Missing() {
 function Failed({ text, retry }: { text: string; retry: () => void }) {
   return (
     <main className="shelf">
+      <PhoneNav title="Class page" back={{ label: 'Back to your classes', go: '/#classes' }} />
       <article className="shelf-manual page-fill leaf punched shelf-problem">
-        <header className="shelf-head"><div className="shelf-running">
+        <header className="shelf-head"><div className="shelf-running pn-hide">
           <button type="button" className="btn ghost small shelf-back" onClick={goHome}><ArrowLeft {...ICON} aria-hidden />Back to your classes</button>
           <span className="shelf-brand">Chalkroom Live</span>
         </div></header>

@@ -155,3 +155,54 @@
 
 /* Lane P guard: board.css has a bare .leaf { pointer-events: none } meant for the board svg group. */
 article.leaf, section.leaf, div.leaf, aside.leaf, figure.leaf { pointer-events: auto; }
+
+/* ---------- phone pass (lane P): the player pins its board and keys while chapters scroll
+   beneath; replay rows are index cards; booking fields take the full width ---------- */
+@media (max-width: 760px) {
+  .replay-back { min-height: 44px; margin-left: -12px; }
+  .replay-title { font-size: clamp(1.8rem, 9vw, 2.4rem); }
+  .replay-facts { font-size: 0.95rem; gap: 4px 16px; }
+  .replay-head { padding-bottom: 12px; }
+
+  .replay-stage {
+    position: sticky; top: var(--phone-bar-h, 0px); z-index: 4; gap: 6px;
+    margin: 0 -16px; padding: 8px 16px 10px;
+    background: var(--paper); box-shadow: 0 12px 16px -16px rgba(60, 45, 15, 0.55);
+  }
+  .replay-captions { min-height: 2.8em; font-size: 0.98rem; line-height: 1.4; }
+  .replay-transport { gap: 8px 10px; padding-top: 10px; }
+  .replay-play { order: 0; flex: 0 0 auto; min-width: 104px; min-height: 46px; }
+  .replay-progress { order: 1; flex: 1 1 calc(100% - 124px); min-width: 0; gap: 8px; }
+  .replay-speed { order: 2; flex: 1 1 auto; }
+  .replay-speed .btn { flex: 1 1 0; min-width: 0; }
+  .replay-speed .btn .mono { font-size: 12px; }
+  .replay-transport > .btn.small { order: 3; flex: 0 1 auto; justify-content: center; }
+  .replay-progress input[type='range'] { height: 44px; }
+  .replay-progress input[type='range']::-webkit-slider-thumb { width: 20px; height: 30px; margin-top: -12.5px; }
+  .replay-progress input[type='range']::-moz-range-thumb { width: 18px; height: 28px; }
+  .replay-pct { font-size: 0.8125rem; }
+  .replay-ch { min-height: 52px; }
+  .replay-ch-kind { font-size: 12px; }
+
+  .replay-list { display: flex; flex-direction: column; gap: 12px; margin-top: 14px; }
+  .replay-row {
+    padding: 14px 12px 14px 0; border: 1px solid var(--leaf-edge); border-radius: 4px; overflow: hidden;
+    background: var(--leaf); box-shadow: 0 1px 0 var(--rule), 0 12px 18px -16px rgba(60, 45, 15, 0.5);
+  }
+  .replay-row:active { background: var(--paper-2); }
+  .replay-row-title { font-size: 1.1rem; }
+
+  .booknext-field > span, .booknext-cal { font-size: 12px; }
+  .booknext-field .input, .booknext-link .input { font-size: 16px; min-height: 48px; }
+  .booknext-actions .btn, .booknext-link .btn { min-height: 46px; }
+}
+@media (max-width: 760px) {
+  .replay-board .board-cam-btn { width: 44px; height: 44px; }
+}
+
+/* phones: the large-title pattern on Replays (ReplayLibrary.tsx). The bar title waits until the
+   page's own h1 has scrolled under the bar, so the first screen does not say "Replays" twice. */
+@media (max-width: 760px) {
+  .replay > .pn-bar .pn-title { transition: opacity calc(180ms * var(--motion, 1)) var(--ease-out, ease-out); }
+  .replay[data-head-seen] > .pn-bar .pn-title { opacity: 0; }
+}

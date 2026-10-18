@@ -8,6 +8,8 @@ import { navigate } from '../../lib/router';
 import { signUp } from '../../lib/auth';
 import { ProfileFields } from '../../components/ProfileFields';
 import { AuthLeaf, AuthMode, ICON, PasswordField, authProblem, goNext, inviteOf, passwordOk, queryNext, withNext } from './shared';
+// Last on purpose: PhoneNav pulls in entry.css, which must not jump ahead of this page's stylesheets.
+import { PhoneNav } from '../../ui/PhoneNav';
 
 const USERNAME = /^[A-Za-z0-9_]{3,24}$/;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -60,7 +62,8 @@ export function Signup({ next: gateNext, onLogIn }: { next?: string; onLogIn?: (
       lede={code
         ? <>{preview?.hostName ? `${preview.hostName} is hosting. ` : ''}One account for every class: the class sees your name and colour, and you go straight into the class after signing up.</>
         : 'One account for every class: the class sees your name and colour, and your notes and questions stay with you.'}
-      cardNo={code ?? undefined}>
+      cardNo={code ?? undefined}
+      phoneNav={<PhoneNav title={code ? `Invite ${code}` : 'Sign up'} back={{ label: 'Chalkroom Live home', go: '/' }} shared={false} />}>
       <form className="entry-form" onSubmit={submit} aria-labelledby="signup-title" noValidate>
         {onLogIn && <AuthMode mode="signup" onSwitch={onLogIn} />}
         <h2 id="signup-title" className={onLogIn ? 'sr-only' : undefined}>Sign up</h2>
@@ -68,13 +71,13 @@ export function Signup({ next: gateNext, onLogIn }: { next?: string; onLogIn?: (
         {tried && nameBad && <p className="error-text" id="signup-name-error">Type the name the class should see.</p>}
         <div className="field">
           <label className="field-label" htmlFor="signup-username">Username <span className="field-hint">optional, for your profile link</span></label>
-          <input id="signup-username" className="input" value={username} maxLength={24} autoComplete="username" autoCapitalize="none" spellCheck={false}
+          <input id="signup-username" className="input" enterKeyHint="next" value={username} maxLength={24} autoComplete="username" autoCapitalize="none" spellCheck={false}
             placeholder="e.g. nika_k" aria-invalid={userBad || undefined} aria-describedby="signup-username-hint" onChange={(e) => setUsername(e.target.value)} />
           <p id="signup-username-hint" className={userBad ? 'error-text' : 'field-note'}>3 to 24 letters, digits or _. Empty: made from your email.</p>
         </div>
         <div className="field">
           <label className="field-label" htmlFor="signup-email">Email</label>
-          <input id="signup-email" className="input input-lg" type="email" value={email} autoComplete="email" inputMode="email" autoCapitalize="none" spellCheck={false}
+          <input id="signup-email" className="input input-lg" enterKeyHint="next" type="email" value={email} autoComplete="email" inputMode="email" autoCapitalize="none" spellCheck={false}
             aria-invalid={(tried && emailBad) || undefined} onChange={(e) => setEmail(e.target.value)} />
           {tried && emailBad && <p className="error-text">Type the email address you can open: the reset link goes there.</p>}
         </div>

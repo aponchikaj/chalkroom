@@ -192,3 +192,74 @@
 /* Lane P guard: the board's own svg group is also called .leaf, and board.css turns its pointer
    events off with a bare .leaf rule. The page sheets that share the class name stay clickable. */
 article.leaf, section.leaf, div.leaf, aside.leaf, figure.leaf { pointer-events: auto; }
+
+/* ---------- phone pass (lane P): a page made for the thumb, not a stacked desktop ----------
+   The running head comes first, the divider tabs pin under it, the hero speaks only on Start,
+   and every list is a deck of index cards carrying the section's hue on its top rule.
+   --phone-bar-h is the height of a phone top bar above the page, when one is shown (0 otherwise). */
+@media (max-width: 760px) {
+  .home-manual > .manual-body { order: 1; }
+  .home-manual > .entry-foot { order: 2; }
+  .home-tabs {
+    position: sticky; top: var(--phone-bar-h, 0px); z-index: 6;
+    margin: -16px -16px 0; padding: 8px 12px 0;
+    background: var(--paper); border-bottom: 1.5px solid var(--ink);
+    box-shadow: 0 10px 14px -14px rgba(60, 45, 15, 0.45);
+    scroll-snap-type: x proximity;
+  }
+  .home-tab { scroll-snap-align: start; transition: background var(--dur-quick) var(--ease-out), min-height var(--dur-quick) var(--ease-out), padding var(--dur-quick) var(--ease-out); }
+  .home-tab-label { font-size: 12px; }
+  .home-body { padding-top: 20px; }
+
+  /* the hero and the contents speak once, on Start; other tabs open straight on their panel */
+  .home-body:not([data-tab='start']) .home-title > :not(.finished-slip) { display: none; }
+  .home-body:not([data-tab='start']) .home-title:not(:has(.finished-slip)) { display: none; }
+  .home-body:not([data-tab='start']) .finished-slip { margin-top: 0; }
+  .home-body:not([data-tab='start']) .home-panel { border-top: 0; padding-top: 0; }
+  .home-title .display { font-size: clamp(2.3rem, 11.5vw, 3rem); }
+  .home-title .lede { font-size: 1.04rem; line-height: 1.45; }
+  .toc-entry { min-height: 48px; font-size: 1.02rem; }
+
+  .home-section { gap: 18px; }
+  .home-section > h2 { font-size: 1.7rem; line-height: 1.05; }
+  .section-head > h2 { font-size: 1.7rem; }
+  .home-panel { scroll-margin-top: calc(var(--phone-bar-h, 0px) + 64px); }
+
+  /* Start: the submit key rides above the thumb while the form scrolls under it */
+  .home-panel .entry-form > .btn.primary.btn-lg {
+    position: sticky; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 3;
+    min-height: 54px; font-size: 0.95rem;
+    box-shadow: 0 0 0 6px var(--paper), 0 16px 22px -12px rgba(60, 45, 15, 0.55);
+  }
+  .home-panel .entry-form > .btn.primary.btn-lg:disabled { background-color: var(--leaf); }
+
+  /* Join: the code box is the page; the key sits under it at full width */
+  .join-row { flex-direction: column; gap: 10px; }
+  .join-row .btn { width: 100%; min-height: 52px; }
+  .code-input { min-height: 58px; font-size: 1.5rem; text-align: center; letter-spacing: 0.3em; }
+
+  /* lists: a deck of index cards, the section hue on the top rule */
+  .class-list { border-top: 0; display: flex; flex-direction: column; gap: 12px; }
+  .class-row {
+    position: relative; gap: 12px; padding: 16px 14px 14px;
+    background: var(--leaf); border: 1px solid var(--leaf-edge); border-radius: 4px;
+    box-shadow: inset 0 3px 0 var(--hue, var(--ink)), 0 1px 0 var(--rule), 0 12px 18px -16px rgba(60, 45, 15, 0.5);
+  }
+  .class-title { font-size: 1.2rem; line-height: 1.15; }
+  .class-meta { gap: 6px 12px; margin-top: 8px; }
+  .class-actions { gap: 8px; }
+  .class-actions > .btn { flex: 1 1 0; min-height: 46px; justify-content: center; }
+  .class-skeleton .class-actions { display: none; }
+  .class-empty { border-top: 0; padding: 18px 16px; border: 1.5px dashed var(--rule-2); border-radius: 4px; }
+  .class-error { padding: 12px 14px; }
+
+  .contents { border-top: 1.5px solid var(--ink); }
+  .contents li { padding: 14px 0; }
+  .contents-text { font-size: 1rem; line-height: 1.45; }
+
+  .finished-close { width: 44px; min-height: 44px; }
+  .entry-foot { font-size: 12px; }
+}
+@media (max-width: 760px) and (prefers-reduced-motion: reduce) {
+  .home-tab { transition: none; }
+}

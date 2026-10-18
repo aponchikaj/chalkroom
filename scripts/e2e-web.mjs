@@ -244,13 +244,23 @@ await step('Home: the class is under Your classes, and Gio rejoins a live one', 
 
 // leaving a class in-app keeps Home clickable (the board's styles were once loaded by then)
 await step('Gio leaves the class for Home and opens the Lobby tab', async () => {
-  // the phone masthead hides the brand button; the account menu leads home on every width
-  await gio.page.getByRole('button', { name: /account menu/i }).click();
-  await gio.page.getByRole('menuitem', { name: /your classes/i }).click();
+  // the phone masthead hides the brand button: on a phone the burger's drawer leads home
+  // (Your classes, or Leave class during a live lesson); on a wide screen the account menu does
+  const burger = gio.page.locator('.pn-burger');
+  if (await burger.isVisible()) {
+    await burger.click();
+    const menu = gio.page.getByRole('dialog', { name: 'Menu' });
+    await menu.getByRole('link', { name: /your classes/i }).or(menu.getByRole('button', { name: /leave class/i })).first().click();
+  } else {
+    await gio.page.getByRole('button', { name: /account menu/i }).click();
+    await gio.page.getByRole('menuitem', { name: /your classes/i }).click();
+  }
   const lobby = gio.page.getByRole('tab', { name: /lobby/i });
   await lobby.click({ timeout: 10000 });
   if ((await lobby.getAttribute('aria-selected')) !== 'true') throw new Error('the Lobby tab did not open after leaving a class');
-  await gio.page.getByRole('link', { name: /replays of finished classes/i }).waitFor({ timeout: 5000 });
+  // wide screens keep Replays in the contents; a phone shows the contents only on Start, so
+  // the Lobby panel's own link to the replays stands in for it there
+  await gio.page.getByRole('link', { name: /replays of finished classes|watch finished classes/i }).first().waitFor({ timeout: 5000 });
 }, [gio]);
 
 await browser.close();
