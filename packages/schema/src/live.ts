@@ -436,7 +436,8 @@ export const Api = {
   /** POST /courses -> CourseRow. Without syllabusMd the planner drafts one from title + goal. */
   createCourse: z.object({ title: z.string().trim().min(1).max(120), goal: z.string().max(500).optional(), syllabusMd: z.string().max(20000).optional(), visibility: z.enum(['public', 'private']).default('public') }),
   /** PATCH /courses/:id (owner) -> CourseRow */
-  updateCourse: z.object({ title: z.string().trim().min(1).max(120).optional(), goal: z.string().max(500).optional(), syllabusMd: z.string().max(20000).optional(), visibility: z.enum(['public', 'private']).optional() }),
+  updateCourse: z.object({ title: z.string().trim().min(1).max(120).optional(), goal: z.string().max(500).optional(), syllabusMd: z.string().max(20000).optional(), visibility: z.enum(['public', 'private']).optional() })
+    .refine((b) => Object.values(b).some((v) => v !== undefined), 'nothing to update'),
   /** POST /courses/:id/fork -> CourseRow (a private copy owned by the caller) */
   forkCourse: z.object({ title: z.string().trim().min(1).max(120).optional() }),
   /** POST /courses/:id/rating (one per user, replaces) */
@@ -510,6 +511,11 @@ export interface SourceRow {
   error: string | null;
   page_count: number | null;
   chunk_count: number;
+  /** sha-256 of the file or text: the same content is stored once per room or course
+   *  (optional in the type so older fixtures still compile; the API always sends it) */
+  checksum?: string | null;
+  /** ingest tries so far (claim_source gives up after 3); the API always sends it */
+  attempts?: number;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -594,6 +600,19 @@ export const SegmentSummary = z.object({ summary: z.string().describe('3 short l
 /** GET /rooms/:id/host/checks/:checkId/answers (host, lane C): who answered a check. correct is
  *  null while the answer waits for a person to read it (free-text types). */
 export interface HostCheckAnswer { userId: string; correct: boolean | null }
+
+/** 202 answers of actions that run in the background (start, host actions, thread messages, email codes) */
+export interface OkRes { ok: true }
+/** POST /rooms/:id/host/reexplain and /host/pin: the class-routed cluster the next Q&A answers */
+export interface HostClusterRes { ok: true; clusterId: string }
+/** POST /rooms/:id/duel */
+export interface DuelStartRes { duelId: string }
+/** POST /rooms/:id/teachback */
+export interface TeachbackStartRes { teachbackId: string }
+/** GET /health (no auth): which tutor answers and which model each agent uses */
+export interface HealthRes { ok: true; embeddings: string; model: string; modelId: string | null; agents: Record<string, string> | null }
+/** GET /sandbox/config.json (local dev console only) */
+export interface SandboxConfigRes { supabaseUrl: string; anonKey: string | null; model: string }
 
 export const LIVE = {
   maxSeats: 5,
