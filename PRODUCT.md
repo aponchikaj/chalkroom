@@ -65,7 +65,6 @@ triage, scribe) working on one shared classroom at once.
 ## Brand Commitments
 
 - Name: **Chalkroom Live** (from Chalkroom v1, an open-source single-learner AI classroom).
-- Hacktoberfest Georgia 2026, by GeoSafety.
 - Plain text, no emoji anywhere: in UI copy, code, docs and messages. Status is said in words;
   icons are SVG components (lucide-react).
 

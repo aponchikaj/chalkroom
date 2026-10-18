@@ -133,7 +133,7 @@ Sections:
 3. Threads: the side-tutor sheet and the catch-up card.
 4. After class: notes and flashcards.
 5. How it's built: the four agents, the one-writer log, the mock tutor runs offline.
-6. Close: the call to action again, plus the Hacktoberfest Georgia 2026 / GeoSafety credit.
+6. Close: the call to action again.
 
 Honest copy only. No numbers except product limits. Never say "hold Space to talk" or
 "no signup"; both are false now.
