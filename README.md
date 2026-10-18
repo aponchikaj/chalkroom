@@ -4,7 +4,7 @@ Up to five people join a live class taught by an AI tutor on a shared whiteboard
 ask at any time; a triage agent groups similar questions so the class gets one answer, and a
 learner who wants to go deeper gets their own side tutor while the class keeps moving.
 
-Hacktoberfest Georgia 2026 · GeoSafety. Product design: [`docs/design.md`](docs/design.md).
+Product design: [`docs/design.md`](docs/design.md).
 Who builds what next: [`docs/TASKS.md`](docs/TASKS.md).
 
 ## Quick start
