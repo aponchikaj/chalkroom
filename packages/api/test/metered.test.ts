@@ -7,7 +7,7 @@ class Scripted extends ModelPort {
   constructor(private events: ModelEvent[]) { super(); }
   async *stream(): AsyncIterable<ModelEvent> { for (const e of this.events) yield e; }
 }
-const req = (roomId?: string) => ({ agent: 'lead', roomId, prefix: '', system: '', messages: [], tool: { name: 'teach_segment', description: '', input_schema: {} }, mock: () => null }) as ModelRequest;
+const req = (roomId?: string) => ({ agent: 'lead', roomId, prefix: '', system: '', messages: [], tool: { name: 'teach_segment', description: '', input_schema: {} } }) as ModelRequest;
 const done = (input: number, output: number, cacheRead = 0, cacheWrite = 0): ModelEvent => ({ type: 'done', stopReason: 'tool_use', usage: { input, output, cacheRead, cacheWrite } });
 
 describe('MeteredModel', () => {

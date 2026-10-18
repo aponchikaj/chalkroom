@@ -44,7 +44,7 @@ class HealthController {
   constructor(private tts: TtsService) {}
 
   @Get('health')
-  health(): HealthRes { return { ok: true, embeddings: config.embeddings.provider, tts: this.tts.engine, model: config.model, modelId: config.model === 'mock' ? null : config.agentModels.lead, agents: config.model === 'mock' ? null : config.agentModels }; }
+  health(): HealthRes { return { ok: true, embeddings: config.embeddings.provider, tts: this.tts.engine, model: config.model ?? 'none', modelId: config.agentModels.lead, agents: config.agentModels }; }
 }
 
 @Module({

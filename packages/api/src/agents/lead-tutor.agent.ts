@@ -2,7 +2,6 @@
 import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
 import { BoardStep, LessonPlan, Question, TeachSegment, type CheckSpread } from '@chalk/schema';
-import { mockClusterAnswer, mockPlan, mockTeach } from '@chalk/mock-tutor';
 import { ModelPort } from './model.port';
 import { callValidated, toolFrom } from './agent-utils';
 import { InvalidTeach, bySay, streamTeach, type TeachChunk } from './teach-stream';
@@ -44,7 +43,6 @@ export class LeadTutorAgent {
     return callValidated(this.model, {
       agent: 'lead', roomId, prefix, system: PROMPTS.lead, tool: planTool, maxTokens: 2000,
       messages: [{ role: 'user', content: `Plan a live lesson on "${title}" for this class. Call plan_lesson.` }],
-      mock: () => mockPlan(),
     }, LessonPlan);
   }
 
@@ -65,7 +63,6 @@ export class LeadTutorAgent {
     const req = {
       agent: 'lead' as const, roomId: ctx.roomId, prefix: ctx.prefix, system: PROMPTS.lead, tool: teachTool,
       messages: [{ role: 'user' as const, content: `${notes}\n\nCall teach_segment.` }],
-      mock: () => mockTeach(ctx.segment),
     };
     try {
       yield* streamTeach(this.model, { ...req, streamed: true });
@@ -81,7 +78,6 @@ export class LeadTutorAgent {
     const out = await callValidated(this.model, {
       agent: 'lead', roomId, prefix, system: PROMPTS.lead, tool: answerTool, maxTokens: 3000,
       messages: [{ role: 'user', content: `${context?.text ? `${context.text}\n\n` : ''}Q&A beat. Cluster "${title}", asked by ${askers.join(', ')}:\n${questions.map((q) => `- ${q}`).join('\n')}\n\nCall answer_cluster.` }],
-      mock: () => ({ steps: mockClusterAnswer(title, askers, context?.cite) }),
     }, AnswerCluster);
     return out.steps;
   }

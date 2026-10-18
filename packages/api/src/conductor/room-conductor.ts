@@ -6,6 +6,11 @@
 //
 // Gate passes when every present learner who is not in a thread is ready, OR 60 s after the
 // first ready vote, OR the host skips. Hold pauses the gate.
+//
+// Model failures (there is no scripted tutor): a segment is retried with backoff while nothing
+// of it is on the board. If it still fails, or the room reached its token budget, the class
+// holds at the gate with a notice; the host's Resume teaches the segment again, Skip moves on
+// and End ends the class.
 import { Logger } from '@nestjs/common';
 import { LIVE, PublicQuestion, correctAnswerText, type CheckSpread, type Question, type RoomRow } from '@chalk/schema';
 import type { SupabaseService } from '../core/supabase.service';
@@ -25,6 +30,13 @@ import { buildNotes } from '../notes/notes';
 import { prefetch, type ChunkBuffer } from './prefetch';
 import { config } from '../config';
 import type { TeachChunk } from '../agents/lead-tutor.agent';
+import { BudgetExceeded } from '../agents/metered.model';
+
+export const TEACH_FAILED = 'The tutor could not continue. The host can press Resume to try again.';
+export const BUDGET_REACHED = 'This class reached its AI budget, so the tutor has stopped. The host can end the class.';
+/** waits before the 2nd and 3rd try of a failed segment */
+export const RETRY_DELAYS_MS = [2_000, 6_000];
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export interface ConductorDeps {
   supa: SupabaseService;
@@ -39,6 +51,8 @@ export interface ConductorDeps {
   owns: (roomId: string) => Promise<boolean>;
   /** the class ended: the service frees this conductor */
   ended: (roomId: string) => void;
+  /** waits between tries of a failed segment (tests pass zeros); default RETRY_DELAYS_MS */
+  retryDelaysMs?: number[];
 }
 
 export type HostAction = 'skip' | 'hold' | 'resume' | 'slower' | 'end';
@@ -61,6 +75,8 @@ export class RoomConductor {
   private closed = false;
   /** the next segment, written while the class is at the gate (pipelining) */
   private next: { segment: number; chunks: ChunkBuffer<TeachChunk> } | null = null;
+  /** the segment the tutor could not teach: the host's Resume teaches it again */
+  private failed: number | null = null;
 
   constructor(readonly roomId: string, private deps: ConductorDeps) {
     this.log = new Logger(`Room ${roomId.slice(0, 8)}`);
@@ -139,7 +155,8 @@ export class RoomConductor {
     let room = await this.deps.rooms.get(this.roomId);
     if (room.phase !== 'lobby') return;
     await this.indexSyllabus(room);
-    const plan = await this.deps.lead.plan(await this.prefix(room), room.title, room.id);
+    const prefix = await this.prefix(room);
+    const plan = await this.withRetry('plan', () => this.deps.lead.plan(prefix, room.title, room.id));
     room = await this.deps.rooms.update(room.id, { lesson_plan: plan, started_at: new Date().toISOString() });
     await this.teach(room, 0);
   }
@@ -165,22 +182,30 @@ export class RoomConductor {
         }
       }
     };
-    try {
-      await run(this.takePrefetch(segment, slower) ?? this.deps.lead.teach(await this.teachContext(room, segment, slower)));
-    } catch (e) {
-      this.log.error(`teach ${segment}: ${(e as Error).message}`);
-      // B6: Board Script still invalid after the repair pass and nothing drawn yet: one simple retry
-      let recovered = false;
-      if (!drawn && /invalid teach_segment/.test((e as Error).message)) {
-        try {
-          await run(this.deps.lead.teach({ ...(await this.teachContext(room, segment, slower)), simple: true }));
-          recovered = true;
-        } catch (e2) {
-          this.log.error(`teach ${segment} (simple): ${(e2 as Error).message}`);
-        }
+    // tries while nothing is drawn; once learners saw part of the segment, a retry would draw it
+    // twice, so the class holds and the host decides (Resume teaches it again from the start)
+    const delays = this.deps.retryDelaysMs ?? RETRY_DELAYS_MS;
+    let source: AsyncIterable<TeachChunk> | null = this.takePrefetch(segment, slower);
+    let simple = false;
+    let failure: 'error' | 'budget' | null = null;
+    for (let attempt = 0; ; attempt++) {
+      try {
+        await run(source ?? this.deps.lead.teach({ ...(await this.teachContext(room, segment, slower)), simple }));
+        break;
+      } catch (e) {
+        const msg = (e as Error).message;
+        this.log.error(`teach ${segment} (try ${attempt + 1}): ${msg}`);
+        if (this.stopping) break;
+        if (e instanceof BudgetExceeded) { failure = 'budget'; break; }
+        if (drawn || attempt >= delays.length) { failure = 'error'; break; }
+        // B6: Board Script still invalid after the repair pass: the next try keeps to simple steps
+        if (/invalid teach_segment/.test(msg)) simple = true;
+        source = null;
+        await sleep(delays[attempt]);
+        if (this.stopping) break;
       }
-      if (!recovered) await this.notice(room, 'The tutor had trouble with this segment. Ask a question, or the host can skip ahead.', 'warn');
     }
+    if (failure) return this.holdFailed(room, segment, failure);
     await this.deps.events.append(main, 'segment_end', { segment }, 'lead');
     // the summary runs beside the gate, never in front of it
     this.pendingSummary = this.summarize(room, segment, plan.segments[segment].title);
@@ -193,6 +218,32 @@ export class RoomConductor {
     // a separate job, not inline: a host command queued meanwhile (End, Hold) runs first, and a
     // class whose learners are all in threads cannot run the whole lesson in one job
     void this.enqueue('gate', () => this.evaluateGate());
+  }
+
+  /** The tutor could not teach `segment`: close it, hold the class at the gate and say so. The
+   *  host's Resume teaches the segment again; Skip moves on; End ends the class. */
+  private async holdFailed(room: RoomRow, segment: number, failure: 'error' | 'budget') {
+    this.failed = segment;
+    if (this.gateTimer) { clearTimeout(this.gateTimer); this.gateTimer = null; }
+    this.next?.chunks.cancel();
+    this.next = null;
+    await this.deps.events.append(room.main_stream_id, 'segment_end', { segment }, 'lead');
+    await this.deps.rooms.update(room.id, { phase: 'check', gate_held: true, gate_deadline: null });
+    await this.notice(room, failure === 'budget' ? BUDGET_REACHED : TEACH_FAILED, 'warn');
+  }
+
+  /** A model call with the segment retry policy (lesson planning). Budget errors are final. */
+  private async withRetry<T>(what: string, fn: () => Promise<T>): Promise<T> {
+    const delays = this.deps.retryDelaysMs ?? RETRY_DELAYS_MS;
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await fn();
+      } catch (e) {
+        if (e instanceof BudgetExceeded || attempt >= delays.length || this.stopping) throw e;
+        this.log.warn(`${what} (try ${attempt + 1}): ${(e as Error).message}`);
+        await sleep(delays[attempt]);
+      }
+    }
   }
 
   private async teachContext(room: RoomRow, segment: number, slower: boolean) {
@@ -248,6 +299,7 @@ export class RoomConductor {
 
   private async passGate(room: RoomRow) {
     if (this.gateTimer) { clearTimeout(this.gateTimer); this.gateTimer = null; }
+    this.failed = null; // Skip past a segment the tutor could not teach
     await this.closeChecks(room);
     // a Hold ends with the gate it held: the next gate starts free
     room = await this.deps.rooms.update(room.id, { phase: 'qa', gate_deadline: null, gate_held: false });
@@ -303,6 +355,7 @@ export class RoomConductor {
         await this.db.from('clusters').update({ answered: true, answer: said || null }).eq('id', c.id);
       } catch (e) {
         this.log.error(`answer cluster ${c.id}: ${(e as Error).message}`);
+        await this.notice(room, `The tutor could not answer "${c.title.slice(0, 80)}" right now.`, 'warn');
       }
     }
   }
@@ -413,9 +466,19 @@ export class RoomConductor {
         if (this.gateTimer) { clearTimeout(this.gateTimer); this.gateTimer = null; }
         await this.deps.rooms.update(room.id, { gate_held: true, gate_deadline: null });
         return;
-      case 'resume':
-        await this.deps.rooms.update(room.id, { gate_held: false });
+      case 'resume': {
+        const updated = await this.deps.rooms.update(room.id, { gate_held: false });
+        // the tutor could not teach a segment: Resume tries it again
+        if (this.failed !== null && room.phase === 'check') {
+          const segment = this.failed;
+          this.failed = null;
+          // votes cast at the held gate were for the failed try, not for the segment taught now
+          const cleared = await this.db.from('ready_votes').delete().eq('room_id', room.id).eq('segment', segment);
+          if (cleared.error) this.log.warn(`ready votes: ${cleared.error.message}`);
+          return this.teach(updated, segment);
+        }
         return this.evaluateGate();
+      }
       case 'slower':
         this.slower = true;
         return;

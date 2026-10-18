@@ -22,13 +22,16 @@ whiteboard (Hacktoberfest Georgia 2026). Two developers build it in parallel.
   channel `room:{id}`; every learner action is a REST call.
 - Stream events are append-only with one writer: always go through `EventsService.append`
   (validated with Zod, gap-free `seq` from `append_event()`).
-- Agents call models only through `ModelPort`, answer with one validated tool call, and keep
-  a working `mock` answer (demo insurance; `MODEL=mock` must always run a full class).
+- Agents call models only through `ModelPort` and answer with one validated tool call. There is
+  no mock: on a model failure the class shows a notice and holds (the lead tutor retries a
+  segment, then waits for the host's Resume); never fill the gap with scripted content. Unit
+  tests use small fake `ModelPort`s inside the test files.
 - New SQL goes in a new migration file; never edit a migration that is already on `main`.
 - Model: production is Claude Haiku 5.5 (`claude-haiku-5-5`, paid, `ANTHROPIC_API_KEY`; decided 2026-10-18). Free
   tiers are for testing only: Gemini (`GEMINI_API_KEY`; lead `gemini-3.6-flash`, thread
   `gemini-3.8-flash`, triage/scribe/planning `gemini-3.5-flash-lite`), or Groq (`GROQ_API_KEY`).
-  Order: Anthropic, Gemini, Groq, mock; `MODEL` forces one (design doc, "Model choice").
+  Order: Anthropic, Gemini, Groq; `MODEL` forces one; with no key the API refuses to start
+  (design doc, "Model choice").
 - Text only for people: no microphone or speech input; only the AI tutor speaks.
 
 ## Rules

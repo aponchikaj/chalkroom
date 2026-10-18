@@ -1,6 +1,6 @@
 // packages/api/test/step-streamer.test.ts
 import { describe, it, expect } from 'vitest';
-import { mockTeach } from '@chalk/mock-tutor';
+import { SAMPLE_SEGMENTS } from './fixtures';
 import { StepStreamer } from '../src/agents/step-streamer';
 
 const feed = (json: string, size: number) => {
@@ -12,7 +12,7 @@ const feed = (json: string, size: number) => {
 
 describe('StepStreamer', () => {
   it('emits every element of steps, whatever the chunk size', () => {
-    const seg = mockTeach(1); // has code with quotes, brackets and newlines
+    const seg = SAMPLE_SEGMENTS[1]; // has code with quotes, brackets and newlines
     for (const size of [1, 3, 17, 4096]) expect(feed(JSON.stringify(seg), size)).toEqual(seg.steps);
   });
   it('ignores arrays outside steps and tricky strings', () => {

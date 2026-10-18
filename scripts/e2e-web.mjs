@@ -1,11 +1,18 @@
 // Browser end-to-end run of a whole class against the real stack (web + API + local Supabase):
 // Ana hosts, Nika and Gio join; questions get triaged, Nika gets a thread, the class ends with
 // notes. Each step is logged and screenshotted; console errors and failed API calls are listed.
-// Usage: stack running (npm run db:start, npm run dev), then: node scripts/e2e-web.mjs [--headed]
+// A full class makes real model calls (paid on Anthropic; free-tier quota on Gemini or Groq).
+// Usage: stack running with a model key (npm run db:start, npm run dev), then:
+//        node scripts/e2e-web.mjs [--headed]
 import { mkdirSync } from 'node:fs';
 import { chromium } from 'playwright-core';
 
 const BASE = process.env.WEB_URL ?? 'http://localhost:5173';
+const API = process.env.API_URL ?? 'http://localhost:3001';
+const health = await fetch(`${API}/health`).then((r) => r.json()).catch(() => null);
+if (!health) { console.error(`API not reachable at ${API}`); process.exit(1); }
+if (!['anthropic', 'gemini', 'groq'].includes(health.model)) { console.error(`The API at ${API} reports model "${health.model}"; this run needs a real model (ANTHROPIC_API_KEY, GEMINI_API_KEY or GROQ_API_KEY).`); process.exit(1); }
+console.log(`Note: a full class costs real model calls on ${health.model}${health.model === 'anthropic' ? ' (paid)' : ' (free-tier quota)'}.`);
 const OUT = '.impeccable/e2e';
 // Chrome per platform; CHROME_PATH overrides
 const CHROME = process.env.CHROME_PATH ?? ({
@@ -142,7 +149,7 @@ await step('Ready gate (Nika excused while in her thread)', async () => {
   const part = () => ana.page.getByText(/^Part \d+ of \d+/).first().textContent();
   const before = await part();
   for (const p of [ana, gio]) await p.page.getByRole('button', { name: /i'm ready/i }).click({ timeout: 90000 });
-  // the gate passed once the lesson moves on (the fast mock tutor can be in the next check already)
+  // the gate passed once the lesson moves on (a fast model can be in the next check already)
   await ana.page.waitForFunction((b) => [...document.querySelectorAll('*')].some((e) => e.children.length === 0 && /^Part \d+ of \d+/.test(e.textContent ?? '') && !e.textContent.startsWith(b)), before?.slice(0, 11) ?? '', { timeout: 30000 });
   await snap(ana, 'after-gate');
   await snap(gio, 'after-gate');

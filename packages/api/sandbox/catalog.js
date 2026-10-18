@@ -7,7 +7,7 @@
 
 export const ENDPOINTS = [
   { group: 'System', name: 'Health', method: 'GET', path: '/health', auth: false,
-    note: 'Which model the API runs: mock, anthropic, gemini or groq.' },
+    note: 'Which model the API runs: anthropic, gemini or groq.' },
   { group: 'System', name: 'Sandbox settings', method: 'GET', path: '/sandbox/config.json', auth: false,
     note: 'Supabase URL, anon key and model for this console. Only while the sandbox is on.' },
 

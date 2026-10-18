@@ -1,11 +1,11 @@
-// Dev preview fixtures: a believable class of four at any phase, built from the scripted PDA
-// lesson. Synthetic data, for design and screenshots only; never shipped to production.
+// Dev preview fixtures: a believable class of four at any phase, built from the static PDA
+// lesson in ./lesson. Synthetic data, for design and screenshots only; never shipped to production.
 import type {
   BoardStep, SourceRow, ClusterRow, MemberRow, NoteBlockRow, PresenceState, QuestionRow, ReactionRow, ReadyVoteRow, RoomRow, StreamEvent,
   StreamEventDataOf, StreamEventKind, ThreadRow,
 } from '@chalk/schema';
 import { PublicQuestion, citation, correctAnswerText } from '@chalk/schema';
-import { PDA_PLAN, PDA_SEGMENTS, mockClusterAnswer, mockSummary, mockThreadReply } from '@chalk/mock-tutor';
+import { DEV_PLAN, DEV_SEGMENTS, devClusterAnswer, devSummary, devThreadReply } from './lesson';
 import { api } from '../lib/api';
 import { rememberSources } from '../features/materials/store';
 
@@ -41,7 +41,7 @@ export function makeEvents() {
 
 /** Teach segment n into the event list, starting at minute `start`. */
 function teach(e: ReturnType<typeof makeEvents>, n: number, start: number, withCheck: boolean) {
-  const seg = PDA_SEGMENTS[n];
+  const seg = DEV_SEGMENTS[n];
   e.m('segment_start', { segment: n, title: seg.title }, start);
   let chunk: typeof seg.steps = [];
   let minute = start;
@@ -55,7 +55,7 @@ function teach(e: ReturnType<typeof makeEvents>, n: number, start: number, withC
 }
 
 function closeCheck(e: ReturnType<typeof makeEvents>, n: number, minute: number, counts: Record<string, number>, correct: number) {
-  const q = PDA_SEGMENTS[n].check!;
+  const q = DEV_SEGMENTS[n].check!;
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
   e.m('check_closed', { checkId: `check-${n}`, spread: { total, correct, counts }, answer: q.answer, answerText: correctAnswerText(q), explanation: q.explanation }, minute);
 }
@@ -119,12 +119,12 @@ export function buildFixture(state: DevState, who: DevUser): Fixture {
       answered['check-0'] = true;
     } else {
       e.m('segment_end', { segment: 0 }, (minute += 0.1));
-      e.m('segment_summary', { segment: 0, title: PDA_SEGMENTS[0].title, summary: mockSummary(PDA_SEGMENTS[0].title) }, (minute += 0.2), 'scribe');
+      e.m('segment_summary', { segment: 0, title: DEV_SEGMENTS[0].title, summary: devSummary(DEV_SEGMENTS[0].title) }, (minute += 0.2), 'scribe');
       closeCheck(e, 0, (minute += 1), { '1': 3, '0': 1 }, 3);
       answered['check-0'] = true;
       if (state === 'result') phase = 'qa';
       if (state === 'qa' || state === 'offer' || state === 'thread' || state === 'catchup' || state === 'ended') {
-        e.m('answer_cluster', { clusterId: 'c-sign', title: 'Why can a PDA not sign?', askers: ['Gio', 'Mari'], steps: mockClusterAnswer('Why can a PDA not sign?', ['Gio', 'Mari']) }, (minute += 0.5));
+        e.m('answer_cluster', { clusterId: 'c-sign', title: 'Why can a PDA not sign?', askers: ['Gio', 'Mari'], steps: devClusterAnswer('Why can a PDA not sign?', ['Gio', 'Mari']) }, (minute += 0.5));
         phase = 'qa';
       }
       if (state === 'thread' || state === 'catchup' || state === 'ended') {
@@ -135,7 +135,7 @@ export function buildFixture(state: DevState, who: DevUser): Fixture {
       }
       if (state === 'catchup' || state === 'ended') {
         e.m('segment_end', { segment: 1 }, (minute += 0.1));
-        e.m('segment_summary', { segment: 1, title: PDA_SEGMENTS[1].title, summary: mockSummary(PDA_SEGMENTS[1].title) }, (minute += 0.2), 'scribe');
+        e.m('segment_summary', { segment: 1, title: DEV_SEGMENTS[1].title, summary: devSummary(DEV_SEGMENTS[1].title) }, (minute += 0.2), 'scribe');
         segment = 2;
         minute = teach(e, 2, minute + 0.3, true);
         phase = 'check';
@@ -154,7 +154,7 @@ export function buildFixture(state: DevState, who: DevUser): Fixture {
   const threadOffered = state === 'offer';
   const threadClosed = state === 'catchup' || state === 'ended';
   if (threadOpen || threadClosed) {
-    const r1 = mockThreadReply('how is the bump seed chosen exactly?');
+    const r1 = devThreadReply('how is the bump seed chosen exactly?');
     e.t('chat', { role: 'learner', markdown: 'How is the bump seed chosen exactly?', authorId: USERS.nika.id }, 9, USERS.nika.id);
     e.t('chat', { role: 'tutor', markdown: r1.markdown }, 9.2, 'thread');
     e.t('board', { steps: [
@@ -176,7 +176,7 @@ export function buildFixture(state: DevState, who: DevUser): Fixture {
   const mainSeq = e.main.length;
   const room: RoomRow = {
     id: ROOM_ID, course_id: null, topic_id: 'pdas', title: 'Solana PDAs', goal: '', host_id: USERS.ana.id,
-    phase, segment, visibility: 'private', seats: 5, invite_code: 'KPXCNK', lesson_plan: state === 'lobby' ? null : PDA_PLAN,
+    phase, segment, visibility: 'private', seats: 5, invite_code: 'KPXCNK', lesson_plan: state === 'lobby' ? null : DEV_PLAN,
     main_stream_id: MAIN, gate_deadline: phase === 'check' ? new Date(Date.now() + 41_000).toISOString() : null, gate_held: false,
     created_at: at(0), started_at: state === 'lobby' ? null : at(1), ended_at: state === 'ended' ? at(30) : null,
   };

@@ -3,10 +3,10 @@
 // takes its divider tab's hue as --section.
 import { useRef, useState } from 'react';
 import { ArrowUpRight, Check, Paperclip, RotateCcw, Undo2 } from 'lucide-react';
-import { PDA_SEGMENTS, mockCards } from '@chalk/mock-tutor';
 import { Punch } from '../../ui/Punch';
 import { Stamp } from '../../ui/Stamp';
 import { useSeen } from './hooks';
+import { DEMO_CARDS, DEMO_SEGMENT } from './demoLesson';
 
 const hue = (h: string) => ({ ['--section' as string]: `var(${h})` });
 
@@ -19,7 +19,7 @@ const ROUTES = [
   { stamp: <Stamp tone="ink" icon={<ArrowUpRight aria-hidden />}>Thread offered</Stamp>, q: 'How is the bump actually found?', who: 'Nika, her third question on bumps', a: 'An offer to dig in one to one with a side tutor. Opt in, never forced.' },
 ];
 
-const CHECK = PDA_SEGMENTS[0].check!;
+const CHECK = DEMO_SEGMENT.check!;
 const SPREAD = [0, 3, 1];
 
 export function QuestionsSection() {
@@ -135,7 +135,7 @@ export function ThreadsSection() {
 
 /* ---------- After class: shared notes and a flashcard deck ---------- */
 
-const CARDS = mockCards().cards;
+const CARDS = DEMO_CARDS;
 
 function Flashcards() {
   const [i, setI] = useState(0);
@@ -208,7 +208,7 @@ export function BuiltSection() {
       <div className="ld-sect-copy">
         <h2 id="ld-b-title">Four agents. One log.</h2>
         <p className="ld-read">The agents never draw on your screen directly. Each writes numbered entries to one append-only log on the server, and every seat replays the same entries, so five screens show one board.</p>
-        <p className="ld-read">Every agent answers with one validated tool call. With no model key, a scripted mock tutor teaches a whole class, so a demo never depends on a model being up.</p>
+        <p className="ld-read">Every agent answers with one validated tool call. When a model call fails, the class says so plainly and waits for the host to try again; nothing is made up to fill the gap.</p>
       </div>
       <div className="ld-sect-body ld-built">
         <ul className="ld-agents">

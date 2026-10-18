@@ -35,7 +35,7 @@ tutor's minute.
 ### Constraints
 
 - Free tier: 8000 tokens/min per model; evals must pace themselves (minutes per run).
-- `MODEL=mock` must keep running a full class; prompts are shared by every provider.
+- Prompts are shared by every provider (there is no mock tutor; a model failure holds the class).
 - The cached room prefix must stay byte-stable within a class.
 - Georgian and English content (Hacktoberfest Georgia): the embedding model must be multilingual.
 

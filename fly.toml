@@ -1,6 +1,7 @@
 # Fly.io config for the API. ONE machine only: the room conductors live in this process.
 # First deploy: fly launch --no-deploy --copy-config (pick a free app name), set the secrets
-# (docs/DEPLOY.md), then: fly deploy --ha=false
+# (docs/DEPLOY.md; a model key such as ANTHROPIC_API_KEY is required: without one the API
+# refuses to start), then: fly deploy --ha=false
 app = "chalkroom-api"
 primary_region = "lhr"  # nearest to the Supabase project (eu-west-1, Ireland)
 

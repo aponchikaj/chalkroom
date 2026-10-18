@@ -10,14 +10,12 @@ COPY package.json package-lock.json tsconfig.base.json ./
 COPY packages/api/package.json packages/api/
 COPY packages/schema/package.json packages/schema/
 COPY packages/board/package.json packages/board/
-COPY packages/mock-tutor/package.json packages/mock-tutor/
 COPY packages/web/package.json packages/web/
 RUN npm ci -w @chalk/api --include=dev --no-audit --no-fund
 
 COPY packages/api packages/api
 COPY packages/schema packages/schema
 COPY packages/board packages/board
-COPY packages/mock-tutor packages/mock-tutor
 
 # bake the local embeddings model (multilingual-e5-small, ~120 MB, free) into the image so a
 # fresh machine does not download it at boot

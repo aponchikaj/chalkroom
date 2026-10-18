@@ -1,8 +1,20 @@
 // packages/api/test/courses-catalog.test.ts
 import { describe, it, expect } from 'vitest';
-import { mockSyllabus } from '@chalk/mock-tutor';
 import { parseSyllabus, type CourseRow } from '@chalk/schema';
 import { lobbyOrder, searchTerm, toCards } from '../src/courses/catalog';
+import { DRAFT_FAILED, draftSyllabus } from '../src/courses/syllabus-draft';
+import { ModelPort, type ModelEvent, type ModelRequest } from '../src/agents/model.port';
+
+/** A model that answers with the given tool input, or throws when it is an Error. */
+class FakeModel extends ModelPort {
+  readonly name = 'fake';
+  constructor(private input: unknown) { super(); }
+  async *stream(req: ModelRequest): AsyncIterable<ModelEvent> {
+    if (this.input instanceof Error) throw this.input;
+    yield { type: 'tool', name: req.tool.name, input: this.input };
+    yield { type: 'done', stopReason: 'tool_use' };
+  }
+}
 
 const course = (id: string, owner: string | null = 'o1'): CourseRow =>
   ({ id, title: id, goal: '', syllabus_md: '', visibility: 'public', owner_id: owner, forked_from: null, created_at: '2026-10-18T10:00:00Z' });
@@ -42,12 +54,15 @@ describe('lobbyOrder', () => {
   });
 });
 
-describe('mockSyllabus', () => {
-  it('drafts a parseable outline with unique ids', () => {
-    const s = parseSyllabus(mockSyllabus('Linear algebra', 'Solve systems of equations.'));
+describe('draftSyllabus', () => {
+  const md = '# Linear algebra\n\nSolve systems of equations.\n\n- [ ] Vectors  <!-- id: vectors -->\n- [ ] Matrices  <!-- id: matrices, needs: vectors -->\n';
+  it('returns the drafted outline when it parses', async () => {
+    const s = parseSyllabus(await draftSyllabus(new FakeModel({ syllabusMd: md }), 'Linear algebra', 'Solve systems of equations.'));
     expect(s.title).toBe('Linear algebra');
-    expect(s.topics.length).toBe(5);
-    expect(new Set(s.topics.map((t) => t.id)).size).toBe(5);
-    expect(s.topics.every((t) => t.status === 'todo')).toBe(true);
+    expect(s.topics.map((t) => t.id)).toEqual(['vectors', 'matrices']);
+  });
+  it('answers 503 with a plain message when the model fails or writes no topics (no scripted outline)', async () => {
+    await expect(draftSyllabus(new FakeModel(new Error('down')), 'Linear algebra', '')).rejects.toMatchObject({ status: 503, message: DRAFT_FAILED });
+    await expect(draftSyllabus(new FakeModel({ syllabusMd: '# Only a title here' }), 'Linear algebra', '')).rejects.toMatchObject({ status: 503 });
   });
 });

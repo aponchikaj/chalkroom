@@ -1,5 +1,5 @@
 // Retrieval (B12): the tutors get passages from the room's material and cite them; the class
-// transcript and the course syllabus become searchable. Mock tutor: it cites the top passage.
+// transcript and the course syllabus become searchable. Runs on the real model.
 import { afterAll, describe, expect, it } from 'vitest';
 import { createClient } from '@supabase/supabase-js';
 import type { SourceRow, SourceUploadRes, StreamEvent } from '@chalk/schema';

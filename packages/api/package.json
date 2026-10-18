@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node --watch --watch-path=src --watch-path=../schema/src --watch-path=../board/src --watch-path=../mock-tutor/src --import @swc-node/register/esm-register src/main.ts",
+    "dev": "node --watch --watch-path=src --watch-path=../schema/src --watch-path=../board/src --import @swc-node/register/esm-register src/main.ts",
     "start": "node --import @swc-node/register/esm-register src/main.ts",
     "build": "tsc -p tsconfig.json --noEmit",
     "eval": "node --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local --import @swc-node/register/esm-register eval/run.ts",
@@ -13,7 +13,6 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.135.0",
     "@chalk/board": "*",
-    "@chalk/mock-tutor": "*",
     "@chalk/schema": "*",
     "@huggingface/transformers": "^4.3.1",
     "@mozilla/readability": "^0.6.0",

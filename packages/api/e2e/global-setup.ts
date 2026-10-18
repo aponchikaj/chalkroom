@@ -1,11 +1,12 @@
-// Makes sure the stack is up before the e2e suite runs. Reuses an API already running in mock
-// mode; otherwise starts one (MODEL=mock, fast mock delay) and stops it afterwards.
+// Makes sure the stack is up before the e2e suite runs, then starts its own API on a real model
+// (there is no scripted tutor) and stops it afterwards. The suite runs whole classes, so it costs
+// real model calls: it refuses to run without a key (GEMINI_API_KEY on the free tier is enough).
 import { spawn, type ChildProcess } from 'node:child_process';
 import { API, ROOT, env, sleep } from './helpers';
 
 let child: ChildProcess | null = null;
 
-const MOCK_PORT = 3101;
+const E2E_PORT = 3101;
 
 async function health(): Promise<{ model: string } | null> {
   try {
@@ -24,17 +25,17 @@ export async function setup() {
     throw new Error(`Supabase is not reachable at ${env.VITE_SUPABASE_URL}. Run: npm run db:start`);
   }
 
-  const running = await health();
-  if (running?.model === 'mock') return;
-  // anything else (a dev API on a real model, or one restarting right now): run the suite
-  // against our own mock instance on its own port, so no model calls are spent and nothing
-  // collides with the dev API's port
-  process.env.E2E_API_URL = `http://localhost:${MOCK_PORT}`;
+  if (!env.ANTHROPIC_API_KEY && !env.GEMINI_API_KEY && !env.GROQ_API_KEY) {
+    throw new Error('The e2e suite runs whole classes on a real model. Set ANTHROPIC_API_KEY, or GEMINI_API_KEY / GROQ_API_KEY (free tier) for testing, in .env.local.');
+  }
+  console.log('Note: the e2e suite runs whole classes and costs real model calls.');
+  // our own instance on its own port, so nothing collides with the dev API's port or rooms
+  process.env.E2E_API_URL = `http://localhost:${E2E_PORT}`;
   if (await health()) return;
 
   child = spawn('npm', ['run', 'start', '-w', '@chalk/api'], {
     cwd: ROOT,
-    env: { ...process.env, MODEL: 'mock', MOCK_DELAY_MS: '50', API_PORT: String(MOCK_PORT), PORT: String(MOCK_PORT), RESUME_ROOMS: '0', SANDBOX: '0', INSTANCE_GROUP: 'e2e' },
+    env: { ...process.env, API_PORT: String(E2E_PORT), PORT: String(E2E_PORT), RESUME_ROOMS: '0', SANDBOX: '0', INSTANCE_GROUP: 'e2e' },
     stdio: ['ignore', 'ignore', 'inherit'],
     detached: true, // own process group, so teardown stops npm and node together
   });

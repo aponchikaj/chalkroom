@@ -13,7 +13,7 @@ the subtitle timings in `script.json`. The film must make sense with the sound o
    deep dives), the class sets its own pace, and four agents share one classroom without
    conflicts (one append-only log, one writer, gap-free sequence numbers).
 4. **It is real:** every screen is the product's own design system and the product's own demo
-   lesson (Solana PDAs from `packages/mock-tutor`), translated to Georgian.
+   lesson (Solana PDAs, the landing page's `demoLesson.ts`), translated to Georgian.
 
 Track fit (say it visually in s11/s12): **01 Make It Better** (online courses rebuilt as if AI was
 there from day one) and **02 Multiplayer Agentic** (several agents on one shared classroom).

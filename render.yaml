@@ -23,7 +23,8 @@ services:
       - key: WEB_URL
         sync: false
       # model: the first key set wins: ANTHROPIC_API_KEY (production, Claude Haiku 5.5, paid),
-      # then GEMINI_API_KEY, then GROQ_API_KEY (free tiers, testing only); none: the mock tutor
+      # then GEMINI_API_KEY, then GROQ_API_KEY (free tiers, testing only). One is required:
+      # the API refuses to start without a model key (there is no scripted tutor).
       - key: ANTHROPIC_API_KEY
         sync: false
       - key: GEMINI_API_KEY

@@ -2,7 +2,7 @@
 // tool. Request mapping and stream reading live in ./groq.ts (pure, tested). A per-minute 429 is
 // retried once after the server's retry-after (capped). A model out of its daily budget (TPD) is
 // skipped until it is back, and a request above a model's output cap (OTPM) goes to the next
-// spare; anything else throws, and FallbackModel answers from the mock tutor.
+// spare; anything else throws, and the caller shows the failure.
 import { Logger } from '@nestjs/common';
 import { ModelPort, type AgentName, type ModelEvent, type ModelRequest } from './model.port';
 import { GroqStream, RateWindow, RequestWindow, dailyLimit, geminiLimit, parseDuration, toGroqBody, tooLarge, undoDoubleEscapes, type CompatProvider, type ReasoningEffort } from './groq';
@@ -12,7 +12,7 @@ const URLS: Record<CompatProvider, string> = {
   gemini: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
 };
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-/** Longest an agent waits for free-tier quota before the mock answers instead. Triage is
+/** Longest an agent waits for free-tier quota before the call fails. Triage is
  *  shortest: questions must leave `pending` within seconds. */
 const MAX_WAIT_MS: Record<AgentName, number> = { triage: 6_000, lead: 60_000, thread: 30_000, scribe: 60_000 };
 /** expected output tokens per call, for pacing */

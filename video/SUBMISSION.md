@@ -39,8 +39,8 @@ posting.
 ნომრებით.
 
 **ტექნოლოგია.** React + Vite (ვები), NestJS (API და აგენტები), Supabase (Postgres, RLS,
-realtime), Zod-ით შემოწმებული Board Script, Claude Haiku 5.5 production-ში და სათადარიგო
-mock მასწავლებელი, რომელიც სრულ გაკვეთილს ქსელის გარეშეც ატარებს.
+realtime), Zod-ით შემოწმებული Board Script, Claude Haiku 5.5 production-ში; თუ მოდელი ვერ
+პასუხობს, კლასი ამას აჩვენებს და ელოდება, სანამ მასპინძელი გააგრძელებს.
 
 ## English
 
@@ -70,8 +70,8 @@ conflicts, because the board is an append-only log with a single writer and gap-
 sequence numbers.
 
 **How it is built.** React + Vite web app, NestJS API and agents, Supabase (Postgres, row
-level security, realtime), Board Script validated with Zod, Claude Haiku 5.5 in production
-and a scripted mock tutor that runs a full class offline. Tested with 103 unit tests, 105 API
+level security, realtime), Board Script validated with Zod, Claude Haiku 5.5 in production;
+when a model call fails the class says so and waits for the host to resume. Tested with 103 unit tests, 105 API
 end-to-end tests and 50 database checks (counts from `docs/TASKS.md`, 2026-10-17).
 
 ## Video description (YouTube or similar)

@@ -450,7 +450,7 @@ table.fit td.v{font:400 26px/1.4 var(--read)}
       <img class="shot" src="img/phone-check.png" alt="The same class on a phone: lesson tabs across the top, the board, and the check with the answer sent" style="width:272px;height:580px;object-position:0 0;justify-self:end">
     </div>
   </div></div>
-  <aside class="notes">Switch to the laptops now. 1. The host opens the room "Solana PDAs" and three people join by QR code. 2. The tutor teaches: everyone's board draws in sync. 3. Two people ask "why can't a PDA sign?" in different words; they become one card, grouped, 2 asked. 4. One person asks a third question about bump seeds and gets "Want to dig in 1:1?"; a thread opens with its own mini board while the class keeps teaching. 5. The check runs: 3 of 4 got it; the gate passes without waiting for the person in the thread. 6. Q&amp;A beat: the tutor answers the grouped question on the board and credits both askers. 7. The thread learner returns and sees the catch-up card; shared notes appear for everyone. If the network fails: switch the API to MODEL=mock (the scripted tutor) and continue; last resort is a recorded run.</aside>
+  <aside class="notes">Switch to the laptops now. 1. The host opens the room "Solana PDAs" and three people join by QR code. 2. The tutor teaches: everyone's board draws in sync. 3. Two people ask "why can't a PDA sign?" in different words; they become one card, grouped, 2 asked. 4. One person asks a third question about bump seeds and gets "Want to dig in 1:1?"; a thread opens with its own mini board while the class keeps teaching. 5. The check runs: 3 of 4 got it; the gate passes without waiting for the person in the thread. 6. Q&amp;A beat: the tutor answers the grouped question on the board and credits both askers. 7. The thread learner returns and sees the catch-up card; shared notes appear for everyone. If the network fails: switch to a phone hotspot; the class holds with a notice until the host resumes; last resort is a recorded run.</aside>
 </section>
 
 <!-- ============ 10 TRACK FIT ============ -->
@@ -515,7 +515,7 @@ table.fit td.v{font:400 26px/1.4 var(--read)}
         <text x="778" y="58" font-weight="800" font-size="24" style="font-stretch:78%">ModelPort</text>
         <text x="778" y="92" fill="#4a463d">Groq free tier</text>
         <text x="778" y="120" fill="#4a463d">Claude Haiku 4.5</text>
-        <text x="778" y="148" fill="#4a463d">mock tutor (scripted)</text>
+        <text x="778" y="148" fill="#4a463d">Gemini free tier (tests)</text>
 
         <path d="M530 175 V214" stroke="#1b1a17" stroke-width="1.5"/><path d="M522 206 L530 216 L538 206" fill="none" stroke="#1b1a17" stroke-width="1.5"/>
 
@@ -551,7 +551,7 @@ table.fit td.v{font:400 26px/1.4 var(--read)}
       <div class="metric-item">
         <span class="stamp ok" style="align-self:flex-start">Demo insurance</span>
         <p class="metric">1</p>
-        <p class="caption">ModelPort: swap Groq, Haiku or the scripted mock tutor without touching the agents</p>
+        <p class="caption">ModelPort: swap Groq, Gemini or Haiku without touching the agents</p>
       </div>
     </div>
     <div class="well" style="margin-top:auto;padding:14px 18px;display:grid;grid-template-columns:auto 1fr;gap:6px 18px;align-items:baseline">
@@ -559,7 +559,7 @@ table.fit td.v{font:400 26px/1.4 var(--read)}
       <p class="label">Not yet measured</p><p class="caption" style="color:var(--ink)">real-model latency and cost per class <span class="mono">[TK]</span></p>
     </div>
   </div></div>
-  <aside class="notes">Cost is an estimate from our design, not a measurement yet: for a 45-minute class of five on Claude Haiku 4.5, about 15 lead-tutor segments, 30 triage calls and 30 thread turns come to roughly 30 to 60 cents per class before caching. Today the agents run on Groq's free tier, spread over free models (gpt-oss-120b for the lead tutor, qwen3 for threads, gpt-oss-20b for triage and scribe), which comfortably runs one class at a time. Everything goes through one ModelPort, so switching to Claude Haiku is one environment variable, and the scripted mock tutor is our insurance if venue Wi-Fi fails. A per-room token budget stops a public room from burning money.</aside>
+  <aside class="notes">Cost is an estimate from our design, not a measurement yet: for a 45-minute class of five on Claude Haiku 4.5, about 15 lead-tutor segments, 30 triage calls and 30 thread turns come to roughly 30 to 60 cents per class before caching. Today the agents run on Groq's free tier, spread over free models (gpt-oss-120b for the lead tutor, qwen3 for threads, gpt-oss-20b for triage and scribe), which comfortably runs one class at a time. Everything goes through one ModelPort, so switching to Claude Haiku is one environment variable, and a failed model call shows a notice and holds the class instead of making something up. A per-room token budget stops a public room from burning money.</aside>
 </section>
 
 <!-- ============ 14 TEAM AND CLOSE ============ -->

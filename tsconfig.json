@@ -1,4 +1,4 @@
 {
   "extends": "./tsconfig.base.json",
-  "include": ["packages/schema/src", "packages/schema/test", "packages/board/src", "packages/board/test", "packages/mock-tutor/src", "packages/mock-tutor/test"]
+  "include": ["packages/schema/src", "packages/schema/test", "packages/board/src", "packages/board/test"]
 }

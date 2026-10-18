@@ -11,7 +11,6 @@ import { LeadTutorAgent } from '../agents/lead-tutor.agent';
 import { TriageService } from '../triage/triage.service';
 import { ScribeAgent } from '../agents/scribe.agent';
 import { PresenceService } from '../presence/presence.service';
-import { UsageMeter } from '../agents/metered.model';
 import { RetrieveService } from '../rag/retrieve.service';
 import { IngestWorker } from '../rag/ingest.worker';
 import { RoomConductor } from './room-conductor';
@@ -32,14 +31,10 @@ export class ConductorService implements OnApplicationBootstrap, OnModuleDestroy
     private triage: TriageService,
     private scribe: ScribeAgent,
     private presence: PresenceService,
-    meter: UsageMeter,
     private retrieve: RetrieveService,
     private ingest: IngestWorker,
   ) {
     this.presence.onMembersChanged((id) => void this.for(id).membersChanged());
-    meter.onBudgetExceeded((roomId) => void this.roomsService.get(roomId)
-      .then((room) => this.events.append(room.main_stream_id, 'notice', { text: 'This class reached its AI budget; the backup tutor takes over.', level: 'warn' }, 'system'))
-      .catch(() => undefined));
   }
 
   /** rooms whose lease this instance held at its last check, with when that was */

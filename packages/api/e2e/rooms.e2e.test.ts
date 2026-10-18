@@ -12,7 +12,7 @@ describe('GET /health', () => {
   it('answers without a token and names the model', async () => {
     const r = await api(null, 'GET', '/health');
     expect(r.status).toBe(200);
-    expect(r.body).toMatchObject({ ok: true, model: 'mock' });
+    expect(r.body).toMatchObject({ ok: true, model: expect.stringMatching(/^(anthropic|gemini|groq)$/) });
   });
 });
 

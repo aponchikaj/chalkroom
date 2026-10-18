@@ -1,7 +1,7 @@
 // packages/api/src/agents/teach-stream.ts
 // teach_segment, streamed: each complete step is validated and drawn as soon as it is written
-// (UX rule 6); the final tool input is still validated in full and fills any gap. The mock
-// emits no deltas, so it takes the final-input path and behaves exactly as before.
+// (UX rule 6); the final tool input is still validated in full and fills any gap. A model that
+// emits no deltas takes the final-input path.
 import { BoardStep, Question, TeachSegment } from '@chalk/schema';
 import type { ModelPort, ModelRequest } from './model.port';
 import { StepStreamer } from './step-streamer';

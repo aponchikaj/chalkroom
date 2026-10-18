@@ -4,7 +4,7 @@
 //   POST /rooms/:id/host/pin          a question's group is answered in the next Q&A
 //   GET  /rooms/:id/host/checks/:checkId/answers   who answered a check (host only)
 // Every control posts a class notice. No model is called here: re-explain and pin only queue a
-// class-routed cluster, which the lead tutor (or the mock) answers in the Q&A beat as usual.
+// class-routed cluster, which the lead tutor answers in the Q&A beat as usual.
 import { Body, ConflictException, Controller, ForbiddenException, Get, HttpCode, NotFoundException, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
 import { z } from 'zod';
 import { Api, type HostCheckAnswer, type HostClusterRes, type OkRes, type QuestionRow } from '@chalk/schema';

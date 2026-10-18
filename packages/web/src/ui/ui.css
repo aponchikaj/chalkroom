@@ -95,7 +95,7 @@
 
 /* ---------- phone pass (lane P): on the pages around the class (not the classroom), the small
    label size and printed stamps read at 12px; nothing under 12px on a phone. The landing hero
-   mock (.ld-stage) is exempt on purpose: a scaled picture of a class that speaks through its group label ---------- */
+   picture (.ld-stage) is exempt on purpose: a scaled picture of a class that speaks through its group label ---------- */
 @media (max-width: 760px) {
   .entry, .shelf, .replay, .ld { --t-xs: 0.75rem; }
   .entry .stamp, .shelf .stamp, .replay .stamp { min-height: 24px; font-size: 12px; }

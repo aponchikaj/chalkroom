@@ -1,6 +1,8 @@
 // Latency benchmark against a running stack (local Supabase + API). Prints a Markdown table of
 // p50 / p95 / max in milliseconds for each route and for the key moments of a class.
-// Usage: npm run bench            (API must run: npm run dev:api; mock tutor for stable numbers)
+// The class part makes real model calls (paid on Anthropic; free-tier quota on Gemini or Groq),
+// so its timings include the model.
+// Usage: npm run bench            (API must run with a model key: npm run dev:api)
 //        BENCH_N=50 npm run bench (samples per route, default 20)
 import { readFileSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
@@ -48,6 +50,8 @@ const until = (u, pred, max = 30000) => new Promise((resolve, reject) => {
 
 const health = await fetch(`${API}/health`).then((r) => r.json()).catch(() => null);
 if (!health) { console.error(`API not reachable at ${API}`); process.exit(1); }
+if (!['anthropic', 'gemini', 'groq'].includes(health.model)) { console.error(`The API at ${API} reports model "${health.model}"; the bench runs a class and needs a real model (ANTHROPIC_API_KEY, GEMINI_API_KEY or GROQ_API_KEY).`); process.exit(1); }
+console.log(`Note: the class part costs real model calls on ${health.model}${health.model === 'anthropic' ? ' (paid)' : ' (free-tier quota)'}.`);
 
 // accounts
 const signups = [];
@@ -71,7 +75,7 @@ const asks = [];
 for (let i = 0; i < Math.min(N, 6); i++) asks.push((await call(gio, 'POST', `/rooms/${created[i].id}/questions`, { text: `q ${i}` })).t);
 record('POST /rooms/:id/questions', asks, 'max 6 samples: rate limit is 6/min per user');
 
-// a class (mock tutor)
+// a class (real model calls)
 const room = created[0];
 await Promise.all([subscribe(ana, room.id), subscribe(gio, room.id)]);
 const t0 = performance.now();

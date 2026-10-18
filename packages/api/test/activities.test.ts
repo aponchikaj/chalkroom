@@ -1,22 +1,34 @@
 // Lane M: quiz duel scoring, grading and sequencing; teach-back timeouts; the activities agent.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { StreamEventData, type Question } from '@chalk/schema';
-import { mockDuel, mockTeachbackFeedback } from '@chalk/mock-tutor';
 import { DUEL, DuelRun, leaderboard, mostMissed, scoreAnswer, spreadOf } from '../src/activities/duel';
 import { TEACHBACK, TeachbackRun } from '../src/activities/teachback';
 import { ActivitiesAgent, DuelQuestionIn } from '../src/agents/activities.agent';
 import { ModelPort, type ModelEvent, type ModelRequest } from '../src/agents/model.port';
 
+/** A model that answers every request with the tool input `answer` returns. */
 class FakeModel extends ModelPort {
   readonly name = 'fake';
   calls: ModelRequest[] = [];
-  constructor(private answer?: (req: ModelRequest) => unknown) { super(); }
+  constructor(private answer: (req: ModelRequest) => unknown) { super(); }
   async *stream(req: ModelRequest): AsyncIterable<ModelEvent> {
     this.calls.push(req);
-    yield { type: 'tool', name: req.tool.name, input: this.answer ? this.answer(req) : req.mock() };
+    yield { type: 'tool', name: req.tool.name, input: this.answer(req) };
     yield { type: 'done', stopReason: 'tool_use' };
   }
 }
+
+const DUEL_ANSWER = {
+  questions: [
+    { type: 'mcq', prompt: 'Who can sign for a PDA?', options: ['Its key holder', 'Its program'], answer: 1, topic: 'Who signs for a PDA' },
+    { type: 'tf', prompt: 'A PDA lies on the curve.', answer: false, topic: 'Off the curve' },
+    { type: 'numeric', prompt: 'Which bump is tried first?', answer: 255, topic: 'The canonical bump' },
+    { type: 'tf', prompt: 'The bump counts upward.', answer: false, topic: 'The canonical bump' },
+    { type: 'mcq', prompt: 'What does invoke_signed re-derive?', options: ['A key', 'The PDA'], answer: 1, topic: 'Signing' },
+    { type: 'tf', prompt: 'A program stores its PDA key.', answer: false, topic: 'Signing' },
+  ],
+};
+const FEEDBACK_ANSWER = { markdown: 'Thank you, Ana. You got the heart of it.', missing: ['Only its program signs for it'], steps: [{ say: 'Here is what to add.' }] };
 
 const qs: Question[] = [
   { id: 'd0', type: 'mcq', prompt: 'Who signs?', options: ['Key', 'Program'], answer: 1, difficulty: 2, topic: 'Who signs' },
@@ -127,7 +139,7 @@ describe('TeachbackRun', () => {
     const out: { kind: string; data: any }[] = [];
     const run = new TeachbackRun('tb', 'Explain why a PDA has no private key.', {
       emit: async (kind, data) => { StreamEventData[kind].parse(data); out.push({ kind, data }); },
-      critique: async (name, text) => mockTeachbackFeedback('PDAs', text, name),
+      critique: async (name, text) => ({ markdown: `Thank you, ${name.split(' ')[0]}.`, missing: /invoke_signed/.test(text) ? [] : ['Only its program signs for it'], steps: [{ say: 'Here is what to add.' }] }),
     });
     return { run, out };
   };
@@ -144,8 +156,7 @@ describe('TeachbackRun', () => {
     expect(out.map((e) => e.kind)).toEqual(['teachback_invite', 'teachback_volunteer', 'teachback_explanation', 'teachback_feedback', 'board']);
     const fb = out[3].data;
     expect(fb.markdown).toMatch(/Ana/);
-    expect(fb.missing).toContain('Only its program signs for it, with invoke_signed');
-    expect(fb.missing).not.toContain('So no private key exists for it');
+    expect(fb.missing).toEqual(['Only its program signs for it']);
   });
 
   it('ends with a notice when nobody volunteers in 60 s', async () => {
@@ -170,27 +181,35 @@ describe('TeachbackRun', () => {
 });
 
 describe('ActivitiesAgent', () => {
-  it('writes graded duel questions from the mock (the PDA lesson so far)', async () => {
-    const agent = new ActivitiesAgent(new FakeModel());
+  it('writes graded duel questions from the tool call, capped at the count', async () => {
+    const agent = new ActivitiesAgent(new FakeModel(() => DUEL_ANSWER));
     const q = await agent.writeDuel({ prefix: '', plan: null, segment: 0, summaries: [], count: 5 });
     expect(q).toHaveLength(5);
     expect(q.map((x) => x.id)).toEqual(['d0', 'd1', 'd2', 'd3', 'd4']);
     expect(q.every((x) => ['mcq', 'tf', 'numeric'].includes(x.type) && x.answer !== undefined && x.topic)).toBe(true);
-    expect(mockDuel(3, 0).questions.every((x) => x.segment === 0)).toBe(true);
   });
 
   it('rejects a duel question whose answer does not fit its type, and repairs once', async () => {
     expect(DuelQuestionIn.safeParse({ type: 'mcq', prompt: 'p', options: ['a', 'b'], answer: 2, topic: 't' }).success).toBe(false);
     expect(DuelQuestionIn.safeParse({ type: 'tf', prompt: 'p', answer: 1, topic: 't' }).success).toBe(false);
     let n = 0;
-    const model = new FakeModel((req) => (n++ === 0 ? { questions: [{ type: 'tf', prompt: 'p', answer: 'yes', topic: 't' }] } : req.mock()));
+    const model = new FakeModel(() => (n++ === 0 ? { questions: [{ type: 'tf', prompt: 'p', answer: 'yes', topic: 't' }] } : DUEL_ANSWER));
     const q = await new ActivitiesAgent(model).writeDuel({ prefix: '', plan: null, segment: 2, summaries: [], count: 3 });
     expect(model.calls).toHaveLength(2);
     expect(q).toHaveLength(3);
   });
 
   it('critiques a teach-back with a valid feedback event', async () => {
-    const fb = await new ActivitiesAgent(new FakeModel()).teachbackFeedback({ prefix: '', concept: 'PDAs', name: 'Ana', text: 'seeds' });
+    const fb = await new ActivitiesAgent(new FakeModel(() => FEEDBACK_ANSWER)).teachbackFeedback({ prefix: '', concept: 'PDAs', name: 'Ana', text: 'seeds' });
     expect(StreamEventData.teachback_feedback.safeParse({ teachbackId: 'x', ...fb }).success).toBe(true);
+  });
+
+  it('throws when the model fails, so the caller can answer 503 (no scripted duel)', async () => {
+    class Down extends ModelPort {
+      readonly name = 'down';
+      // eslint-disable-next-line require-yield
+      async *stream(): AsyncIterable<ModelEvent> { throw new Error('model down'); }
+    }
+    await expect(new ActivitiesAgent(new Down()).writeDuel({ prefix: '', plan: null, segment: 0, summaries: [], count: 3 })).rejects.toThrow(/model down/);
   });
 });

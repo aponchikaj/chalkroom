@@ -1,9 +1,8 @@
 // Lane M: the tutor's side of the live activities. Writes quiz duel questions and critiques a
-// teach-back. One validated tool call each, through ModelPort, with a scripted mock answer.
+// teach-back. One validated tool call each, through ModelPort; a failure throws to the caller.
 import { readFileSync } from 'node:fs';
 import { z } from 'zod';
 import { BoardStep, type LessonPlan, type Question } from '@chalk/schema';
-import { mockDuel, mockTeachbackFeedback } from '@chalk/mock-tutor';
 import type { ModelPort } from './model.port';
 import { callValidated, toolFrom } from './agent-utils';
 
@@ -58,7 +57,6 @@ export class ActivitiesAgent {
     const out = await callValidated(this.model, {
       agent: 'lead', roomId: c.roomId, prefix: c.prefix, system: PROMPT, tool: duelTool, maxTokens: 1800,
       messages: [{ role: 'user', content: `Quiz duel: write ${c.count} questions.\n\nTaught so far:\n${taught}\n\nSegment summaries:\n${c.summaries.join('\n\n') || '(none yet)'}\n\nCall write_duel.` }],
-      mock: () => mockDuel(c.count, c.segment),
     }, DuelQuiz);
     return out.questions.slice(0, c.count).map((q, i) => toQuestion(q, i));
   }
@@ -67,7 +65,6 @@ export class ActivitiesAgent {
     return callValidated(this.model, {
       agent: 'lead', roomId: c.roomId, prefix: c.prefix, system: PROMPT, tool: feedbackTool, maxTokens: 1500,
       messages: [{ role: 'user', content: `Teach-back on: ${c.concept}\n\n${c.name} explained to the class:\n"""\n${c.text}\n"""\n\nCall teachback_feedback.` }],
-      mock: () => mockTeachbackFeedback(c.concept, c.text, c.name),
     }, TeachbackCritique);
   }
 }

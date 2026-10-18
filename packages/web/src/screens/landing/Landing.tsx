@@ -1,6 +1,6 @@
 // The landing page for signed-out visitors at "/": a composition notebook lying open on the
 // desk. Fore-edge divider tabs are the navigation; the hero is the real board replaying the
-// mock tutor's lesson (silently, see HeroClass). The optional three.js intro was removed: it did
+// demo lesson (silently, see HeroClass and demoLesson). The optional three.js intro was removed: it did
 // not read better than the 2D hero, and its models were not Draco-packed as the plan asks. Honest copy only: no numbers except product
 // limits, and nothing the product does not do.
 import { useEffect, useRef, useState, type FormEvent, type MouseEvent } from 'react';

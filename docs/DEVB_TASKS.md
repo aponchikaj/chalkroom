@@ -1,11 +1,16 @@
 # Dev B tasks: backend and agents (Lazare Mirziashvili)
 
+> **Update 2026-10-18:** the scripted mock tutor (`packages/mock-tutor`, `MockModel`, `FallbackModel`,
+> `MODEL=mock`) was removed. Every class runs on a real model; on a model failure the class shows
+> a notice and holds (see `CLAUDE.md` and `docs/design.md`, Failure handling). Mentions of the
+> mock below are history.
+
 Every Dev B task from `docs/TASKS.md`, expanded: what exists today, what to build, the design
 decisions, the traps found while reading the code, and how to know it is done. The step-by-step
 implementation (files, code, tests, commands) is in [`PLANS_DEVB.md`](PLANS_DEVB.md).
 
 Read first: `docs/design.md` (product), `docs/TASKS.md` (lanes and milestones), `CLAUDE.md`
-(architecture rules). Dev B owns `packages/api/**`, `supabase/**`, `packages/mock-tutor/**`.
+(architecture rules). Dev B owns `packages/api/**`, `supabase/**`.
 `packages/schema/**` is shared: change it first, in its own small PR, reviewed by Dev A.
 
 ## Decisions (2026-10-17)
@@ -54,11 +59,11 @@ screens.
   Postgres 17 in Docker; production is the hosted project (`.env.production.local`).
 - **Gate before each commit:** `npm run typecheck`, `npm test`, `npm run test:api` (e2e
   against the local stack), `npm run test:db` (pgTAP) when SQL changed, and with the API
-  running, `npm run smoke` (mock tutor, two users, full class).
+  running with a model key, `npm run smoke` (two users, full class; real model calls).
 - **Try it by hand:** http://localhost:3001/sandbox/ (dev console) or
   `packages/api/sandbox/api.http`. Add every new route to both (see `packages/api/README.md`).
-- **Mock first:** every agent keeps a working `mock` answer; `MODEL=mock` must always run a full
-  class.
+- **No mock:** agents call models through `ModelPort`; a failure shows a notice and holds the
+  class, never scripted content.
 - **One writer:** stream events only through `EventsService.append`; rows only from the API.
 - **Contract:** never send a shape not in `packages/schema/src/live.ts`. B6 (moderation), B9 and
   B10 (profiles), B11 (2FA) and B12 (sources) need contract changes; each goes first, in its
@@ -541,4 +546,4 @@ shapes.
 - [ ] Profiles and profile pictures (B10)
 - [ ] Two-factor authentication: authenticator app and email codes (B11)
 - [ ] Tutors cite uploaded material, web pages, past notes and the class transcript (B12)
-- [ ] `npm run smoke` green, and a rehearsal with `MODEL=mock`
+- [ ] `npm run smoke` green, and a rehearsal on the production model

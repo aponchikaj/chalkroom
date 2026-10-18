@@ -1,20 +1,20 @@
-// The hero: the real board replays the mock tutor's PDA lesson on a timer, with people as
+// The hero: the real board replays the demo PDA lesson (./demoLesson) on a timer, with people as
 // punched holes and two questions that merge into one grouped sticky. It runs its own silent
 // Player (never mainPlayer) and never speaks: narration only advances the captions at reading
 // pace. Playback, and the clock that drives it, stop while the hero is off screen or the tab is
 // hidden. The board is framed on the part of the page this lesson draws on (see .ld-frame).
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { StreamEvent } from '@chalk/schema';
-import { PDA_SEGMENTS, mockClusterAnswer } from '@chalk/mock-tutor';
 import { Board, usePlayer } from '../../board/Board';
 import { Player } from '../../lib/player';
 import { Punch } from '../../ui/Punch';
 import { Stamp } from '../../ui/Stamp';
 import { prefersReducedMotion } from '../../ui/motion';
+import { DEMO_SEGMENT, demoClusterAnswer } from './demoLesson';
 
 type Steps = StreamEvent<'board'>['data']['steps'];
 
-const SEGMENT = PDA_SEGMENTS[0];
+const SEGMENT = DEMO_SEGMENT;
 /** The figure (title, wallet, program, PDA) and the formula, with their narration. The closing
  *  sticky note and last line are left out so the Q&A arrives while the visitor still watches. */
 const LESSON: Steps = SEGMENT.steps.slice(0, Math.max(1, SEGMENT.steps.findIndex((s) => 'highlight' in s)));
@@ -165,7 +165,7 @@ export function HeroClass() {
           await wait(2400);
           if (player.busy) player.interrupt();
           setPhase(5);
-          player.push(board(seq + 2, mockClusterAnswer(CLUSTER, ['Gio', 'Mari'])), true);
+          player.push(board(seq + 2, demoClusterAnswer(CLUSTER, ['Gio', 'Mari'])), true);
           // answered once the answer box is on the board (about 18 s)
           await wait(5600); setPhase(6);
           await wait(1500, idle);

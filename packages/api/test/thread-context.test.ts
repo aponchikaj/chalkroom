@@ -1,7 +1,7 @@
 // packages/api/test/thread-context.test.ts
 import { describe, it, expect } from 'vitest';
 import { describeBoard } from '@chalk/board';
-import { mockTeach } from '@chalk/mock-tutor';
+import { SAMPLE_SEGMENTS } from './fixtures';
 import type { StreamEvent } from '@chalk/schema';
 import { boardOf, chatHistory } from '../src/threads/thread-context';
 
@@ -27,7 +27,7 @@ describe('chatHistory', () => {
 describe('boardOf', () => {
   it('replays board and answer_cluster steps of the main stream', () => {
     const state = boardOf([
-      ev('board', { steps: mockTeach(0).steps }),
+      ev('board', { steps: SAMPLE_SEGMENTS[0].steps }),
       ev('segment_end', { segment: 0 }),
     ]);
     expect(describeBoard(state).shapes.map((s) => s.id)).toContain('pda');

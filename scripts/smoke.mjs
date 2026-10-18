@@ -1,9 +1,11 @@
-// End-to-end smoke test against a running stack (Supabase + API in mock mode):
+// End-to-end smoke test against a running stack (Supabase + an API with a real model):
 //   two anonymous users → create + join → both subscribe to the private room channel →
 //   host starts → board events arrive in seq order → both answer the check and vote ready →
 //   check_closed with the spread → next segment starts. Exercises RLS, realtime auth,
 //   append_event, the broadcast triggers and the conductor's gate.
-// Usage: npm run db:start && npm run env && npm run dev:api   (other terminal)  →  npm run smoke
+// A full class makes real model calls (paid on Anthropic; free-tier quota on Gemini or Groq).
+// Usage: npm run db:start && npm run env && GEMINI_API_KEY=... npm run dev:api   (other terminal)
+//        →  npm run smoke
 import { readFileSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
 
@@ -49,7 +51,7 @@ function subscribe(u, roomId) {
   });
 }
 
-let SLOW = 1; // a real model on a free tier waits for quota: give it longer
+let SLOW = 1; // a free tier waits for quota: give it longer
 const waitFor = (u, pred, what, ms = 30000 * SLOW) => Promise.race([
   new Promise((resolve) => { const t = setInterval(() => { const hit = u.events.find(pred); if (hit) { clearInterval(t); resolve(hit); } }, 100); }),
   timeout(ms, `${u.name}: ${what}`),
@@ -57,8 +59,10 @@ const waitFor = (u, pred, what, ms = 30000 * SLOW) => Promise.race([
 
 try {
   const health = await fetch(`${API}/health`).then((r) => r.json()).catch(() => fail(`API not reachable at ${API}`));
+  if (!['anthropic', 'gemini', 'groq'].includes(health.model)) fail(`the API at ${API} reports model "${health.model}"; the smoke test needs a real model (start the API with ANTHROPIC_API_KEY, GEMINI_API_KEY or GROQ_API_KEY)`);
+  console.log(`Note: a full class costs real model calls on ${health.model}${health.model === 'anthropic' ? ' (paid)' : ' (free-tier quota)'}.`);
   step(`API up (model: ${health.model})`);
-  if (health.model !== 'mock') SLOW = 6;
+  if (health.model !== 'anthropic') SLOW = 6;
 
   const ana = await user('Ana', '#f2d16b');
   const gio = await user('Gio', '#8fc7e8');
@@ -94,20 +98,15 @@ try {
   await ana.call('POST', `/rooms/${room.id}/ready`, { segment: 0 });
   await gio.call('POST', `/rooms/${room.id}/ready`, { segment: 0 });
   const closed = await waitFor(ana, (e) => e.kind === 'check_closed', 'check_closed');
-  // the mock's answer is option 1; a real model writes its own check, so only the shape is known
+  // the model writes its own check, so only the shape is known
   const spread = closed.data.spread;
-  const spreadOk = health.model === 'mock' ? spread.total === 2 && spread.correct === 1 : spread.total === 2 && spread.correct >= 0 && spread.correct <= 2;
+  const spreadOk = spread.total === 2 && spread.correct >= 0 && spread.correct <= 2;
   if (!spreadOk) fail(`unexpected spread ${JSON.stringify(spread)}`);
   step(`gate passed: ${closed.data.spread.correct}/${closed.data.spread.total} got it`);
-  if (health.model === 'mock') {
-    await waitRow(ana, (r) => r.table === 'clusters' && r.row.route === 'class' && r.row.asker_count === 2, 'a grouped class cluster');
-    const qa = await waitFor(gio, (e) => e.kind === 'answer_cluster', 'the Q&A beat answer');
-    if (!['Ana', 'Gio'].every((n) => qa.data.askers.includes(n))) fail(`Q&A credit missing an asker: ${qa.data.askers.join(', ')}`);
-    step(`triage grouped 2 questions; Q&A credited ${qa.data.askers.join(' and ')}`);
-  } else {
-    // a real model decides itself: report what it did, require only that nothing stays pending
+  {
+    // the model decides itself: report what it did, require only that nothing stays pending
     const c = await waitRow(ana, (r) => r.table === 'clusters', 'a cluster');
-    step(`triage (real model): "${c.row.title}" routed ${c.row.route}, ${c.row.asker_count} asker(s)`);
+    step(`triage: "${c.row.title}" routed ${c.row.route}, ${c.row.asker_count} asker(s)`);
   }
   await waitFor(ana, (e) => e.kind === 'segment_start' && e.data.segment === 1, 'segment 1');
   step('segment 1 started');

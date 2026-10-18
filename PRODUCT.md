@@ -71,7 +71,8 @@ triage, scribe) working on one shared classroom at once.
 ## Evidence on Hand
 
 - `docs/design.md`: the full product design (journey, screens, agents, demo script).
-- A scripted demo lesson on Solana Program Derived Addresses (`packages/mock-tutor`).
+- A static demo lesson on Solana Program Derived Addresses, replayed on the landing page
+  (`packages/web/src/screens/landing/demoLesson.ts`).
 - No users, testimonials, metrics or press exist yet; none may be invented.
 
 ## Product Principles

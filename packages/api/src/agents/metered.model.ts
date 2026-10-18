@@ -1,21 +1,23 @@
 // packages/api/src/agents/metered.model.ts
-// Wraps the model: logs usage per call and keeps per-room totals (B6 adds the budget).
+// Wraps the model: logs usage per call, keeps per-room totals and enforces the room budget (B6).
 import { Injectable } from '@nestjs/common';
 import { ModelPort, type ModelEvent, type ModelRequest, type Usage } from './model.port';
+
+/** A room spent its token budget: no more model calls for it. The conductor holds the class. */
+export class BudgetExceeded extends Error {
+  constructor(readonly roomId: string) {
+    super(`room ${roomId.slice(0, 8)} reached its token budget`);
+    this.name = 'BudgetExceeded';
+  }
+}
 
 @Injectable()
 export class UsageMeter {
   private rooms = new Map<string, Usage>();
-  private exceeded = new Set<string>();
-  private listeners: ((roomId: string) => void)[] = [];
 
-  onBudgetExceeded(fn: (roomId: string) => void) { this.listeners.push(fn); }
-
-  /** true once a room spent its budget; the first time also notifies the listeners */
+  /** true once a room spent its budget */
   overBudget(roomId: string, budget: number): boolean {
-    if (this.total(roomId) < budget) return false;
-    if (!this.exceeded.has(roomId)) { this.exceeded.add(roomId); for (const fn of this.listeners) fn(roomId); }
-    return true;
+    return this.total(roomId) >= budget;
   }
   add(roomId: string, u: Usage) {
     const t = this.rooms.get(roomId) ?? { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
@@ -31,16 +33,16 @@ export class UsageMeter {
 export class MeteredModel extends ModelPort {
   readonly name: string;
   constructor(private inner: ModelPort, private meter: UsageMeter, private log: (m: string) => void,
-    /** B6: over this many tokens a room answers from `fallback` (the mock) */
-    private budget?: { tokens: number; fallback: ModelPort }) {
+    /** B6: over this many tokens a room's calls throw BudgetExceeded */
+    private budget?: { tokens: number }) {
     super();
     this.name = inner.name;
   }
 
   async *stream(req: ModelRequest): AsyncIterable<ModelEvent> {
     const started = Date.now();
-    const source = this.budget && req.roomId && this.meter.overBudget(req.roomId, this.budget.tokens) ? this.budget.fallback : this.inner;
-    for await (const e of source.stream(req)) {
+    if (this.budget && req.roomId && this.meter.overBudget(req.roomId, this.budget.tokens)) throw new BudgetExceeded(req.roomId);
+    for await (const e of this.inner.stream(req)) {
       if (e.type === 'done' && e.usage) {
         if (req.roomId) this.meter.add(req.roomId, e.usage);
         const u = e.usage;

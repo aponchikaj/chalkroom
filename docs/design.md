@@ -246,7 +246,8 @@ the lobby or ended are released at the heartbeat.
 
 | Failure | Behaviour |
 |---|---|
-| Model error or timeout | The adapter retries (the Anthropic SDK twice; Groq and Gemini once on a 503, then the provider's spare models), then the scripted mock tutor answers through `FallbackModel` |
+| Model error or timeout | The adapter retries (the Anthropic SDK twice; Groq and Gemini once on a 503, then the provider's spare models). The lead tutor then retries the segment twice with backoff while nothing is drawn; if it still fails the class shows a notice and holds at the gate until the host presses Resume (teach it again), Skip or End. A thread posts a short error; triage routes to the next Q&A; course drafts and duels answer 503. There is no scripted fallback |
+| Room token budget reached | A notice, and the class holds; the host may end the class |
 | Invalid Board Script | Zod error sent back to the model for one repair pass; if still invalid, the tutor answers text-only in chat |
 | Client drops | Presence leave after 15 s; the gate stops counting them; rejoin replays from `lastSeq` |
 | Nest restarts | Phase and events are in Postgres; the conductor resumes on the next tick |
@@ -259,7 +260,7 @@ the lobby or ended are released at the heartbeat.
 about 8000 tokens per minute, so the agents use different models: the lead tutor
 `openai/gpt-oss-120b`, the thread tutor `qwen/qwen3.8-27b`, and triage, the scribe, lesson
 planning and Q&A answers `openai/gpt-oss-20b`. The API paces calls from Groq's rate-limit
-headers and falls back to the scripted tutor when quota is not back in time. All three
+headers; when quota is not back in time the call fails and the class shows it (Failure handling). All three
 produced valid Board Script on the first try in testing. The free tier is for testing only.
 
 **Testing on Gemini's free tier (decision 2026-10-18).** Same OpenAI-compatible adapter as
@@ -269,16 +270,21 @@ Groq: lead `gemini-3.6-flash` (same lesson quality as 3.8-flash in the eval, 12 
 longer publishes the numbers; about 10 per minute is reported), so calls are paced per model
 (`GEMINI_RPM`), a per-day 429 moves the agent to the next spare (`GEMINI_SPARES_TUTOR` for the
 tutors, `GEMINI_SPARES_LITE` for triage and the scribe) until the quota
-is back, and the mock answers when nothing is left. Free-tier prompts may be used by Google to
+is back, and the call fails when nothing is left. Free-tier prompts may be used by Google to
 improve its products: test classes only, never real learners' data.
 
 **Production: Claude Haiku 5.5 (`claude-haiku-5-5`) for all four agents (decision
 2026-10-18; the default in `config.ts`, `MODEL_ID` and `MODEL_ID_<AGENT>` override).** The provider
-order is Anthropic, Gemini, Groq, mock (the first key set wins; `MODEL` forces one). At run time a
-failed call falls back to the scripted mock tutor, not to another provider. The request settings in
+order is Anthropic, Gemini, Groq (the first key set wins; `MODEL` forces one; with no key the API
+refuses to start). At run time a failed call does not move to another provider: the class shows
+the failure (Failure handling). The request settings in
 `agents/anthropic.params.ts` (`tool_choice: auto`, adaptive thinking, per-agent effort, the
-server-side refusal fallback) were written while Sonnet 5.5 was the plan; they still need a check
-against Haiku 5.5. The original analysis below was written for Claude Haiku 4.5; the needs are the
+server-side refusal fallback) were written while Sonnet 5.5 was the plan; on 2026-10-18 a real
+class on Haiku 5.5 ran all four agents correctly with them (plan, two taught segments, a grouped
+question answered in class, a thread reply with a board, three summaries).
+
+Price (official, per million tokens, prompts up to 100k): input $0.10, 5-minute cache write
+$0.125, cache hit $0.01, output $0.50. That test class used 44,513 tokens in 9 calls: $0.0066. The original analysis below was written for Claude Haiku 4.5; the needs are the
 same.
 
 **Original choice: Claude Haiku 4.5 for all four agents.**
@@ -355,7 +361,7 @@ the agents.
 | Model | Claude Haiku 5.5 via `@anthropic-ai/sdk` (Gemini or Groq free tiers for testing) | Streaming + tool use + prompt caching |
 | Data / realtime | Supabase Postgres + Realtime + Presence + Storage + Auth | RLS: members read their room; only the service role writes `events` |
 | Hosting | Static web on Vercel or Netlify; Nest on Railway, Fly or Render; Supabase Cloud | One Nest instance for the demo |
-| Demo insurance | `packages/mock-tutor` behind `ModelPort` | Scripted lesson if the network or API fails on stage |
+| Demo insurance | A rehearsed class on the production model, local Supabase | The class shows a model failure and holds; the host resumes |
 
 ### Data model (core tables)
 
@@ -401,7 +407,7 @@ the agents.
 - **Data and demo:** Supabase schema, RLS and broadcast triggers; the demo script; the deck.
 
 **Order:** schema + realtime round trip → lead tutor on a shared board → gates → questions + triage →
-threads → polish → demo rehearsal with the mock tutor as backup.
+threads → polish → demo rehearsal on the production model.
 
 ### Demo script (3 minutes, 3 laptops + 1 phone)
 
@@ -418,7 +424,7 @@ threads → polish → demo rehearsal with the mock tutor as backup.
 
 | Risk | Mitigation |
 |---|---|
-| Venue Wi-Fi | Mock tutor + local Supabase as backup; a recorded run as the last resort |
+| Venue Wi-Fi | A phone hotspot for the model calls, local Supabase; a recorded run as the last resort |
 | Model latency on stage | Streaming steps, pipelined next segment, short segments |
 | Triage over-merges different questions | Show the merged questions in the card; the asker can "unmerge" with one click |
 | Threads feel isolating | Peek/join, Share to class, catch-up cards |

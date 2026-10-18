@@ -13,7 +13,7 @@ packages/api/
     app.module.ts         wires every feature (one module: features depend on each other)
     config.ts             every env var the API reads
     core/                 Supabase client, EventsService (the only event writer), AuthGuard, ZodPipe
-    agents/               ModelPort (+ mock, Claude, fallback), lead/triage/thread/scribe agents, prompts/*.md
+    agents/               ModelPort (Claude, Groq/Gemini, metering), lead/triage/thread/scribe agents, prompts/*.md
     conductor/            RoomConductor: one serial queue per room (phase, gate, teaching)
     rooms/                create, preview, join, leave, start, ready, host, checks, reactions
     questions/            ask, +1
@@ -39,12 +39,15 @@ mail, the embeddings port, sandbox.
 
 | Port | Adapters | Chosen by |
 |---|---|---|
-| `ModelPort` (`agents/model.port.ts`) | `MockModel`; `AnthropicModel` or `GroqModel` (Groq and Gemini, OpenAI-compatible), each inside `FallbackModel` (the mock answers a failed call) and `MeteredModel` (room token budget) | `MODEL`, else the first key set: `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `GROQ_API_KEY` |
+| `ModelPort` (`agents/model.port.ts`) | `AnthropicModel` or `GroqModel` (Groq and Gemini, OpenAI-compatible), inside `MeteredModel` (usage log, room token budget) | `MODEL`, else the first key set: `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `GROQ_API_KEY` |
 | `MailPort` (`mail/mail.port.ts`) | `SmtpMail`, `ConsoleMail` | `SMTP_URL` |
 | `EmbeddingPort` (`rag/embeddings/embedding.port.ts`) | `LocalEmbeddings` (default), `NoEmbeddings` | `EMBEDDINGS`, `EMBEDDING_CACHE` |
 
-Every port has an adapter that needs no network, so `MODEL=mock` with no keys always runs a
-full class.
+There is no scripted tutor: the API refuses to start without a model key. When a model call
+fails, the class shows it: the lead tutor retries a segment twice, then the class holds with a
+notice until the host presses Resume; the room budget holds the class; a thread posts a short
+error; course drafts and duels answer 503. Unit tests use small fake `ModelPort`s in the test
+files. Mail and embeddings still have adapters that need no network.
 
 ## Conventions
 
@@ -63,7 +66,7 @@ full class.
 2. Controller method with `@UseGuards(AuthGuard)` and `new ZodPipe(Api.x)`; logic in a service.
 3. Add it to `sandbox/catalog.js` and `sandbox/api.http`.
 4. Add e2e tests in `e2e/` for the happy path and each error (400, 401, 403, 404, 409).
-5. `npm run typecheck && npm test && npm run test:api && npm run smoke`.
+5. `npm run typecheck && npm test`; with a model key (real model calls), `npm run test:api && npm run smoke`.
 
 ## Commands
 
@@ -71,8 +74,8 @@ full class.
 |---|---|
 | `npm run dev:api` | API on :3001 with `--watch` |
 | `npm test` | unit tests |
-| `npm run test:api` | e2e tests (needs `npm run db:start`; starts a mock API if none runs) |
+| `npm run test:api` | e2e tests (needs `npm run db:start` and a model key: real model calls; starts its own API) |
 | `npm run test:db` | pgTAP database tests |
-| `npm run smoke` | two-user class end to end (API must run) |
+| `npm run smoke` | two-user class end to end (API must run with a model key: real model calls) |
 | `npm run sandbox:tokens` | tokens for `sandbox/api.http` |
 | http://localhost:3001/sandbox/ | dev console |

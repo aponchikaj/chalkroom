@@ -3,7 +3,7 @@
 // through and screenshotted with no backend. Dev builds only (see main.tsx).
 import { useEffect, useMemo, useState } from 'react';
 import type { LaserPayload, PresenceState, QuestionRow, StreamEvent, ThreadRow } from '@chalk/schema';
-import { mockThreadReply } from '@chalk/mock-tutor';
+import { devThreadReply } from './lesson';
 import { mainPlayer, useRoom } from '../room/store';
 import { RoomConnContext } from '../room/context';
 import type { RoomConnection } from '../room/connection';
@@ -96,7 +96,7 @@ function installDevApi() {
       const t = st().threads[threadId];
       const seq = () => threadEvents.filter((e) => e.stream_id === t.stream_id).length + 1;
       emit({ stream_id: t.stream_id, room_id: ROOM_ID, seq: seq(), kind: 'chat', data: { role: 'learner', markdown: b.text, authorId: st().me! }, actor: st().me!, t: now() } as StreamEvent);
-      const r = mockThreadReply(b.text);
+      const r = devThreadReply(b.text);
       later(900, () => emit({ stream_id: t.stream_id, room_id: ROOM_ID, seq: seq(), kind: 'chat', data: { role: 'tutor', markdown: r.markdown }, actor: 'thread', t: now() } as StreamEvent));
       later(1100, () => emit({ stream_id: t.stream_id, room_id: ROOM_ID, seq: seq(), kind: 'board', data: { steps: r.steps }, actor: 'thread', t: now() } as StreamEvent));
     },

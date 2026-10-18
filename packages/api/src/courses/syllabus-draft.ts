@@ -1,8 +1,9 @@
 // Drafts a course syllabus from a title and goal with the lead tutor (planner) through ModelPort.
-// The answer is Chalkroom checkbox Markdown (parseSyllabus); the mock answer is mockSyllabus.
+// The answer is Chalkroom checkbox Markdown (parseSyllabus). A failed draft is a 503: the person
+// can try again or write the syllabus themselves.
+import { ServiceUnavailableException } from '@nestjs/common';
 import { z } from 'zod';
 import { parseSyllabus } from '@chalk/schema';
-import { mockSyllabus } from '@chalk/mock-tutor';
 import type { ModelPort } from '../agents/model.port';
 import { callValidated, toolFrom } from '../agents/agent-utils';
 
@@ -27,14 +28,15 @@ Answer only with the draft_syllabus tool.`;
 /** True when the Markdown has at least one topic line parseSyllabus understands. */
 export const hasTopics = (md: string) => parseSyllabus(md).topics.length > 0;
 
+export const DRAFT_FAILED = 'The tutor could not draft a syllabus right now. Try again, or write the syllabus yourself.';
+
 export async function draftSyllabus(model: ModelPort, title: string, goal: string): Promise<string> {
   try {
     const out = await callValidated(model, {
       agent: 'lead', prefix: PREFIX, system: SYSTEM, tool: draftTool, maxTokens: 1500,
       messages: [{ role: 'user', content: `Course: "${title}"${goal ? `\nGoal: ${goal}` : ''}\n\nCall draft_syllabus.` }],
-      mock: () => ({ syllabusMd: mockSyllabus(title, goal) }),
     }, Draft);
     if (hasTopics(out.syllabusMd)) return out.syllabusMd.trim() + '\n';
-  } catch { /* fall through to the scripted outline */ }
-  return mockSyllabus(title, goal);
+  } catch { /* reported below */ }
+  throw new ServiceUnavailableException(DRAFT_FAILED);
 }

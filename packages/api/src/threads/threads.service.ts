@@ -17,7 +17,8 @@ import { RetrieveService } from '../rag/retrieve.service';
 import { keepKnownCitations } from '../rag/citations';
 
 const greeting = (topic: string) => `Let's dig into **${topic}**. What would you like to know?`;
-const SORRY = 'I could not answer that just now. Try asking again in a moment.';
+/** a failed reply: a short visible error, never a scripted answer */
+export const THREAD_ERROR = 'The tutor could not answer. Try again.';
 
 @Injectable()
 export class ThreadsService {
@@ -120,7 +121,7 @@ export class ThreadsService {
       if (out.steps?.length) await this.events.append(t.stream_id, 'board', { steps: keepKnownCitations(out.steps, await this.retrieve.known(room)) }, 'thread');
     } catch (e) {
       this.log.warn(`thread ${t.id.slice(0, 8)}: reply failed (${(e as Error).message})`);
-      await this.events.append(t.stream_id, 'chat', { role: 'tutor', markdown: SORRY }, 'thread');
+      await this.events.append(t.stream_id, 'chat', { role: 'tutor', markdown: THREAD_ERROR }, 'thread');
     }
   }
 
@@ -147,7 +148,7 @@ export class ThreadsService {
     let answer = markdown?.trim();
     if (!answer) {
       const chats = (await this.events.after(t.stream_id)).filter((e) => e.kind === 'chat');
-      const tutorLines = chats.map((e) => e.data as StreamEventDataOf<'chat'>).filter((d) => d.role === 'tutor' && d.markdown !== greeting(t.topic));
+      const tutorLines = chats.map((e) => e.data as StreamEventDataOf<'chat'>).filter((d) => d.role === 'tutor' && d.markdown !== greeting(t.topic) && d.markdown !== THREAD_ERROR);
       answer = tutorLines.at(-1)?.markdown;
     }
     if (!answer) throw new ConflictException('nothing to share yet');

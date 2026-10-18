@@ -1,5 +1,10 @@
 # Dev B Implementation Plan
 
+> **Update 2026-10-18:** the scripted mock tutor (`packages/mock-tutor`, `MockModel`, `FallbackModel`,
+> `MODEL=mock`) was removed. Every class runs on a real model; on a model failure the class shows
+> a notice and holds (see `CLAUDE.md` and `docs/design.md`, Failure handling). Mentions of the
+> mock below are history.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build every Dev B task (B1 to B7, B9 to B12) so Chalkroom Live runs end to end:

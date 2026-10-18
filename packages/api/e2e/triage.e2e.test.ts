@@ -1,6 +1,6 @@
 // Triage (B2): every question leaves `pending` within ~5 s; similar questions group into one
 // class cluster answered (with credit) in the Q&A beat; a learner's third question on one
-// subtopic offers them a thread. Mock triage clusters by word overlap.
+// subtopic offers them a thread. Runs on the real model, so routing is the model's call.
 import { afterAll, describe, expect, it } from 'vitest';
 import type { ClusterRow, QuestionRow, ThreadRow } from '@chalk/schema';
 import { api, atCheck, closeAll, createRoom, joinRoom, newUser, subscribe, waitEvent, waitRow, type TestUser } from './helpers';

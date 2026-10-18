@@ -20,7 +20,7 @@ export class AnthropicModel extends ModelPort {
     }
     const msg = await stream.finalMessage();
     if (msg.stop_reason === 'max_tokens') throw new Error(`${req.agent}: hit max_tokens`);
-    // declined even after the server-side fallback: the mock tutor answers instead
+    // declined even after the server-side fallback: the caller shows the failure
     if (msg.stop_reason === 'refusal') throw new Error(`${req.agent}: refused (${msg.stop_details?.category ?? 'no category'})`);
     const use = msg.content.find((b): b is Anthropic.Beta.BetaToolUseBlock => b.type === 'tool_use' && b.name === req.tool.name);
     if (use) yield { type: 'tool', name: use.name, input: use.input };
@@ -34,5 +34,3 @@ export class AnthropicModel extends ModelPort {
     };
   }
 }
-
-export { FallbackModel } from './fallback.model';

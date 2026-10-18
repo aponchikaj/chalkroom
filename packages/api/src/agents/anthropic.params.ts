@@ -1,7 +1,7 @@
 // Pure: a ModelRequest -> Claude Messages API params (Claude Sonnet 5.5, the production model).
 // Sonnet 5.5 rejects forced tool use (tool_choice "tool"/"any" is a 400) and "disabled"
 // thinking, so the tool is offered with tool_choice auto and the system prompt names it; a reply
-// without the call is caught by the caller (repair pass, then the mock tutor). Thinking stays
+// without the call is caught by the caller (repair pass, then the caller's failure handling). Thinking stays
 // adaptive and effort is set per agent. Refusals fall back server-side.
 import type Anthropic from '@anthropic-ai/sdk';
 import type { AgentName, ModelRequest } from './model.port';

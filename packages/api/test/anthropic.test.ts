@@ -3,7 +3,7 @@ import { toAnthropicParams } from '../src/agents/anthropic.params';
 
 const req = (agent: string, maxTokens?: number) => ({
   agent, prefix: 'PREFIX', system: 'SYS', messages: [{ role: 'user', content: 'q' }],
-  tool: { name: 'teach_segment', description: 'd', input_schema: { type: 'object' } }, maxTokens, mock: () => null,
+  tool: { name: 'teach_segment', description: 'd', input_schema: { type: 'object' } }, maxTokens,
 }) as never;
 
 describe('toAnthropicParams (Claude Sonnet 5.5)', () => {

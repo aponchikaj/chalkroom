@@ -1,12 +1,12 @@
 // packages/api/test/narration.test.ts
 import { describe, it, expect } from 'vitest';
-import { mockTeach } from '@chalk/mock-tutor';
+import { SAMPLE_SEGMENTS } from './fixtures';
 import type { StreamEvent } from '@chalk/schema';
 import { checkResults, segmentTranscript, summariesOf } from '../src/conductor/narration';
 
 let seq = 0;
 const ev = (kind: string, data: unknown): StreamEvent => ({ stream_id: 'm', room_id: 'r', seq: ++seq, kind, data, actor: 'lead', t: '' } as StreamEvent);
-const seg0 = mockTeach(0);
+const seg0 = SAMPLE_SEGMENTS[0];
 const events = [
   ev('segment_start', { segment: 0, title: seg0.title }),
   ev('board', { steps: seg0.steps }),

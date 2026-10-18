@@ -1,12 +1,12 @@
 // packages/api/test/notes.test.ts
 import { describe, it, expect } from 'vitest';
-import { mockPlan } from '@chalk/mock-tutor';
+import { SAMPLE_PLAN } from './fixtures';
 import { buildNotes } from '../src/notes/notes';
 
 describe('buildNotes', () => {
   it('writes one block per segment, then takeaways and class questions', () => {
     const blocks = buildNotes({
-      plan: mockPlan(),
+      plan: SAMPLE_PLAN,
       summaries: [{ segment: 0, title: 'What is a PDA?', summary: 'A PDA has no key.' }],
       checks: [{ segment: 0, prompt: 'Who can sign?', answerText: 'The program', explanation: 'No key.', correct: 1, total: 2 }],
       clusters: [{ title: 'Why can a PDA not sign?', answer: 'It has no private key.', askers: 2 }],

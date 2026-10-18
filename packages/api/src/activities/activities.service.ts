@@ -10,7 +10,7 @@
 // * rooms.phase is never changed. While an activity runs the gate is held (the conductor's own
 //   Hold), so the class does not move on under it; afterwards the hold goes back to what it was.
 //   If the host skips the gate anyway, the duel ends at its next step.
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import type { RoomRow, StreamEventDataOf, StreamEventKind } from '@chalk/schema';
 import { EventsService } from '../core/events.service';
@@ -106,7 +106,7 @@ export class ActivitiesService {
     } catch (e) {
       this.live.delete(roomId);
       this.log.error(`duel start: ${(e as Error).message}`);
-      throw e instanceof ConflictException ? e : new ConflictException('the tutor could not write the duel; try again');
+      throw e instanceof ConflictException ? e : new ServiceUnavailableException('The tutor could not write the duel. Try again.');
     }
   }
 

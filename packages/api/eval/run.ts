@@ -54,6 +54,7 @@ Object.assign(PROMPTS, variant.prompts ?? {});
 const gemini = config.model === 'gemini';
 const key = gemini ? process.env.GEMINI_API_KEY : process.env.GROQ_API_KEY;
 if (!key) throw new Error(`${gemini ? 'GEMINI_API_KEY' : 'GROQ_API_KEY'} missing (.env.local)`);
+console.log(`Note: every eval case makes real model calls (${gemini ? 'Gemini' : 'Groq'} free tier).`);
 const spares = gemini ? config.geminiSpares : config.groqSpares;
 const modelFor = (agent: string, tool: string) => (tool === 'plan_lesson' || tool === 'answer_cluster' ? config.agentModels.triage : config.agentModels[agent as keyof typeof config.agentModels]);
 // the eval can wait longer for per-minute quota (90 s); spares as in production

@@ -33,7 +33,7 @@
 @sourceId = {{source.response.body.$.id}}
 @sourcePath = {{upload.response.body.$.path}}
 
-### Health (no token): model is mock, anthropic, gemini or groq
+### Health (no token): model is anthropic, gemini or groq
 GET {{api}}/health
 
 ### Sandbox console settings (no token; only while the sandbox is on)

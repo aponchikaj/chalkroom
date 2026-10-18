@@ -10,7 +10,6 @@ const req = {
     { role: 'assistant', content: [{ type: 'tool_use', id: 'repair_1', name: 'teach_segment', input: { title: 'x' } }] },
     { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'repair_1', is_error: true, content: 'Invalid input: steps: Required.' }] },
   ],
-  mock: () => null,
 } as unknown as ModelRequest;
 
 describe('toGroqBody', () => {
@@ -114,7 +113,7 @@ describe('tool_use_failed', () => {
 describe('reasoning effort', () => {
   it('is sent only when set', async () => {
     const { toGroqBody } = await import('../src/agents/groq');
-    const base = { agent: 'triage', prefix: 'P', system: 'S', messages: [{ role: 'user', content: 'q' }], tool: { name: 't', description: 'd', input_schema: {} }, mock: () => null } as never;
+    const base = { agent: 'triage', prefix: 'P', system: 'S', messages: [{ role: 'user', content: 'q' }], tool: { name: 't', description: 'd', input_schema: {} } } as never;
     expect(toGroqBody(base, 'openai/gpt-oss-20b', 100)).not.toHaveProperty('reasoning_effort');
     expect(toGroqBody(base, 'openai/gpt-oss-20b', 100, 'low')).toMatchObject({ reasoning_effort: 'low' });
     // a value the chosen model does not take is dropped (a spare may be another family)
@@ -146,7 +145,7 @@ describe('too-large requests', () => {
 
 describe('GroqModel fallback', () => {
   const tool = { name: 'triage', description: 'd', input_schema: { type: 'object' } };
-  const req = { agent: 'lead', prefix: 'P', system: 'S', messages: [{ role: 'user', content: 'q' }], tool, mock: () => ({}) } as never;
+  const req = { agent: 'lead', prefix: 'P', system: 'S', messages: [{ role: 'user', content: 'q' }], tool } as never;
   const ok = () => new Response('data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"c","function":{"name":"triage","arguments":"{}"}}]},"finish_reason":"tool_calls"}]}\n\ndata: [DONE]\n\n', { status: 200 });
   const refuse = (message: string) => new Response(JSON.stringify({ error: { message } }), { status: 429 });
 

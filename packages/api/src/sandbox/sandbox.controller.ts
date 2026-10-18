@@ -8,6 +8,6 @@ import { config } from '../config';
 export class SandboxController {
   @Get('config.json')
   settings(): SandboxConfigRes {
-    return { supabaseUrl: process.env.VITE_SUPABASE_URL ?? config.supabaseUrl, anonKey: process.env.VITE_SUPABASE_ANON_KEY ?? null, model: config.model };
+    return { supabaseUrl: process.env.VITE_SUPABASE_URL ?? config.supabaseUrl, anonKey: process.env.VITE_SUPABASE_ANON_KEY ?? null, model: config.model ?? 'none' };
   }
 }

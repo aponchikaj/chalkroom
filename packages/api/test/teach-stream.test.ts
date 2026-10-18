@@ -1,6 +1,6 @@
 // packages/api/test/teach-stream.test.ts
 import { describe, it, expect } from 'vitest';
-import { mockTeach } from '@chalk/mock-tutor';
+import { SAMPLE_SEGMENTS } from './fixtures';
 import { ModelPort, type ModelEvent, type ModelRequest } from '../src/agents/model.port';
 import { InvalidTeach, bySay, streamTeach } from '../src/agents/teach-stream';
 
@@ -12,8 +12,8 @@ class FakeModel extends ModelPort {
     for (const e of this.events) { if (e.type === 'tool') this.finalSent = true; yield e; }
   }
 }
-const req = { agent: 'lead', prefix: '', system: '', messages: [], tool: { name: 'teach_segment', description: '', input_schema: {} }, mock: () => null } as ModelRequest;
-const seg = mockTeach(0);
+const req = { agent: 'lead', prefix: '', system: '', messages: [], tool: { name: 'teach_segment', description: '', input_schema: {} } } as ModelRequest;
+const seg = SAMPLE_SEGMENTS[0];
 const deltas = (json: string, n: number): ModelEvent[] => Array.from({ length: Math.ceil(json.length / n) }, (_, i) => ({ type: 'tool_delta', partialJson: json.slice(i * n, i * n + n) }));
 
 describe('streamTeach', () => {
@@ -26,7 +26,7 @@ describe('streamTeach', () => {
     expect(chunks.flatMap((c) => ('steps' in c ? c.steps : []))).toEqual(seg.steps);
     expect(chunks.at(-1)).toEqual({ check: seg.check });
   });
-  it('behaves like before for the mock (no deltas)', async () => {
+  it('takes the final-input path for a model that sends no deltas', async () => {
     const model = new FakeModel([{ type: 'tool', name: 'teach_segment', input: seg }, { type: 'done', stopReason: 'tool_use' }]);
     const chunks = [];
     for await (const c of streamTeach(model, req)) chunks.push(c);
@@ -47,7 +47,7 @@ describe('streamTeach cleans double-escaped text', () => {
       readonly name = 'x';
       async *stream() { yield { type: 'tool_delta' as const, partialJson: json }; yield { type: 'tool' as const, name: 'teach_segment', input: JSON.parse(json) }; yield { type: 'done' as const, stopReason: 'stop' }; }
     }
-    const req = { agent: 'lead', prefix: '', system: '', messages: [], tool: { name: 'teach_segment', description: '', input_schema: {} }, mock: () => null } as never;
+    const req = { agent: 'lead', prefix: '', system: '', messages: [], tool: { name: 'teach_segment', description: '', input_schema: {} } } as never;
     const chunks = [];
     for await (const c of streamTeach(new One(), req)) chunks.push(c);
     const first = (chunks[0] as { steps: { add?: { text: string } }[] }).steps[0];

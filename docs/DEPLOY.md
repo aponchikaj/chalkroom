@@ -24,7 +24,7 @@ Do them in this order. Nothing here costs money on the free tiers except a paid 
 1. New > Blueprint > this repository (it reads `render.yaml`).
 2. Fill the env vars: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `WEB_URL` (the Vercel URL),
    the model key (`ANTHROPIC_API_KEY` in production, Claude Haiku 5.5; `GEMINI_API_KEY` or
-   `GROQ_API_KEY` for free testing; none for the scripted tutor), `SMTP_URL`,
+   `GROQ_API_KEY` for free testing; one is required, the API refuses to start without it), `SMTP_URL`,
    `MAIL_FROM`. `REQUIRE_ACCOUNT=1` and `OTP_SECRET` are set by the blueprint.
 3. Check `https://<api>/health` answers `{"ok":true,...}`.
 
@@ -40,8 +40,8 @@ A 1 GB shared machine is a few dollars a month on Fly (not free). The app `chalk
 2. Secrets (values never go in fly.toml):
    `fly secrets set SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... WEB_URL=https://<web domain> OTP_SECRET=<random> SMTP_URL=... MAIL_FROM=...`
    plus the model key: `ANTHROPIC_API_KEY=...` in production (Claude wins over the free tiers when
-   set; `MODEL_ID` overrides the model id), `GEMINI_API_KEY=...` for free testing, none for the
-   scripted tutor.
+   set; `MODEL_ID` overrides the model id), or `GEMINI_API_KEY=...` for free testing. One is
+   required: without a model key the API refuses to start and the health check fails.
 3. `fly deploy --ha=false`, then `fly scale count 1` if a second machine was created.
 4. Check `https://<app>.fly.dev/health`. Use that URL as `VITE_API_URL` on Vercel.
 

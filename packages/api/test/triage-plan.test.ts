@@ -1,6 +1,5 @@
 // packages/api/test/triage-plan.test.ts
 import { describe, it, expect } from 'vitest';
-import { mockTriage } from '@chalk/mock-tutor';
 import { EMPTY_TRIAGE, FALLBACK_ANSWER, planTriage } from '../src/triage/triage-plan';
 
 const q = (id: string, text: string, authorId: string) => ({ id, text, authorId });
@@ -8,7 +7,13 @@ const q = (id: string, text: string, authorId: string) => ({ id, text, authorId 
 describe('planTriage', () => {
   it('groups two learners asking the same thing into one class cluster', () => {
     const questions = [q('q1', 'Why can a PDA not sign?', 'u1'), q('q2', "Why can't a PDA sign transactions?", 'u2')];
-    const plan = planTriage(mockTriage({ questions, clusters: [], history: {} }), questions, []);
+    // the agent's answer: both questions in one new cluster (named by its title), sent to the class
+    const result = {
+      assign: [{ questionId: 'q1', cluster: 'new', title: 'Why can a PDA not sign?' }, { questionId: 'q2', cluster: 'new', title: 'Why can a PDA not sign?' }],
+      route: [{ cluster: 'Why can a PDA not sign?', to: 'class' as const, reason: '2 askers' }],
+      flag: [],
+    };
+    const plan = planTriage(result, questions, []);
     expect(plan.clusters).toHaveLength(1);
     expect(plan.clusters[0]).toMatchObject({ isNew: true, route: 'class', askerIds: ['u1', 'u2'] });
     expect(plan.questions.map((x) => x.status)).toEqual(['grouped', 'grouped']);
@@ -17,7 +22,12 @@ describe('planTriage', () => {
 
   it('answers a lone question inline', () => {
     const questions = [q('q1', 'What is a seed?', 'u1')];
-    const plan = planTriage(mockTriage({ questions, clusters: [], history: {} }), questions, []);
+    const result = {
+      assign: [{ questionId: 'q1', cluster: 'new', title: 'What is a seed?' }],
+      route: [{ cluster: 'What is a seed?', to: 'inline' as const, answer: 'A seed is a byte string that goes into the PDA hash.' }],
+      flag: [],
+    };
+    const plan = planTriage(result, questions, []);
     expect(plan.clusters[0].route).toBe('inline');
     expect(plan.clusters[0].answer).toBeTruthy();
     expect(plan.questions[0].status).toBe('answered');

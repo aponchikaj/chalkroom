@@ -8,11 +8,22 @@ const need = (k: string) => {
   return v;
 };
 
-type Provider = 'anthropic' | 'gemini' | 'groq' | 'mock';
-function provider(): Provider {
+type Provider = 'anthropic' | 'gemini' | 'groq';
+const KEYS: Record<Provider, string> = { anthropic: 'ANTHROPIC_API_KEY', gemini: 'GEMINI_API_KEY', groq: 'GROQ_API_KEY' };
+/** MODEL forces a provider; otherwise the first key set, in this order. null: no model at all. */
+function provider(): Provider | null {
   const m = process.env.MODEL;
-  if (m === 'anthropic' || m === 'gemini' || m === 'groq' || m === 'mock') return m;
-  return process.env.ANTHROPIC_API_KEY ? 'anthropic' : process.env.GEMINI_API_KEY ? 'gemini' : process.env.GROQ_API_KEY ? 'groq' : 'mock';
+  if (m === 'anthropic' || m === 'gemini' || m === 'groq') return m;
+  return process.env.ANTHROPIC_API_KEY ? 'anthropic' : process.env.GEMINI_API_KEY ? 'gemini' : process.env.GROQ_API_KEY ? 'groq' : null;
+}
+/** Why the API cannot run a class, or null when a model is set up. Checked at boot (main.ts). */
+export function modelProblem(): string | null {
+  const m = process.env.MODEL;
+  if (m && m !== 'anthropic' && m !== 'gemini' && m !== 'groq') return `MODEL=${m} is not supported. Use anthropic, gemini or groq.`;
+  const p = provider();
+  if (!p) return 'No model key. Set ANTHROPIC_API_KEY (or GEMINI_API_KEY / GROQ_API_KEY for testing).';
+  if (!process.env[KEYS[p]]) return `MODEL=${p} needs ${KEYS[p]}.`;
+  return null;
 }
 /** a free tier (testing only): paced, no pipelining */
 const freeTier = () => provider() === 'gemini' || provider() === 'groq';
@@ -35,13 +46,11 @@ export const config = {
   supabaseUrl: need('SUPABASE_URL'),
   supabaseServiceKey: need('SUPABASE_SERVICE_ROLE_KEY'),
   /** 'anthropic' (production: Claude Haiku 5.5) needs ANTHROPIC_API_KEY; the free tiers for
-   *  testing: 'gemini' (GEMINI_API_KEY) and 'groq' (GROQ_API_KEY); 'mock' runs the scripted
-   *  lesson. Default: the first key set in that order, else mock. MODEL forces one. */
+   *  testing: 'gemini' (GEMINI_API_KEY) and 'groq' (GROQ_API_KEY). Default: the first key set in
+   *  that order. MODEL forces one. With no key the API refuses to start (modelProblem). */
   model: provider(),
   /** model id of the lead tutor (logs and /health); every agent's id is in agentModels */
   modelId: process.env.MODEL_ID ?? (provider() === 'gemini' || provider() === 'groq' ? FREE_MODELS[provider() as 'gemini' | 'groq'].lead : 'claude-haiku-5-5'),
-  /** delay between scripted steps in mock mode, so the board still "streams" */
-  mockDelayMs: Number(process.env.MOCK_DELAY_MS ?? 400),
   /** Model per agent. MODEL_ID sets all four; MODEL_ID_LEAD / _THREAD / _TRIAGE / _SCRIBE override one.
    *  Groq defaults spread the agents over three models: each free-tier model has its own
    *  8000 tokens-per-minute budget. */
@@ -55,7 +64,7 @@ export const config = {
   /** B1 pipelining (write the next segment during the gate). Off by default on Groq's free tier:
    *  it doubles the lead tutor's tokens per minute. PIPELINE=1/0 overrides. */
   pipeline: process.env.PIPELINE ? process.env.PIPELINE === '1' : !freeTier(),
-  /** B6: tokens (input + output) a room may spend before the backup tutor takes over */
+  /** B6: tokens (input + output) a room may spend; then the class holds and the host may end it */
   roomTokenBudget: Number(process.env.ROOM_TOKEN_BUDGET ?? 300_000),
   /** this instance's id for room leases, stable across its own restarts: "<group>/<host:port>".
    *  Instances take over abandoned rooms only within their group (INSTANCE_GROUP; the e2e

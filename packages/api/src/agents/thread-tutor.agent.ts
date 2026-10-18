@@ -4,7 +4,6 @@ import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
 import type Anthropic from '@anthropic-ai/sdk';
 import { BoardStep } from '@chalk/schema';
-import { mockThreadReply } from '@chalk/mock-tutor';
 import { ModelPort } from './model.port';
 import { callValidated, toolFrom } from './agent-utils';
 import { PROMPTS } from './prompts';
@@ -35,7 +34,6 @@ export class ThreadTutorAgent {
       system: `${PROMPTS.thread}\n\nThread topic: ${ctx.topic}\nMain board now: ${JSON.stringify(ctx.mainBoard)}`,
       tool: replyTool, maxTokens: 3000,
       messages: [...ctx.history, { role: 'user', content: ctx.context ? `${ctx.context}\n\n${text}` : text }],
-      mock: () => mockThreadReply(text),
     }, ThreadReply);
   }
 }

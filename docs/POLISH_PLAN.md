@@ -122,7 +122,8 @@ account, class page, courses, replays, the not-found page and the landing page.
 
 Use the mockup (`landing/landing.html`, `v3-desktop.png`):
 - Headline: **FIVE SEATS. ONE BOARD. NO ONE LEFT BEHIND.**
-- On the right, the real board component replays the mock-tutor PDA lesson on a timer. People
+- On the right, the real board component replays a static demo PDA lesson
+  (`screens/landing/demoLesson.ts`) on a timer. People
   appear as punched holes, and two questions merge into a grouped sticky.
 - Hand-lettered notes in Kalam.
 - Fore-edge divider tabs as navigation.
@@ -132,7 +133,7 @@ Sections:
 2. Questions: the four routes, plus a check result.
 3. Threads: the side-tutor sheet and the catch-up card.
 4. After class: notes and flashcards.
-5. How it's built: the four agents, the one-writer log, the mock tutor runs offline.
+5. How it's built: the four agents, the one-writer log, failures shown plainly.
 6. Close: the call to action again.
 
 Honest copy only. No numbers except product limits. Never say "hold Space to talk" or
@@ -183,7 +184,7 @@ including while auth is still loading. Signed-in visitors get Home.
    - Add Pause / Resume of the tutor's narration on the host's device, with a notice to the
      class. If a class-wide pause needs the API, add it as a new additive endpoint.
    - "Re-explain this" on a selected shape, and "Pin to next Q&A" on a question card. Both may
-     reuse ask/cluster routes or add additive endpoints with a working mock.
+     reuse ask/cluster routes or add additive endpoints.
    - Post a notice to the class when the host uses Slower or Skip.
 5. [major] **Phones.**
    - The board gets a pen-following camera at a readable size, with "Whole page" and

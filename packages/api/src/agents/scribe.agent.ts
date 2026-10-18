@@ -1,7 +1,6 @@
 // Scribe: segment summaries (catch-up cards, thread context), end-of-class notes and the class deck.
 import { Injectable } from '@nestjs/common';
 import { ProposedCards, SegmentSummary, type LessonPlan } from '@chalk/schema';
-import { mockCards, mockSummary } from '@chalk/mock-tutor';
 import { ModelPort } from './model.port';
 import { callValidated, toolFrom } from './agent-utils';
 import { PROMPTS } from './prompts';
@@ -17,7 +16,6 @@ export class ScribeAgent {
     const out = await callValidated(this.model, {
       agent: 'scribe', roomId, prefix, system: PROMPTS.scribe, tool: summarizeTool, maxTokens: 600,
       messages: [{ role: 'user', content: `Segment "${title}". What happened:\n${transcript}\n\nCall summarize.` }],
-      mock: () => ({ summary: mockSummary(title) }),
     }, SegmentSummary);
     return out.summary;
   }
@@ -27,7 +25,6 @@ export class ScribeAgent {
     const out = await callValidated(this.model, {
       agent: 'scribe', roomId, prefix, system: PROMPTS.scribe, tool: cardsTool, maxTokens: 1500,
       messages: [{ role: 'user', content: `The class has ended. Notes:\n${notes}\n\nChecks:\n${checks || '(none)'}\n\nCall propose_cards.` }],
-      mock: () => mockCards(plan),
     }, ProposedCards);
     return out.cards;
   }

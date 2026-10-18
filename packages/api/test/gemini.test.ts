@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { RequestWindow, geminiLimit, toGroqBody } from '../src/agents/groq';
 
-const base = { agent: 'lead', prefix: 'P', system: 'S', messages: [{ role: 'user', content: 'q' }], tool: { name: 'teach_segment', description: 'd', input_schema: {} }, mock: () => null } as never;
+const base = { agent: 'lead', prefix: 'P', system: 'S', messages: [{ role: 'user', content: 'q' }], tool: { name: 'teach_segment', description: 'd', input_schema: {} } } as never;
 
 describe('Gemini request body (OpenAI-compatible endpoint)', () => {
   it('asks for the one tool with "required" and passes Gemini effort values', () => {

@@ -7,8 +7,15 @@ import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { AppModule } from './app.module';
-import { config } from './config';
+import { config, modelProblem } from './config';
 import { RefundBadRequests } from './core/rate-limit';
+
+// every class needs a real model (there is no scripted tutor): refuse to start without one
+const problem = modelProblem();
+if (problem) {
+  new Logger('API').error(`Cannot start: ${problem}`);
+  process.exit(1);
+}
 
 const app = await NestFactory.create<NestExpressApplication>(AppModule, { bodyParser: false });
 const local = /^http:\/\/(127\.0\.0\.1|localhost)[:/]/.test(process.env.SUPABASE_URL ?? '');

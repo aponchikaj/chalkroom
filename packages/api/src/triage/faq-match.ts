@@ -1,6 +1,6 @@
 // packages/api/src/triage/faq-match.ts
 // FAQ reuse (design doc, Community features: "Future triage checks the FAQ first"). Pure and free:
-// normalized word overlap, the same measure the mock triage uses, so no model call is spent on a
+// normalized word overlap of content words, so no model call is spent on a
 // question the course has already answered. Unit-tested in test/courses-faq.test.ts.
 import type { FaqRow } from '@chalk/schema';
 import type { TriageQuestion } from './triage-plan';

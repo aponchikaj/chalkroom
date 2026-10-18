@@ -1,10 +1,10 @@
-// A whole class with the mock tutor: streaming, checks, the ready gate, hold/resume, skip, end.
+// A whole class with the real model: streaming, checks, the ready gate, hold/resume, skip, end.
 // Tests in this file run in order and share one room.
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { StreamEvent } from '@chalk/schema';
 import { api, atCheck, closeAll, createRoom, joinRoom, newUser, sleep, subscribe, waitEvent, waitRow, type TestUser } from './helpers';
 
-describe('a class end to end (mock tutor)', () => {
+describe('a class end to end', () => {
   let host: TestUser;
   let gio: TestUser;
   let roomId: string;
@@ -52,7 +52,8 @@ describe('a class end to end (mock tutor)', () => {
     await api(host, 'POST', `/rooms/${roomId}/ready`, { segment: 0 });
     expect((await api(gio, 'POST', `/rooms/${roomId}/ready`, { segment: 0 })).status).toBe(204);
     const closed = await closedOf(gio, checkId);
-    expect(closed.data).toMatchObject({ spread: { total: 2, correct: 1 }, answer: 1, answerText: expect.any(String) });
+    // the model writes its own check: only the shape of the spread is known
+    expect(closed.data).toMatchObject({ spread: { total: 2 }, answerText: expect.any(String) });
   });
 
   it('rejects late answers (409) and ready votes for a finished segment (409)', async () => {

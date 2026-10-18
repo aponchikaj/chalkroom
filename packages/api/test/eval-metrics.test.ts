@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { mockTeach } from '@chalk/mock-tutor';
+import { SAMPLE_SEGMENTS } from './fixtures';
 import { hitAtK, pairwiseAgreement, reciprocalRank, scoreTeach } from '../eval/metrics';
 
 describe('scoreTeach', () => {
-  it('scores the mock segment as clean', () => {
-    const s = scoreTeach(mockTeach(0));
+  it('scores a clean sample segment as clean', () => {
+    const s = scoreTeach(SAMPLE_SEGMENTS[0]);
     expect(s).toMatchObject({ reducerErrors: 0, danglingRefs: 0, maxShapesPerPage: 7, longSays: 0, hasCheck: true, checkComplete: true, pages: 1 });
     expect(s.says).toBe(3);
   });

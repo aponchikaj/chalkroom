@@ -1,5 +1,6 @@
 // ModelPort: the one door to a language model. Agents never import a provider SDK directly,
-// so the mock, Claude and any fallback provider are interchangeable.
+// so Claude and the free-tier providers are interchangeable. There is no scripted fallback: a
+// failed call throws, and each caller shows the failure (see docs/design.md, Failure handling).
 import type Anthropic from '@anthropic-ai/sdk';
 
 export type AgentName = 'lead' | 'thread' | 'triage' | 'scribe';
@@ -31,10 +32,8 @@ export interface ModelRequest {
   tool: ModelTool;
   maxTokens?: number;
   /** consumed live: partial output may already be on learners' screens, so a failure after it
-   *  must not be replaced by a whole fallback answer (the lead tutor's teaching stream) */
+   *  is not retried automatically (the lead tutor's teaching stream) */
   streamed?: boolean;
-  /** Canned tool input for MockModel (demo insurance). Every agent provides one. */
-  mock: () => unknown;
 }
 
 export type ModelEvent =
