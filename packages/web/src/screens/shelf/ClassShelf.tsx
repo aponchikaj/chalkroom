@@ -7,6 +7,7 @@ import type { CardReviewRow, NoteBlockRow } from '@chalk/schema';
 import { dueCards, fetchClassLibrary, type ClassLibrary } from '../../lib/library';
 import { navigate } from '../../lib/router';
 import { sectionHue, sectionInk } from '../../ui/section';
+import { transition } from '../../ui/motion';
 import { Stamp, type StampTone } from '../../ui/Stamp';
 import { ShelfNotes } from './ShelfNotes';
 import { Flashcards } from './Flashcards';
@@ -65,7 +66,7 @@ export function ClassShelf({ roomId }: { roomId: string }) {
   }, [load]);
 
   const setTab = (t: Tab) => {
-    setTabState(t);
+    void transition(() => setTabState(t));
     try { localStorage.setItem(tabKey(roomId), t); } catch { /* private mode: this visit only */ }
   };
 
@@ -117,8 +118,8 @@ function Shelf({ lib, tab, setTab, onReviewed, onNoteSaved }: {
   };
 
   return (
-    <div className="shelf">
-      <article className="shelf-manual leaf punched" style={{ ['--section' as string]: sectionHue(i) }}>
+    <main className="shelf">
+      <article className="shelf-manual page-fill leaf punched" style={{ ['--section' as string]: sectionHue(i) }}>
         <header className="shelf-head">
           <div className="shelf-running">
             <button type="button" className="btn ghost small shelf-back" onClick={goHome}>
@@ -178,14 +179,14 @@ function Shelf({ lib, tab, setTab, onReviewed, onNoteSaved }: {
           {tab === 'checks' && <Checks events={lib.events} plan={room.lesson_plan} />}
         </section>
       </article>
-    </div>
+    </main>
   );
 }
 
 function Skeleton() {
   return (
-    <div className="shelf" aria-busy="true">
-      <article className="shelf-manual leaf punched">
+    <main className="shelf" aria-busy="true">
+      <article className="shelf-manual page-fill leaf punched">
         <header className="shelf-head">
           <div className="shelf-running">
             <button type="button" className="btn ghost small shelf-back" onClick={goHome}><ArrowLeft {...ICON} aria-hidden />Back to your classes</button>
@@ -201,14 +202,14 @@ function Skeleton() {
           {[0, 1, 2].map((k) => <span key={k} className="shelf-bone shelf-bone-block" />)}
         </div>
       </article>
-    </div>
+    </main>
   );
 }
 
 function Missing() {
   return (
-    <div className="shelf">
-      <article className="shelf-manual leaf punched shelf-problem">
+    <main className="shelf">
+      <article className="shelf-manual page-fill leaf punched shelf-problem">
         <header className="shelf-head"><div className="shelf-running"><span className="shelf-brand">Chalkroom Live</span></div></header>
         <h1 className="shelf-title">Not on your shelf</h1>
         <p className="shelf-lede">This class is not on your shelf. Join it with its invite code first.</p>
@@ -216,14 +217,14 @@ function Missing() {
           <button type="button" className="btn primary" onClick={goHome}><ArrowLeft {...ICON} aria-hidden />Back to your classes</button>
         </div>
       </article>
-    </div>
+    </main>
   );
 }
 
 function Failed({ text, retry }: { text: string; retry: () => void }) {
   return (
-    <div className="shelf">
-      <article className="shelf-manual leaf punched shelf-problem">
+    <main className="shelf">
+      <article className="shelf-manual page-fill leaf punched shelf-problem">
         <header className="shelf-head"><div className="shelf-running">
           <button type="button" className="btn ghost small shelf-back" onClick={goHome}><ArrowLeft {...ICON} aria-hidden />Back to your classes</button>
           <span className="shelf-brand">Chalkroom Live</span>
@@ -234,6 +235,6 @@ function Failed({ text, retry }: { text: string; retry: () => void }) {
           <button type="button" className="btn primary" onClick={retry}><RotateCw {...ICON} aria-hidden />Try again</button>
         </div>
       </article>
-    </div>
+    </main>
   );
 }

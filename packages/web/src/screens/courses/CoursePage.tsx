@@ -48,7 +48,7 @@ export function CoursePage({ courseId }: { courseId: string }) {
   useEffect(() => { document.title = load.state === 'ready' ? `${load.course.title} · Chalkroom Live` : 'Chalkroom Live'; }, [load]);
 
   return (
-    <div className="entry">
+    <main className="entry">
       <article className="manual leaf punched course-manual">
         <Head />
         {load.state === 'loading' && (
@@ -74,7 +74,7 @@ export function CoursePage({ courseId }: { courseId: string }) {
           <Course course={load.course} faq={load.faq} onChange={(course) => setLoad({ ...load, course })} />
         )}
       </article>
-    </div>
+    </main>
   );
 }
 

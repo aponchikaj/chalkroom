@@ -2,21 +2,33 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="color-scheme" content="dark light" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light" />
+    <meta name="description" content="Up to five people join a live class taught by an AI tutor on one shared whiteboard." />
     <title>Chalkroom Live</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231e2a25'/%3E%3Cpath d='M8 21c3-8 9-12 16-11' stroke='%23f3e9c6' stroke-width='3' fill='none' stroke-linecap='round'/%3E%3C/svg%3E" />
+    <!-- the latin UI and reading faces every page uses (the hand faces load from their @font-face rules when a page draws with them); ui/fonts.css and the @fontsource imports use the same files -->
+    <link rel="preload" as="font" type="font/woff2" crossorigin href="../../node_modules/@fontsource-variable/archivo/files/archivo-latin-wdth-normal.woff2" />
+    <link rel="preload" as="font" type="font/woff2" crossorigin href="../../node_modules/@fontsource-variable/source-serif-4/files/source-serif-4-latin-wght-normal.woff2" />
+    <!-- first paint: a quiet paper sheet until the app mounts (the same shape as ui/PageSkeleton.tsx) -->
+    <style>
+      html, body { margin: 0; background: #f2ede0; }
+      .boot { min-height: 100vh; min-height: 100dvh; box-sizing: border-box; max-width: 1180px; margin: 0 auto;
+        padding: 24px 16px calc(28px + env(safe-area-inset-bottom, 0px)); display: grid; grid-template-rows: auto 1fr; gap: 20px; }
+      .boot-head { height: 22px; width: min(260px, 60%); border-radius: 2px; background: #e8e1d0; }
+      .boot-sheet { background: #fbf8f1; border: 1px solid #d9d0bb; border-radius: 3px; box-shadow: 0 1px 0 #cdc4ae, 0 14px 28px -18px rgba(60, 45, 15, 0.45); }
+      .boot-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    </style>
   </head>
   <body>
     <!--
-      THESIS: The live class as an open reference manual: segments are coloured divider tabs, the board is the printed leaf, a thread is acetate hinged over it. Refuses the video-call grid with a chat sidebar.
-      OWN-WORLD: Cream section board, white printed leaf, milk acetate; print ink; chrome yellow only on pressable things; vermilion only on errata; section hues orange, teal, grass, ultramarine, violet, sienna. Archivo condensed heads, Source Serif 4 for reading, JetBrains Mono for numbers. People as punched holes on the binding edge.
+      THESIS: The live class as a class notebook: segments are coloured divider tabs, the board is a ruled leaf the tutor writes on in pen, questions are sticky notes, a thread is tracing paper clipped over it. Refuses the video-call grid with a chat sidebar.
+      OWN-WORLD: Cream desk, ruled leaf with pale blue rules and a margin in the segment hue, tracing paper; blue-black pen, graphite pencil; chrome yellow only on pressable things; vermilion only on errata; section hues orange, teal, grass, ultramarine, violet, sienna. Kalam for the board hand, Shantell Sans for notes, Gochi Hand for display, Archivo for every control, Source Serif 4 for reading, JetBrains Mono for numbers. People as punched holes on the binding edge.
       STORY: A learner sees the shared figure, knows the segment and running time, asks at any time and watches the question get a stamp, answers the check, presses Ready, and can lift a thread leaf without losing the class.
       FIRST VIEWPORT: Running head with the class title; binding of punches left; the board leaf filling the centre with captions under it; question and notes rail right; lesson tabs on the fore edge; control bar with I'm ready (the only yellow) and Ask.
-      FORM: Acetate Manual, competitive challenger chosen by the user; seed 08c8de1f.
-      FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+      FORM: Class Notebook, evolved from the Acetate Manual (seed 08c8de1f). See DESIGN.md.
     -->
-    <div id="root"></div>
+    <div id="root"><div class="boot" role="status"><span class="boot-label">Opening Chalkroom Live</span><div class="boot-head"></div><div class="boot-sheet"></div></div></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

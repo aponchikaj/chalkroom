@@ -1,14 +1,19 @@
-// A7 (Dev A): Home, the manual's title page. The big title, then four divider tabs on the fore
-// edge that switch the leaf: start a class, join with a code, the lobby of open public classes,
-// the community course catalog (lane C), your classes, how a class runs.
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+// A7 (Dev A), lane P: Home, the notebook's contents page. The title, then a contents list with
+// dotted leaders and page numbers; divider tabs on the fore edge switch the leaf: start a class,
+// join with a code, the lobby of open public classes, the course catalog, your classes, how a
+// class runs. Replays are the last entry of the contents. Right after a class, a slip on the
+// contents points to that class's page.
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { ArrowRight, X } from 'lucide-react';
 import { navigate } from '../lib/router';
+import { transition } from '../ui/motion';
 import { AccountMenu } from './auth/AccountMenu';
 import { sectionHue, sectionInk } from '../ui/section';
 import { MyClasses, useMyClasses } from './home/MyClasses';
 import { StartForm } from './home/StartForm';
 import { Lobby } from './home/Lobby';
 import { Courses } from './home/Courses';
+import { REPLAYS, TABS, type Tab } from './home/contents';
 import '../ui/ui.css';
 import './entry.css';
 import './home/home.css';
@@ -22,15 +27,6 @@ const CONTENTS = [
   ['Notes', 'Shared notes and your questions with their answers when the class ends.'],
 ] as const;
 
-const TABS = [
-  { id: 'start', label: 'Start' },
-  { id: 'join', label: 'Join' },
-  { id: 'lobby', label: 'Lobby' },
-  { id: 'courses', label: 'Courses' },
-  { id: 'classes', label: 'Your classes' },
-  { id: 'how', label: 'How it works' },
-] as const;
-type Tab = (typeof TABS)[number]['id'];
 const isTab = (s: string | null | undefined): s is Tab => TABS.some((t) => t.id === s);
 
 const TAB_KEY = 'chalkroom.homeTab';
@@ -45,12 +41,26 @@ const joinedBefore = () => {
   return false;
 };
 
+const useMedia = (q: string) => useSyncExternalStore((l) => {
+  const m = matchMedia(q); m.addEventListener('change', l); return () => m.removeEventListener('change', l);
+}, () => matchMedia(q).matches);
 const PHONE = '(max-width: 760px)';
-const usePhone = () => useSyncExternalStore((l) => {
-  const m = matchMedia(PHONE); m.addEventListener('change', l); return () => m.removeEventListener('change', l);
-}, () => matchMedia(PHONE).matches);
+/** below this width the contents list sits above the panel instead of beside it */
+const NARROW = '(max-width: 1080px)';
 
 const cleanCode = (s: string) => s.replace(/[^a-z0-9]/gi, '').toUpperCase();
+
+/** A class that ended this recently counts as "just finished" on Home. */
+const JUST_MS = 3 * 60 * 60 * 1000;
+const seenKey = (id: string) => `chalkroom.finishedSeen.${id}`;
+const wasSeen = (id: string) => { try { return sessionStorage.getItem(seenKey(id)) === '1'; } catch { return false; } };
+const markSeen = (id: string) => { try { sessionStorage.setItem(seenKey(id), '1'); } catch { /* storage blocked */ } };
+
+const go = (path: string) => (e: React.MouseEvent<HTMLAnchorElement>) => {
+  if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  e.preventDefault();
+  navigate(path);
+};
 
 export function Home() {
   const [code, setCode] = useState('');
@@ -59,7 +69,9 @@ export function Home() {
   const [chosen, setChosen] = useState<Tab | null>(() => hashTab() ?? storedTab());
   const fallback: Tab = load.status === 'ready' ? (load.classes.length ? 'classes' : 'start') : joinedBefore() ? 'classes' : 'start';
   const tab = chosen ?? fallback;
-  const phone = usePhone();
+  const phone = useMedia(PHONE);
+  const narrow = useMedia(NARROW);
+  const panelRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<Partial<Record<Tab, HTMLButtonElement | null>>>({});
 
   useEffect(() => {
@@ -68,11 +80,29 @@ export function Home() {
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
 
+  // the most recent class that ended in the last few hours, until it is opened or dismissed
+  const [dismissed, setDismissed] = useState<string | null>(null);
+  const finished = useMemo(() => {
+    if (load.status !== 'ready') return null;
+    const now = Date.now();
+    const recent = load.classes
+      .filter((c) => c.room.phase === 'ended' && c.room.ended_at && now - Date.parse(c.room.ended_at) < JUST_MS)
+      .sort((a, b) => Date.parse(b.room.ended_at!) - Date.parse(a.room.ended_at!))[0];
+    return recent && !wasSeen(recent.room.id) ? recent.room : null;
+  }, [load]);
+  const showFinished = finished && finished.id !== dismissed ? finished : null;
+
   const select = (t: Tab, focus = false) => {
-    setChosen(t);
+    void transition(() => setChosen(t));
     storeTab(t);
     if (location.hash) history.replaceState(null, '', `#${t}`);
     if (focus) tabRefs.current[t]?.focus();
+  };
+
+  // on a narrow leaf the panel sits below the contents: bring it into view
+  const fromContents = (t: Tab) => {
+    select(t);
+    if (narrow) requestAnimationFrame(() => panelRef.current?.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }));
   };
 
   const onTabKey = (e: React.KeyboardEvent) => {
@@ -87,8 +117,8 @@ export function Home() {
   const hue = TABS.findIndex((t) => t.id === tab);
 
   return (
-    <div className="entry">
-      <article className="manual leaf punched home-manual">
+    <main className="entry">
+      <article className="manual leaf punched home-manual page-fill">
         <div className="home-tabs" role="tablist" aria-label="Home" aria-orientation={phone ? 'horizontal' : 'vertical'} onKeyDown={onTabKey}>
           {TABS.map((t, i) => (
             <button key={t.id} type="button" role="tab" id={`home-tab-${t.id}`} aria-controls="home-panel"
@@ -96,7 +126,7 @@ export function Home() {
               ref={(el) => { tabRefs.current[t.id] = el; }}
               className="home-tab" style={{ ['--hue' as string]: sectionHue(i), ['--on-hue' as string]: sectionInk(i) }}
               onClick={() => select(t.id)}>
-              <span className="home-tab-label">{t.label}</span>
+              <span className="home-tab-label">{phone ? t.short : t.label}</span>
             </button>
           ))}
         </div>
@@ -108,12 +138,50 @@ export function Home() {
         </header>
 
         <div className="manual-body home-body">
-          <section className="title-block" aria-labelledby="home-title">
+          <section className="title-block home-title" aria-labelledby="home-title">
             <h1 id="home-title" className="display">Learn it live, together.</h1>
             <p className="lede">An AI tutor teaches your group on one shared whiteboard. Anyone can ask at any time, and the class keeps moving.</p>
+
+            {showFinished && (
+              <p className="finished-slip note-in" role="status">
+                <span className="finished-text">
+                  You just finished <strong>{showFinished.title || 'a class'}</strong>:{' '}
+                  <a className="text-link" href={`/c/${showFinished.id}`} onClick={(e) => { markSeen(showFinished.id); go(`/c/${showFinished.id}`)(e); }}>
+                    open the class page
+                  </a>
+                </span>
+                <button type="button" className="btn ghost icon-btn finished-close" aria-label="Dismiss" title="Dismiss"
+                  onClick={() => { markSeen(showFinished.id); setDismissed(showFinished.id); }}>
+                  <X size={16} strokeWidth={2} aria-hidden />
+                </button>
+              </p>
+            )}
+
+            <nav className="toc" aria-labelledby="toc-title">
+              <h2 id="toc-title" className="toc-title">Contents</h2>
+              <ol className="toc-list">
+                {TABS.map((t, i) => (
+                  <li key={t.id}>
+                    <button type="button" className="toc-entry" aria-current={tab === t.id ? 'true' : undefined}
+                      aria-controls="home-panel" onClick={() => fromContents(t.id)} style={{ ['--hue' as string]: sectionHue(i) }}>
+                      <span className="toc-name">{t.entry}</span>
+                      <span className="toc-leader" aria-hidden />
+                      <span className="toc-page mono" aria-hidden>{i + 1}</span>
+                    </button>
+                  </li>
+                ))}
+                <li>
+                  <a className="toc-entry toc-away" href={REPLAYS.path} onClick={go(REPLAYS.path)}>
+                    <span className="toc-name">{REPLAYS.entry}</span>
+                    <span className="toc-leader" aria-hidden />
+                    <span className="toc-page" aria-hidden><ArrowRight size={15} strokeWidth={2} /></span>
+                  </a>
+                </li>
+              </ol>
+            </nav>
           </section>
 
-          <div id="home-panel" className="home-panel" role="tabpanel" aria-labelledby={`home-tab-${tab}`} tabIndex={0}
+          <div id="home-panel" ref={panelRef} className="home-panel" role="tabpanel" aria-labelledby={`home-tab-${tab}`} tabIndex={0}
             style={{ ['--hue' as string]: sectionHue(hue) }}>
             {tab === 'start' && <StartForm />}
 
@@ -155,8 +223,8 @@ export function Home() {
             )}
           </div>
         </div>
+        <footer className="entry-foot">Hacktoberfest Georgia 2026, by GeoSafety. The tutor's voice plays on your own device, with captions.</footer>
       </article>
-      <footer className="entry-foot">Hacktoberfest Georgia 2026, by GeoSafety. The tutor's voice plays on your own device, with captions.</footer>
-    </div>
+    </main>
   );
 }

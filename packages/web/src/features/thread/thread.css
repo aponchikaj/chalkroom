@@ -1,19 +1,40 @@
-/* A3 (Dev A): the thread leaf (milk acetate hinged over the board) and the thread slips docked
-   under the main board (offer, catch-up, peek). */
+/* A3 (Dev A): the thread drawer (tracing paper held over the class by a binder clip) and the
+   thread slips docked under the main board (offer, catch-up, peek). */
 
-/* focus economy: while a thread leaf is open, the class behind it goes back to the page */
-.live-body.with-thread .stage .board-wrap > .board-svg { filter: saturate(0.35); opacity: 0.6; transition: opacity var(--step) steps(2); }
+/* focus economy: while the drawer is open, the class behind it goes back to the page */
+.live-body.with-thread .stage .board-wrap > .board-svg { filter: saturate(0.35); opacity: 0.6; transition: opacity var(--dur-quick) var(--ease-out), filter var(--dur-quick) var(--ease-out); }
 
-/* ---------- the leaf ---------- */
+/* ---------- the drawer: tracing paper, held by a binder clip ---------- */
 .thread-leaf {
-  display: grid; grid-template-rows: auto minmax(120px, 0.9fr) minmax(0, 1fr) auto auto;
-  min-height: 0; height: 100%; padding: 14px 16px; gap: 12px; color: var(--ink);
-  /* milkier than a plain acetate so text behind never ghosts through the reading text */
-  background: color-mix(in srgb, var(--leaf) 99%, transparent);
+  position: relative; display: flex; flex-direction: column;
+  min-height: 0; height: 100%; padding: 18px 16px 0; gap: 12px; color: var(--ink);
+  /* tracing paper: milky, faintly cool; the class shows through as a soft shape, never as text */
+  background:
+    var(--grain),
+    linear-gradient(180deg, color-mix(in srgb, #f4f5f0 95%, transparent), color-mix(in srgb, #eef0ea 96%, transparent));
+  -webkit-backdrop-filter: blur(3px) saturate(0.6);
+  backdrop-filter: blur(3px) saturate(0.6);
+  border: 1px solid var(--acetate-edge); border-radius: var(--r);
+  box-shadow: var(--shadow-acetate);
+  animation: tl-in var(--dur-quick) var(--ease-out) both;
 }
+@keyframes tl-in { from { opacity: 0; transform: translateX(calc(28px * var(--motion))); } to { opacity: 1; transform: none; } }
+@keyframes tl-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateX(calc(28px * var(--motion))); } }
+::view-transition-old(thread-drawer) { animation: tl-out var(--dur-quick) var(--ease-out) both; }
+::view-transition-new(thread-drawer) { animation: tl-in var(--dur-quick) var(--ease-out) both; }
 
-.tl-head { display: flex; align-items: flex-start; gap: 14px; min-width: 0; }
-.tl-title { flex: 1; min-width: 0; }
+/* the binder clip bites the top edge */
+.tl-clip {
+  position: absolute; top: -24px; left: 34px; z-index: 2; pointer-events: none;
+  filter: drop-shadow(0 3px 2px rgba(40, 30, 10, 0.32));
+  transform-origin: 50% 100%;
+  animation: tl-clip calc(var(--dur-note) * var(--motion)) var(--ease-settle) both;
+  animation-delay: calc(var(--dur-quick) * 0.6);
+}
+@keyframes tl-clip { from { transform: translateY(-10px) rotate(-6deg); opacity: 0; } to { transform: none; opacity: 1; } }
+
+.tl-head { display: flex; align-items: flex-start; gap: 14px; min-width: 0; flex: none; }
+.tl-title { flex: 1; min-width: 0; padding-top: 8px; }
 .tl-title h2 { font-size: var(--t-xl); font-stretch: 80%; font-weight: 750; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tl-who { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; margin-top: 4px; font-size: var(--t-sm); color: var(--ink-2); }
 .tl-back { flex: none; }
@@ -26,15 +47,47 @@
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
-/* the thread's own board */
-.tl-board { min-height: 0; display: flex; align-items: center; justify-content: center; container-type: size; }
-.tl-board > .board-svg { width: min(100cqw, 100cqh * 2.0625); height: auto; aspect-ratio: 1320 / 640; }
+.tl-scroll {
+  flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  display: flex; flex-direction: column; gap: 6px; padding: 2px 2px 16px; margin: 0 -2px;
+  scrollbar-width: thin; scrollbar-color: var(--rule-2) transparent;
+}
 
-/* the transcript: a script, speaker in the margin */
+/* ---------- one thread: a collapsible section ---------- */
+.tl-sec { border-top: 1.5px solid var(--ink); view-transition-class: tl-sec; }
+.tl-sec-h { margin: 0; font: inherit; }
+.tl-sec-toggle {
+  width: 100%; display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 8px 4px;
+  background: none; border: 0; color: var(--ink); text-align: left; cursor: pointer; font: inherit;
+  transition: background-color var(--step) steps(2);
+}
+.tl-sec-toggle:hover { background: color-mix(in srgb, var(--paper-2) 55%, transparent); }
+.tl-sec-toggle:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+.tl-chev { flex: none; transform: rotate(-90deg); transition: transform var(--dur-quick) var(--ease-out); }
+.tl-sec-toggle[aria-expanded='true'] .tl-chev { transform: none; }
+.tl-sec-title { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.tl-sec-topic { font-size: var(--t-lg); font-weight: 750; font-stretch: 82%; line-height: 1.2; overflow-wrap: anywhere; }
+.tl-sec-who { font-size: var(--t-xs); color: var(--ink-2); }
+.tl-sec-toggle .stamp { flex: none; }
+.tl-sec-body { display: flex; flex-direction: column; gap: 12px; padding: 4px 0 14px 28px; }
+/* a folded section stays mounted (its draft and chat are kept), just out of sight */
+.tl-sec-body[hidden] { display: none; }
+/* the end of a section: what "keep the newest line in view" scrolls to */
+.tl-end { display: block; height: 0; margin-top: -12px; }
+
+/* sections slide when one opens or folds (a view transition) */
+::view-transition-group(*.tl-sec) { animation-duration: var(--dur-quick); animation-timing-function: var(--ease-out); }
+
+/* the thread's own board */
+/* the mini board stays in view while the transcript scrolls under it (the drawer scrolls to the
+   newest line, which used to push the drawing out of sight); capped so the messages keep room */
+.tl-board { min-height: 0; position: sticky; top: 0; z-index: 2; background: var(--acetate, var(--paper)); padding-bottom: 6px; }
+.tl-board > .board-svg { display: block; width: 100%; height: auto; aspect-ratio: 1320 / 640; max-height: 30dvh; }
+
+/* the transcript: a script, speaker in the margin (the drawer's .tl-scroll is the one scroller) */
 .tl-log {
-  list-style: none; margin: 0; padding: 4px 4px 4px 0; min-height: 0; overflow-y: auto;
+  list-style: none; margin: 0; padding: 10px 4px 4px 0;
   display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--rule);
-  padding-top: 10px;
 }
 .tl-empty { color: var(--ink-3); font-size: var(--t-sm); padding: 6px 0; }
 .tl-msg { display: grid; grid-template-columns: 58px minmax(0, 1fr); column-gap: 10px; align-items: baseline; }
@@ -43,9 +96,10 @@
   text-transform: uppercase; color: var(--ink-2); padding-top: 2px;
 }
 .tl-text { grid-column: 2; min-width: 0; overflow-wrap: anywhere; }
+/* what a person wrote: the notes hand, on a scrap of leaf */
 .tl-learner .tl-text {
-  font-size: var(--t-md); font-weight: 520; line-height: 1.4; white-space: pre-wrap;
-  background: var(--paper-2); border: 1px solid var(--rule); border-radius: 2px; padding: 6px 10px; justify-self: start;
+  font-family: var(--hand-notes); font-size: 16.5px; line-height: 1.4; white-space: pre-wrap; color: var(--pencil);
+  background: var(--leaf); border: 1px solid var(--rule); border-radius: 2px; padding: 5px 10px; justify-self: start;
 }
 .tl-tutor .tl-text { font-family: var(--font-read); font-size: 1rem; line-height: 1.55; }
 .tl-tutor .tl-name { color: var(--ink); }
@@ -54,18 +108,30 @@
 .tl-waiting .tl-text::after { content: ''; animation: tl-dots 1.2s steps(4) infinite; }
 @keyframes tl-dots { 0% { content: ''; } 25% { content: '.'; } 50% { content: '..'; } 75% { content: '...'; } }
 
-.tl-error { margin: 0; }
+.tl-error { margin: 0; display: flex; align-items: flex-start; gap: 8px; flex: none; }
 
-.tl-composer { display: flex; gap: 10px; align-items: stretch; }
-.tl-composer .textarea { flex: 1; min-height: 58px; max-height: 140px; resize: none; font-family: var(--font-ui); font-size: var(--t-md); }
-.tl-send { display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; gap: 6px; }
+/* the follow-up box sits right under the messages: two lines, growing to four */
+.tl-composer { display: flex; gap: 10px; align-items: flex-end; }
+.tl-composer .textarea {
+  flex: 1; resize: none; font-family: var(--font-ui); font-size: var(--t-md); line-height: 1.4;
+  padding: 6px 10px; field-sizing: content;
+  min-height: calc(2lh + 14px); max-height: calc(4lh + 14px); height: calc(2lh + 14px);
+}
+@supports (field-sizing: content) { .tl-composer .textarea { height: auto; } }
+.tl-send { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
 .tl-hint { font-size: 10.5px; color: var(--ink-3); white-space: nowrap; }
 .tl-hint .kbd { font-size: 10px; }
 .tl-readonly { font-size: var(--t-sm); color: var(--ink-2); padding: 8px 0 2px; border-top: 1px solid var(--rule); }
 
+/* lane Q: a peeking classmate can join the thread */
+.tl-join { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 14px; }
+.tl-join p { flex: 1 1 220px; margin: 0; }
+
 /* ---------- slips in the stage dock, under the captions ---------- */
 .thread-slips { min-width: 0; display: flex; flex-direction: column; gap: 8px; }
 .thread-slips:empty { display: none; }
+/* catch-up comes before the open check (which folds until catch-up is dismissed) */
+.thread-slips:has(.catchup) { order: -1; }
 .slip { padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
 .slip-lead { display: flex; gap: 8px; align-items: flex-start; font-size: var(--t-md); line-height: 1.4; }
 .slip-lead .lucide { flex: none; margin-top: 3px; }
@@ -93,19 +159,22 @@
   .tl-pip { width: 132px; }
 }
 @media (max-width: 760px) {
-  .thread-leaf { padding: 10px 12px; gap: 8px; grid-template-rows: auto minmax(90px, 0.7fr) minmax(0, 1fr) auto auto; border-radius: 0; background: var(--leaf); }
+  .thread-leaf {
+    padding: 14px 12px 0; gap: 8px; border-radius: 0; border: 0;
+    background: var(--grain), #f3f4ef; -webkit-backdrop-filter: none; backdrop-filter: none;
+    padding-top: max(14px, env(safe-area-inset-top));
+  }
+  .tl-clip { top: 0; left: auto; right: 18px; width: 52px; height: 38px; }
   .tl-head { flex-wrap: wrap; gap: 8px 10px; }
-  .tl-title { flex-basis: 100%; }
+  .tl-title { flex-basis: 100%; padding-top: 18px; }
   .tl-title h2 { font-size: var(--t-lg); }
   .tl-pip { width: 120px; }
-  .tl-back { margin-left: auto; align-self: flex-end; }
+  .tl-back { margin-left: auto; align-self: flex-end; min-height: 44px; }
+  .tl-sec-body { padding-left: 0; }
   .tl-msg { grid-template-columns: 1fr; row-gap: 2px; }
   .tl-name, .tl-text, .tl-share { grid-column: 1; }
   .tl-hint { display: none; }
-  .tl-composer .textarea { min-height: 44px; }
+  .tl-scroll { padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+  .tl-composer .btn { min-height: 44px; }
   .slip { padding: 10px 12px; gap: 8px; }
 }
-
-/* lane Q: a peeking classmate can join the thread */
-.tl-join { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 14px; }
-.tl-join p { flex: 1 1 220px; margin: 0; }

@@ -4,6 +4,7 @@
 import type { BoardStep, StreamEvent } from '@chalk/schema';
 import { applyStep, emptyBoard, splitSentences, type BoardState, type Effect } from '@chalk/board';
 import { Speaker } from './speaker';
+import { play as playSound } from './sfx';
 
 type Item =
   | { k: 'step'; step: BoardStep }
@@ -43,9 +44,13 @@ export class Player {
   /** bumped on reset/interrupt so in-flight narration stops */
   private gen = 0;
 
+  /** this player makes the class sound effects (the main board; never a silent thread player) */
+  private readonly cues: boolean;
+
   constructor(opts: { silent?: boolean } = {}) {
     this.speaker = new Speaker();
     if (opts.silent) this.speaker.settings.muted = true;
+    this.cues = !opts.silent;
   }
 
   subscribe = (fn: () => void) => { this.listeners.add(fn); return () => { this.listeners.delete(fn); }; };
@@ -136,8 +141,11 @@ export class Player {
     this.running = true;
     try {
       while (this.queue.length) {
-        if (this.paused) await new Promise<void>((r) => { this.wakeResume = r; });
+        while (this.paused) await new Promise<void>((r) => { this.wakeResume = r; });
         this.wakeResume = null;
+        // reset() while paused emptied the queue (leaving a class with the tutor paused, then
+        // resume() on unmount): nothing is left to play
+        if (!this.queue.length) break;
         const it = this.queue.shift()!;
         await this.play(it);
       }
@@ -158,9 +166,12 @@ export class Player {
       for (let i = 0; i < sentences.length; i++) {
         this.caption = sentences[i];
         this.emit();
-        if (sentences[i + 1]) this.speaker.prefetch(sentences[i + 1]);
+        // this sentence goes to the voice first, then the next one is made behind it (the
+        // Natural voice makes one sentence at a time, in order), at the same rate
         this.speaker.settings.rate = this.pace * this.voiceRate;
-        await this.speaker.speak(sentences[i]);
+        const spoken = this.speaker.speak(sentences[i]);
+        if (sentences[i + 1]) this.speaker.prefetch(sentences[i + 1]);
+        await spoken;
         if (g !== this.gen) return;
         // paused mid-sentence: replay that sentence on resume
         if (this.paused) { this.queue.unshift({ k: 'say', text: sentences.slice(i).join(' ') }); return; }
@@ -170,7 +181,10 @@ export class Player {
     const before = this.state.current;
     const r = applyStep(this.state, it.step);
     this.state = r.state;
-    if (this.state.current !== before) this.viewPage = null;
+    if (this.state.current !== before) {
+      this.viewPage = null;
+      if (this.cues) playSound('page-turn');
+    }
     const e: Effect = r.effect;
     if (e.kind === 'draw' || e.kind === 'update') {
       const shape = this.state.pages[this.state.current].shapes[e.id];

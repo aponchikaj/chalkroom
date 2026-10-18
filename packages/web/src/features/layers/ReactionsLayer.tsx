@@ -7,19 +7,24 @@ import { CircleHelp, Check } from 'lucide-react';
 import type { ReactionKind, ReactionRow } from '@chalk/schema';
 import type { BoardPage, Camera } from '@chalk/board';
 import { mainPlayer, selectActiveMembers, useRoom } from '../../room/store';
-import { usePlayer } from '../../board/Board';
+import { useBoardViewCamera, usePlayer } from '../../board/Board';
 import { api } from '../../lib/api';
 import { frameStyle, toPct, useBoardFrame } from './boardFrame';
 import './layers.css';
 
 const ICON = { size: 14, strokeWidth: 2.25 } as const;
 
+const NO_CAM: Camera = { x: 0, y: 0, zoom: 1 };
+
 export function useMainView(): { page: BoardPage | undefined; camera: Camera } {
   usePlayer(mainPlayer);
   const st = mainPlayer.state;
   const idx = mainPlayer.viewPage ?? st.current;
   const page = st.pages[idx] ?? st.pages[st.current];
-  return { page, camera: idx === st.current ? st.camera : { x: 0, y: 0, zoom: 1 } };
+  // the camera the board is really drawn with (on phones the pen-following camera sits on top
+  // of the tutor's), so marks and dots stay on their shapes
+  const camera = useBoardViewCamera('chalk-board', idx === st.current ? st.camera : NO_CAM);
+  return { page, camera };
 }
 
 export function ReactionsLayer() {

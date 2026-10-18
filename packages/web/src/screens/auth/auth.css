@@ -1,8 +1,61 @@
 /* AU: the account pages (log in, sign up, reset, second step) on the entry leaf, and the account
    menu used on Home and in the masthead. Shared entry parts live in ../entry.css. */
 
-.auth-body { grid-template-columns: minmax(0, 1.05fr) minmax(320px, 440px); align-items: start; justify-content: space-between; }
-.auth-side { border-left: 1px solid var(--rule); padding-left: 40px; min-width: 0; }
+.auth-body { grid-template-columns: minmax(0, 1.05fr) minmax(320px, 440px); align-items: center; justify-content: space-between; }
+.auth-side { min-width: 0; }
+
+/* ---------- the library card: buff card stock tucked into the leaf, printed head, the form on it ---------- */
+.library-card {
+  --stock: color-mix(in srgb, var(--paper-2) 82%, var(--note));
+  position: relative; padding: 0 28px 26px;
+  background: var(--stock); color: var(--ink);
+  border: 1px solid color-mix(in srgb, var(--rule-2) 70%, transparent); border-radius: 2px;
+  box-shadow: 0 1px 0 var(--rule), 0 22px 34px -24px rgba(60, 45, 15, 0.6);
+}
+/* the corner is cut like a catalogue card */
+.library-card::before {
+  content: ''; position: absolute; top: -1px; right: -1px; width: 22px; height: 22px;
+  background: linear-gradient(225deg, var(--leaf) 0 50%, color-mix(in srgb, var(--rule-2) 80%, transparent) 50% calc(50% + 1px), transparent calc(50% + 1px));
+}
+.lc-head {
+  display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin: 0 -28px 22px; padding: 14px 28px 10px;
+  border-bottom: 3px double var(--ink);
+}
+.lc-brand { font-size: var(--t-xs); font-weight: 800; font-stretch: 75%; letter-spacing: 0.2em; text-transform: uppercase; }
+.lc-kind { font-family: var(--font-read); font-style: italic; font-size: var(--t-md); color: var(--ink-2); }
+.lc-no { margin-left: auto; font-size: var(--t-xs); font-weight: 700; font-stretch: 78%; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-2); }
+.lc-no .mono { font-size: 0.95rem; letter-spacing: 0.12em; color: var(--ink); }
+.library-card .entry-form { gap: 16px; }
+.library-card .input { background: var(--leaf); }
+/* text on the card stock: hints in ink-2, errors in a darker errata ink (vermilion stays on the slip border) */
+.library-card .field-note, .library-card .field-hint, .library-card .form-note { color: var(--ink-2); }
+.library-card .error-text { color: color-mix(in srgb, var(--errata) 70%, var(--ink)); }
+.library-card .auth-switch { border-top-color: color-mix(in srgb, var(--rule-2) 70%, transparent); }
+/* the card's foot: a ruled date-due slip, printed, never filled in (no texture under the controls) */
+.lc-due {
+  display: grid; grid-template-columns: 92px minmax(0, 1fr); margin: 24px -28px -26px; padding: 0 28px 14px;
+  border-top: 3px double var(--ink);
+  background: linear-gradient(90deg, transparent 0 calc(28px + 92px - 1px), color-mix(in srgb, var(--rule-2) 80%, transparent) calc(28px + 92px - 1px) calc(28px + 92px), transparent calc(28px + 92px));
+}
+.lc-due-head {
+  padding: 7px 10px 5px 0; border-bottom: 1px solid var(--rule-2);
+  font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3);
+}
+.lc-due-head:nth-child(even), .lc-due-cell:nth-child(even) { padding-left: 12px; }
+.lc-due-cell { height: 26px; border-bottom: 1px solid color-mix(in srgb, var(--ruling, var(--rule)) 85%, transparent); }
+
+/* on an invite: sign up first, log in second */
+.auth-mode { display: grid; grid-template-columns: 1fr 1fr; border: 1.5px solid var(--ink); border-radius: var(--r); overflow: hidden; }
+.auth-mode-key {
+  min-height: 44px; padding: 6px 10px; border: 0; background: var(--leaf); color: var(--ink); cursor: pointer;
+  font-size: var(--t-xs); font-weight: 700; font-stretch: 84%; letter-spacing: 0.08em; text-transform: uppercase; line-height: 1.25;
+  transition: background var(--step) steps(2);
+}
+.auth-mode-key + .auth-mode-key { border-left: 1.5px solid var(--ink); }
+.auth-mode-key:hover:not([aria-pressed='true']) { background: var(--paper-2); }
+.auth-mode-key:active { background: var(--paper-3); }
+.auth-mode-key[aria-pressed='true'] { background: var(--ink); color: var(--paper); cursor: default; }
+.auth-mode-key:focus-visible { outline: 2px solid var(--ink); outline-offset: -5px; box-shadow: inset 0 0 0 3px var(--paper); }
 .auth-title .display-room { font-size: clamp(2.4rem, 5vw, 4.4rem); text-wrap: balance; }
 .auth-title .display .mono { font-size: 0.82em; letter-spacing: 0.06em; }
 .auth-code {
@@ -95,8 +148,8 @@
 
 /* ---------- tablet ---------- */
 @media (max-width: 1080px) {
-  .auth-body { grid-template-columns: minmax(0, 1fr); }
-  .auth-side { border-left: 0; padding-left: 0; border-top: 1.5px solid var(--ink); padding-top: 26px; max-width: 560px; }
+  .auth-body { grid-template-columns: minmax(0, 1fr); align-items: start; }
+  .auth-side { max-width: 560px; }
 }
 
 /* ---------- phone ---------- */
@@ -105,7 +158,10 @@
   .auth-title .display-room { font-size: clamp(2rem, 10vw, 2.8rem); }
   .auth-title .lede { font-size: 1.02rem; }
   .auth-code { margin-top: 16px; }
-  .auth-side { padding-top: 20px; }
+  .library-card { padding: 0 16px 20px; margin: 0 -4px; }
+  .lc-head { margin: 0 -16px 18px; padding: 12px 16px 8px; }
+  .lc-due { grid-template-columns: 80px minmax(0, 1fr); margin: 20px -16px -20px; padding: 0 16px 12px;
+    background: linear-gradient(90deg, transparent 0 calc(16px + 80px - 1px), color-mix(in srgb, var(--rule-2) 80%, transparent) calc(16px + 80px - 1px) calc(16px + 80px), transparent calc(16px + 80px)); }
   .pw-rule { grid-template-columns: minmax(0, 1fr); }
   .acct-name { max-width: 10ch; }
   .acct-menu { width: min(260px, calc(100vw - 32px)); }
@@ -117,3 +173,12 @@
 /* in the classroom running head the menu sits after the voice switch; phones show the punch only */
 .masthead .acct-trigger { min-height: 32px; }
 @media (max-width: 1180px) { .masthead .acct-name { display: none; } }
+
+/* Lane P guard: board.css has a bare .leaf { pointer-events: none } meant for the board svg group. */
+article.leaf, section.leaf, div.leaf, aside.leaf, figure.leaf { pointer-events: auto; }
+
+/* phones: a 44px hit area around the compact account trigger, same size on screen */
+@media (pointer: coarse) {
+  .acct-trigger { position: relative; }
+  .acct-trigger::before { content: ''; position: absolute; inset: -6px 0; }
+}

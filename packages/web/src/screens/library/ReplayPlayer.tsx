@@ -61,15 +61,15 @@ export function ReplayPlayer({ roomId }: { roomId: string }) {
 
 function Frame({ children }: { children: React.ReactNode }) {
   return (
-    <div className="replay">
-      <article className="replay-manual leaf punched">
+    <main className="replay">
+      <article className="replay-manual page-fill leaf punched">
         <header className="replay-running">
           <button type="button" className="btn ghost small replay-back" onClick={() => navigate('/replays')}><ArrowLeft {...ICON} />All replays</button>
           <span className="replay-brand">Chalkroom Live</span>
         </header>
         {children}
       </article>
-    </div>
+    </main>
   );
 }
 
@@ -101,8 +101,8 @@ function Replay({ res }: { res: ReplayRes }) {
   const back = room.phase === 'ended' ? null : room;
 
   return (
-    <div className="replay" style={{ ['--section' as string]: sectionHue(current ? segOf.get(current.seq) ?? 0 : 0) }}>
-      <article className="replay-manual leaf punched">
+    <main className="replay" style={{ ['--section' as string]: sectionHue(current ? segOf.get(current.seq) ?? 0 : 0) }}>
+      <article className="replay-manual page-fill leaf punched">
         <header className="replay-running">
           <button type="button" className="btn ghost small replay-back" onClick={() => navigate('/replays')}><ArrowLeft {...ICON} />All replays</button>
           <span className="replay-brand">Chalkroom Live</span>
@@ -179,7 +179,7 @@ function Replay({ res }: { res: ReplayRes }) {
           </nav>
         </div>
       </article>
-    </div>
+    </main>
   );
 }
 

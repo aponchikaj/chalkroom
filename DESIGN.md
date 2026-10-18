@@ -1,6 +1,6 @@
 ---
 name: Chalkroom Live
-description: A live AI-taught class laid out as an open reference manual - tabbed sections, a printed leaf for the board, acetate for threads.
+description: A live AI-taught class laid out as a class notebook - divider tabs for segments, a ruled leaf the tutor writes on, sticky notes for questions, tracing paper for threads.
 colors:
   paper: "#f2ede0"
   paper-2: "#e8e1d0"
@@ -29,8 +29,28 @@ colors:
   ok: "#3f7f33"
   warn: "#a8560f"
   note: "#f6e7a6"
+  note-2: "#efd98a"
   note-ink: "#2e2a17"
+  pen: "#1f2b4d"
+  pencil: "#3a3833"
+  ruling: "#b9c7da"
+  stamp-green: "#2f7a3a"
 typography:
+  board-hand:
+    fontFamily: "'Kalam', 'Hand Fallback', cursive"
+    fontSize: "28px (board px)"
+    fontWeight: 400
+    lineHeight: "40px (board px)"
+  notes-hand:
+    fontFamily: "'Shantell Sans', 'Hand Fallback', cursive"
+    fontSize: "17px"
+    fontWeight: 400
+    lineHeight: "32px"
+  display-hand:
+    fontFamily: "'Gochi Hand', 'Hand Fallback', cursive"
+    fontSize: "clamp(2.4rem, 6vw, 4.4rem)"
+    fontWeight: 400
+    lineHeight: 1.1
   display:
     fontFamily: "'Archivo Variable', 'Archivo', system-ui, sans-serif"
     fontSize: "clamp(3rem, 7.4vw, 6.4rem)"
@@ -196,20 +216,23 @@ components:
 
 ## Overview
 
-**Creative North Star: "The Acetate Manual"**
+**Creative North Star: "The Class Notebook"** (evolved from "The Acetate Manual", 2026-10-18)
 
-The live class is a boxed-software reference manual lying open at a tabbed section. The lesson is the manual: each segment is a coloured divider tab on the fore edge, the shared whiteboard is the printed leaf in the middle of the page, people are punched holes along the binding, and a private thread is a sheet of milk acetate hinged over the leaf so the class stays visible underneath. Everything is cream stock and black print ink; colour is spent only where it carries meaning (a section, an action, an error).
+The live class is a notebook people write in, lying open on a cream desk. Each lesson segment is a coloured divider tab on the fore edge; people are punched holes along the binding. The shared whiteboard is a ruled notebook leaf (pale blue rules every 40 board px, three punched holes, a margin rule in the segment hue, never red) that the tutor writes on in blue-black pen. Notes are pencil on a ruled page with each editor's initials in the margin. Questions are pale sticky notes with a tape strip and a slight tilt; a group is a stack. A private thread is tracing paper held by a binder clip, so the class stays visible underneath. A check is a worksheet slip whose result is a green rubber stamp. Home is the notebook's contents page, auth is a library card, the account page is the cover label ("This notebook belongs to").
 
-Density is that of a reference manual, not a dashboard: condensed Archivo running heads and labels, Source Serif 4 for anything meant to be read as prose (captions, tutor answers, notes), and JetBrains Mono only for numbers, codes and times. Nothing eases or fades. Every state change is a two-frame mechanical step of 90 ms, and board figures plot on in discrete pen-plotter steps. The world refuses the video-call grid with a chat sidebar: no faces tiled, no bubble chat, no glassy dark panels.
+Handwriting appears only where people and the tutor write. Everything you press stays print: condensed Archivo for controls, heads and labels, Source Serif 4 for prose to be read, JetBrains Mono only for numbers, codes and times. Buttons still press in a two-frame step; layout changes and drawing ease (Motion 2.0). The world refuses the video-call grid with a chat sidebar: no faces tiled, no bubble chat, no glassy dark panels.
+
+### Never hand-drawn
+Buttons, inputs, stamps, tabs, the host bar, timers, counts, invite codes, option keys and seat counts stay Archivo or JetBrains Mono. Lists of controls get no ruled background, and controls get no texture (the paper grain is for the desk and leaves only).
 
 The world is light only. `color-scheme` is set to `light` on `:root`; there is no dark theme.
 
 **Key Characteristics:**
-- Cream section board (paper), white printed leaf, milk acetate as the three material layers.
+- Cream desk (paper), ruled leaf, tracing paper (acetate) and sticky notes as the material layers.
 - Chrome yellow is the one action ink; vermilion is the one error ink.
 - Six section hues on divider tabs, cycled per lesson segment.
 - Condensed uppercase Archivo for heads, labels, stamps and buttons; serif for reading; mono for figures.
-- Two-frame stepped motion (90 ms, `steps(2)`), hinged at the punched edge; never eased.
+- Presses step (90 ms, `steps(2)`); writing, drawing and layout ease (Motion 2.0); reduced motion keeps every state change visible.
 - Lucide line icons only; no emoji.
 
 ## Colors
@@ -235,7 +258,12 @@ Print on cream stock: warm neutrals carry the whole surface, one yellow means "y
 - **Milk Acetate** (acetate) with **Acetate Edge**: overlays hinged over the leaf (threads, slips).
 - **Print Ink** (ink), **Second Ink** (ink-2), **Faint Ink** (ink-3, still 4.5:1 on paper): text in three weights of emphasis.
 - **Rule** and **Heavy Rule** (rule, rule-2): hairlines between entries, input borders, disabled outlines.
-- **Sticky Note** (note, note-ink): sticky shapes on the board only.
+- **Sticky Note** (note, note-2, note-ink): questions and sticky shapes; pale, never the action yellow.
+- **Pen** (pen `#1f2b4d`): the tutor's blue-black writing on the board.
+- **Pencil** (pencil `#3a3833`): the class's notes.
+- **Ruling** (ruling `#b9c7da`): pale blue feint rules. The margin rule (`--margin`) mixes the segment hue into the leaf; it is never red.
+- **Stamp Green** (stamp-green `#2f7a3a`): rubber-stamp ink on a check result.
+- **Paper grain** (`--grain`): a static feTurbulence data-URI tile on the desk (body) and leaves; never on controls.
 
 ### Named Rules
 **The One Yellow Rule.** Chrome yellow fills only the primary pressable action, and only while it can be pressed: a disabled primary drops to a transparent outline (the Send button only turns yellow once there is something to send). Never a section hue, never decoration, never a status.
@@ -246,9 +274,20 @@ Print on cream stock: warm neutrals carry the whole surface, one yellow means "y
 
 ## Typography
 
-**Display Font:** Archivo Variable (with Archivo, system-ui), width axis 75 to 88
-**Body Font:** Source Serif 4 Variable (with Georgia) for reading text
-**Label/Mono Font:** JetBrains Mono 400 (with ui-monospace, Consolas)
+All faces are OFL and self-hosted with @fontsource; the class is English only, so only latin subsets ship (no Georgian faces). `index.html` preloads the Archivo and Source Serif 4 latin woff2s that every page uses; the hand faces load from their `@font-face` rules on the pages that draw with them. Hand faces are declared in `packages/web/src/ui/fonts.css`.
+
+| Role | Token | Font | Use |
+|---|---|---|---|
+| Board hand | `--hand-board` | Kalam 400/700 | Board body 28px on the 40px rule; titles 700 at 44px; labels 20 to 22px (board px) |
+| Notes and questions hand | `--hand-notes` | Shantell Sans variable (wght axis only, about 80 KB) | Notes 17/32 (16/30 on phones); stickies 500, 19/1.35 |
+| Display hand | `--display-hand` | Gochi Hand | Masthead class title, landing hero |
+| UI | `--font-ui` | Archivo Variable (kept) | All controls, heads, labels |
+| Reading | `--font-read` | Source Serif 4 (kept) | Captions, answers, prose |
+| Mono | `--font-mono` | JetBrains Mono (kept) | Numbers, codes, times, keys |
+
+**Ruled-line alignment.** Every hand face, including the local "Hand Fallback", has `ascent-override: 78%; descent-override: 22%; line-gap-override: 0%`, so the baseline lands at `lh/2 + 0.28 * fs` from the top of each line box whatever face renders. The `.ruled` utility draws the rules from `--lh`, `--fs`, `--pad-top` (and `--margin-x`; add `.no-margin` to drop the margin rule) and spaces blocks by whole rules. On the board the rules are an SVG pattern with a 40px pitch and `Lines` snaps baselines to multiples of 40.
+
+**Plain type.** `html[data-type="plain"]` swaps every hand token for Source Serif 4 (board, notes) and Archivo (display), for legibility and dyslexia. The preference toggle lives in Account.
 
 **Character:** a condensed grotesque for the manual's running heads, tabs and stamps against a bookish serif for what the tutor and the class actually say. Body UI text uses tabular numerals throughout.
 
@@ -266,7 +305,9 @@ Print on cream stock: warm neutrals carry the whole surface, one yellow means "y
 ### Named Rules
 **The Mono-for-Figures Rule.** JetBrains Mono sets only numbers, codes, times and keys (seat counts, 0:30, invite codes, option letters, segment numbers, code on the board). Never words, never headings.
 
-**The Serif-Is-Speech Rule.** If it is prose to be read (what the tutor says, what the class wrote down), it is Source Serif 4. Interface words stay in Archivo.
+**The Serif-Is-Speech Rule.** If it is prose to be read (a caption, a typed answer), it is Source Serif 4. Interface words stay in Archivo.
+
+**The Hand-Is-Writing Rule.** A hand face means someone wrote it: the tutor on the board (Kalam), the class in notes and on stickies (Shantell Sans), the class title and the landing hero (Gochi Hand). Never on a control (see "Never hand-drawn").
 
 ## Layout
 
@@ -278,6 +319,8 @@ The classroom is an open manual in four columns at desktop: binding (76px, punch
 - **Phone (max-width 760px):** one column that scrolls as a page. Masthead carries people as a horizontal punch row; lesson tabs run horizontally under it (current tab takes the width, titles clamp to 2 or 3 lines); board at full width; rail below with min-height 58vh; ask bar on its own row; the thread leaf goes full-screen and opaque; overlays (lobby, recap) replace the board in the flow.
 - **Container queries:** check card and Q&A strip stack below 620px; recap grid stacks below 760px; recap drops from the top of a short board below 320px height.
 - **Entry pages** (Home, pre-join) are one manual leaf, max 1180px, with a two-column body (title and contents left, forms right set off by a rule, not a box) and fore-edge tabs; 1080px and 760px breakpoints.
+
+**Pages fill the screen.** Every page shorter than the viewport still fills it: the main leaf or sheet takes `.page-fill`, which sets `min-height: calc(100dvh - var(--page-top) - var(--page-gap-bottom))` and a bottom margin of `--page-gap-bottom` (28px plus `env(safe-area-inset-bottom)`). The page sets `--page-top` to the height of whatever sits above the sheet (its header). This covers Home tabs, auth, account, the class page, courses, replays, the not-found page and the landing page. `index.html` sets `viewport-fit=cover` so the safe-area insets apply.
 
 Spacing has no custom properties; the rhythm in use is 4 / 8 / 12 / 18 / 28px, with 6, 10 and 14px as in-between steps inside dense components. Leaves pad 18px; the stage pads 18px 22px; the rail pads 14px.
 
@@ -294,7 +337,7 @@ Depth is material, not lighting: three stacked paper layers (section board, prin
 ### Named Rules
 **The Lies-On-Top Rule.** A shadow means one sheet is laid over another. Question cards are ruled entries on the rail's leaf and stay flat; only the one that needs you (attention) takes the leaf shadow and an ink border.
 
-**The Focus Economy Rule.** While a check or thread is in play, what is not in play falls back to the page: desaturate to 0.3 to 0.35 and drop opacity to 0.5 to 0.6, in a two-frame step.
+**The Focus Economy Rule.** While a check or thread is in play, what is not in play falls back to the page: desaturate to 0.3 to 0.35 and drop opacity to 0.5 to 0.6.
 
 ## Shapes
 
@@ -351,13 +394,27 @@ An entry ruled on the rail's leaf: leaf fill, 1px rule border, 3px radius, 11px 
 A milk acetate leaf hinged over the right of the stage and the rail. Head with the thread title and a small live picture-in-picture of the class board (168px, 132px tablet, 120px phone); the thread's own board; a transcript set as a script with the speaker in a 58px uppercase margin, learner lines in paper-2 boxes and tutor lines in the reading serif; a composer with a yellow Send. While open, the class board behind desaturates. On phones it is full-screen and opaque.
 
 ### Board Leaf
-The shared whiteboard is the printed leaf: leaf fill, leaf edge, leaf shadow, 1320 x 640. Figures use print ink with the segment hue as accent; strokes are square-capped and plot on in `steps(8)` like a pen plotter, labels appear after half the stroke time; the camera moves in `steps(4)` over 360 ms. Captions sit under the leaf in the reading serif at 1.1rem behind a rule.
+The shared whiteboard is a ruled notebook leaf: leaf fill, leaf edge, leaf shadow, 1320 x 640, pale blue rules every 40 board px, three punched holes and a margin rule in the segment hue. The tutor writes in pen (`--pen`) in Kalam; diagram boxes are cards whose leaf fill hides the rules; highlights are a section-hue marker band; code stays mono and KaTeX stays typeset. Strokes draw on with an eased `stroke-dashoffset` (`--ease-pen`), labels appear after half the stroke time; the camera eases over 360 ms. Captions sit under the leaf in the reading serif at 1.1rem behind a rule.
 
-### Motion
-- **Step** (`--step: 90ms`, `steps(2)`): every UI state change (hover, press, focus economy, toasts, hinge).
-- **Hinge-in:** `perspective(1400px) rotateY(-14deg)` to none, from the left (punched) edge, in two frames.
-- **Step-in:** opacity 0.4 to 1 in two frames (the only opacity entrance).
-- **Reduced motion:** all animations and transitions collapse to 1 ms and one iteration.
+### Error Slip
+A part that fails to render (a KaTeX or mermaid shape, the classroom) becomes a printed slip from `ui/ErrorBoundary.tsx`: leaf, 3px vermilion left rule, "<What> could not be shown.", a reading-serif line and a Try again button. `compact` is the inline version for a board shape.
+
+### Motion 2.0
+The 90 ms two-frame step stays for button presses. Layout changes and drawing ease. The classroom uses no animation library: CSS plus the View Transitions API through `transition(fn)` in `ui/motion.ts`, which just runs `fn` where the browser lacks support or the person prefers reduced motion. The landing page may use more.
+
+Tokens (in `styles.css`): `--ease-out`, `--ease-pen` `cubic-bezier(.45,.05,.4,1)`, `--ease-settle` `(.2,1.25,.35,1)`, `--ease-stamp` `(.2,1.6,.35,1)`; `--dur-quick` 180ms, `--dur-pen` 600ms, `--dur-char` 28ms, `--dur-note` 560ms, `--dur-turn` 600ms, `--dur-stamp` 380ms; `--note-from`, `--turn-from`, `--stamp-from`, `--hinge-from`; `--motion` (1, or 0 under reduced motion). Shared classes: `.write-on` (set `--chars`), `.note-in`, `.stamp-in`, `.turn-in`, `.hinge-in`, `.step-in`.
+
+| Moment | Spec | Reduced motion |
+|---|---|---|
+| Button press | `var(--step) steps(2)`, 90 ms | Same (a colour change, not movement) |
+| Handwriting write-on (board text) | `clip-path: inset()` sweep, `--dur-char` per character, `--ease-pen`, one line at a time, block or inline-block only | Appears |
+| Pen draw (lines, boxes, arrows) | `stroke-dashoffset`, 450 to 700 ms, `--ease-pen` | Appears |
+| Sticky note arrives | `--dur-note` `--ease-settle` from -40px and -7deg; regrouping is a view transition | 150 ms fade |
+| Segment change | Page turn: `--dur-turn` rotateY around the binding, shadow sweep | 150 ms crossfade |
+| Check result | Stamp: scale 1.9 to 1 with tilt, `--dur-stamp` `--ease-stamp` | Appears |
+| Route change, rail tabs, thread drawer, check fold | View transitions, `--dur-quick` | Instant, still visible |
+
+Reduced motion comes from the OS setting or the account preference (`html[data-motion="reduced"]`); there is no blanket rule. Each moment above names its own fallback, and the tokens carry it (durations go to 0, the from-transforms to none).
 
 ## Do's and Don'ts
 
@@ -366,8 +423,9 @@ The shared whiteboard is the printed leaf: leaf fill, leaf edge, leaf shadow, 13
 - **Do** reserve vermilion for the errata slip, invalid fields, wrong answers and the destructive confirm.
 - **Do** colour lesson segments only with the six section hues, in order (orange, teal, grass, ultramarine, violet, sienna), with ink on orange and white on the rest.
 - **Do** set numbers, codes, times and keys in JetBrains Mono, and only those.
-- **Do** set spoken and written prose (captions, tutor answers, notes, prompts) in Source Serif 4.
-- **Do** animate in two-frame steps (`var(--step) steps(2)`, 90 ms) and hinge new leaves from the punched edge.
+- **Do** set typed prose (captions, answers, prompts) in Source Serif 4, and writing (the board, notes, stickies) in the hand faces.
+- **Do** press buttons in two-frame steps (`var(--step) steps(2)`, 90 ms), ease writing, drawing and layout with the Motion 2.0 tokens, and give every moment a reduced-motion fallback that keeps the change visible.
+- **Do** let every page fill the screen with `.page-fill` and `--page-gap-bottom`.
 - **Do** say status in words on a stamp first; colour only reinforces.
 - **Do** use lucide line icons (12 to 16px, stroke 2 to 3), with a short word beside them wherever there is room (host controls keep their words on phones).
 - **Do** show people as punched holes ringed in their colour, never as avatars or video tiles.
@@ -376,7 +434,9 @@ The shared whiteboard is the printed leaf: leaf fill, leaf edge, leaf shadow, 13
 ### Don't:
 - **Don't** use yellow for a section, a status, a warning or decoration.
 - **Don't** use vermilion for emphasis or as a section hue.
-- **Don't** ease or fade transitions (no `ease`, `ease-in-out` or smooth cross-fades); step them.
+- **Don't** ease button presses, and don't use generic `ease` or `ease-in-out`; use the named curves.
+- **Don't** set a control, stamp, tab, timer, count or code in a hand face, and don't put ruling or grain behind controls.
+- **Don't** use red for the margin rule; it takes the segment hue.
 - **Don't** use emoji anywhere in the interface; reactions and marks are lucide icons and words.
 - **Don't** use mono for words, labels or headings.
 - **Don't** round corners past 3px on leaves, buttons and inputs; only punches and swatches are circles.
