@@ -1,5 +1,5 @@
 // Inputs for every question type, shared by inline checks and quizzes.
-import { useMemo } from 'react';
+import { useMemo, type KeyboardEvent } from 'react';
 import { ArrowDown, ArrowUp, Check, X } from 'lucide-react';
 import type { Question } from '@chalk/schema';
 import { Markdown } from './Markdown';
@@ -10,11 +10,13 @@ interface Props {
   onChange: (v: unknown) => void;
   reveal?: boolean;
   disabled?: boolean;
+  /** id of the element that names the question (the prompt), for the option group */
+  labelledBy?: string;
 }
 
 const LETTERS = 'ABCDEFGHIJ';
 
-export function QuestionInput({ q, value, onChange, reveal, disabled }: Props) {
+export function QuestionInput({ q, value, onChange, reveal, disabled, labelledBy }: Props) {
   const opts = q.options ?? [];
   switch (q.type) {
     case 'mcq':
@@ -22,13 +24,27 @@ export function QuestionInput({ q, value, onChange, reveal, disabled }: Props) {
       const multi = q.type === 'multi';
       const chosen = new Set(multi ? ((value as number[]) ?? []) : value === undefined ? [] : [value as number]);
       const correct = new Set(multi ? ((q.answer as number[]) ?? []) : [q.answer as number]);
+      // one Tab stop for the group (the chosen option, else the first); arrows move between
+      // options, and for a single choice they also choose, as radio buttons do
+      const stop = multi ? -1 : chosen.size ? [...chosen][0] : 0;
+      const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
+        const d = e.key === 'ArrowDown' || e.key === 'ArrowRight' ? 1 : e.key === 'ArrowUp' || e.key === 'ArrowLeft' ? -1 : 0;
+        if (!d || !opts.length) return;
+        const items = [...e.currentTarget.querySelectorAll<HTMLButtonElement>('button.option')];
+        const at = items.indexOf(document.activeElement as HTMLButtonElement);
+        if (at < 0) return;
+        e.preventDefault();
+        const next = (at + d + items.length) % items.length;
+        items[next]?.focus();
+        if (!multi && !disabled) onChange(next);
+      };
       return (
-        <div role={multi ? 'group' : 'radiogroup'}>
+        <div role={multi ? 'group' : 'radiogroup'} aria-labelledby={labelledBy} onKeyDown={onKey}>
           {opts.map((o, i) => {
             const cls = reveal ? (correct.has(i) ? 'correct' : chosen.has(i) ? 'wrong' : '') : '';
             return (
-              <button key={i} type="button" className={`option ${cls}`} aria-pressed={chosen.has(i)} disabled={disabled}
-                role={multi ? 'checkbox' : 'radio'} aria-checked={chosen.has(i)}
+              <button key={i} type="button" className={`option ${cls}`} disabled={disabled}
+                role={multi ? 'checkbox' : 'radio'} aria-checked={chosen.has(i)} tabIndex={multi || i === stop ? 0 : -1}
                 onClick={() => {
                   if (!multi) return onChange(i);
                   const next = new Set(chosen);

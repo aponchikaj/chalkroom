@@ -14,7 +14,7 @@ const ICON = { size: 16, strokeWidth: 2 } as const;
 
 export function StartForm() {
   const [source, setSource] = useState<Source>('topic');
-  const [title, setTitle] = useState('Solana PDAs');
+  const [title, setTitle] = useState('');
   const [goalTitle, setGoalTitle] = useState('');
   const [goal, setGoal] = useState('');
   const [courses, setCourses] = useState<CourseCard[] | null>(null);

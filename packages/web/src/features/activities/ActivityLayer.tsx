@@ -183,7 +183,7 @@ function DuelOptions({ q, mine, answered, disabled, onPick, draft, setDraft }: {
       {opts.map((o, i) => {
         const picked = answered && mine === valueOf(i);
         return (
-          <button key={i} type="button" role="radio" aria-checked={picked} aria-pressed={picked}
+          <button key={i} type="button" role="radio" aria-checked={picked}
             className={`option duel-option${answered && !picked ? ' is-off' : ''}`} disabled={disabled} onClick={() => onPick(valueOf(i))}>
             {q.type !== 'tf' && <span className="key">{LETTERS[i]}</span>}
             <span className="grow"><Markdown text={o} /></span>

@@ -5,6 +5,8 @@ import { create } from 'zustand';
 import { DEFAULT_SETTINGS, type UserSettings } from '@chalk/schema';
 import { api } from './api';
 import { mainPlayer } from '../room/store';
+import './voiceFront'; // claim the one tutor voice on every signed-in page
+import './sfxCues'; // class sound effects (bell, sticky, pencil), when the person turned them on
 import '../screens/account/preferences.css';
 
 const CACHE_KEY = 'chalkroom.preferences';
@@ -35,6 +37,26 @@ export function applyPreferences(s: UserSettings) {
   mainPlayer.voiceRate = s.voiceRate;
   if (mainPlayer.speaker.settings.muted !== !s.tutorVoice) mainPlayer.setMuted(!s.tutorVoice);
 }
+
+// Plain type: every handwriting face becomes the reading serif or the UI face (legibility,
+// dyslexia). One switch per device, like sound effects; read by :root[data-type='plain'] in
+// styles.css. Applied when this module loads, before the account settings arrive.
+const PLAIN_KEY = 'chalkroom.type';
+const plainStored = () => { try { return localStorage.getItem(PLAIN_KEY) === 'plain'; } catch { return false; } };
+const applyPlainType = (on: boolean) => {
+  if (on) document.documentElement.dataset.type = 'plain'; else delete document.documentElement.dataset.type;
+};
+
+/** Whether plain type is on for this device (a hook for the settings UI). */
+export const usePlainType = create<{ on: boolean }>(() => ({ on: plainStored() }));
+
+export function setPlainType(on: boolean) {
+  try { if (on) localStorage.setItem(PLAIN_KEY, 'plain'); else localStorage.removeItem(PLAIN_KEY); } catch { /* storage blocked */ }
+  usePlainType.setState({ on });
+  applyPlainType(on);
+}
+
+applyPlainType(usePlainType.getState().on);
 
 // before /me answers, the last known settings already hold (no flash of animation or captions)
 {

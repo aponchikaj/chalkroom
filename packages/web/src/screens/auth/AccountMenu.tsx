@@ -1,7 +1,7 @@
-// AU: who is signed in (their punch and name) with a small menu: Account, Your classes, Log out.
+// AU: who is signed in (their punch and name) with a small menu: Account, Your classes, Replays, Log out.
 // Used on Home's running head and in the classroom masthead.
 import { useEffect, useRef, useState } from 'react';
-import { ChevronDown, Library, LogOut, UserRound } from 'lucide-react';
+import { ChevronDown, Library, LogOut, CirclePlay, UserRound } from 'lucide-react';
 import { signOut, useAuth } from '../../lib/auth';
 import { navigate } from '../../lib/router';
 import { Punch } from '../../ui/Punch';
@@ -53,6 +53,7 @@ export function AccountMenu({ onClasses }: { onClasses?: () => void }) {
           </p>
           <button role="menuitem" type="button" className="acct-item" onClick={go(() => navigate('/account'))}><UserRound size={15} aria-hidden /> Account</button>
           <button role="menuitem" type="button" className="acct-item" onClick={go(onClasses ?? (() => navigate('/#classes')))}><Library size={15} aria-hidden /> Your classes</button>
+          <button role="menuitem" type="button" className="acct-item" onClick={go(() => navigate('/replays'))}><CirclePlay size={15} aria-hidden /> Replays</button>
           <button role="menuitem" type="button" className="acct-item" onClick={go(() => { forgetJoined(); void signOut().then(() => navigate('/', true)); })}><LogOut size={15} aria-hidden /> Log out</button>
         </div>
       )}

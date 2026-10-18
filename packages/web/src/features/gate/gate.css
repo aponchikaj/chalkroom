@@ -40,12 +40,53 @@
 .qa-item.is-now .qa-status { color: var(--ink); }
 .qa-item.is-done .qa-title { color: var(--ink-2); }
 
+/* the gate before this device finished the part: one quiet line keeps the bar's height */
+.ready-strip.is-waiting { min-height: 44px; }
+.ready-wait { font-size: var(--t-sm); color: var(--ink-2); }
+.ready-person.no-answer .ready-state { color: var(--ink-2); font-weight: 600; }
+/* the gate timer lives in the strip it counts down */
+.ready-strip .gate-timer { display: inline-flex; align-items: center; gap: 4px; font-size: var(--t-sm); color: var(--ink); white-space: nowrap; }
+.ready-strip .gate-timer .mono { font-weight: 600; font-variant-numeric: tabular-nums; min-width: 2.4ch; text-align: right; }
+
+/* host: the narration pause reads as pressed while it holds the whole class */
+.host-controls .btn.is-on, .host-controls .btn.is-on:hover:not(:disabled) { background: var(--paper-3); border-color: var(--ink); color: var(--ink); }
+.host-clock { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: var(--t-xs); color: var(--ink-2); white-space: nowrap; }
+.host-clock .mono { color: var(--ink); font-variant-numeric: tabular-nums; }
+.host-clock-part::before { content: ''; display: inline-block; width: 1px; height: 0.9em; background: var(--rule-2); margin-right: 6px; vertical-align: -1px; }
+
+/* phones: one Host button, the controls in a sheet above the bar */
+.host-controls.is-phone { position: static; }
+.host-menu-btn { min-height: 44px; gap: 6px; }
+.host-menu-btn .flip { transform: rotate(180deg); }
+.host-menu-flag { font-size: var(--t-xs); font-weight: 700; font-stretch: 80%; letter-spacing: 0.08em; text-transform: uppercase; color: var(--warn); }
+.host-sheet {
+  position: absolute; left: 8px; right: 8px; bottom: calc(100% + 6px); z-index: 45;
+  display: flex; flex-direction: column; gap: 10px; padding: 12px;
+  border: 1.5px solid var(--ink); border-radius: var(--r); box-shadow: var(--shadow-leaf); background: var(--leaf);
+}
+.host-sheet-items { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.host-sheet-items > .btn, .host-sheet-items > .stamp { min-height: 44px; justify-content: center; }
+.host-sheet-items > .host-end { grid-column: 1 / -1; }
+
+/* the idle strip says when Ready will come, in the class row it will later fill (the row keeps
+   its height: classroom.css .controlbar-class on wide screens, the phone rule below) */
+
 @media (max-width: 760px) {
+  /* one row, one height in every phase: the masthead row already shows who is ready, so the
+     strip keeps the count, the timer and my own action */
+  .ready-strip { flex-wrap: nowrap; min-height: 44px; min-width: 0; }
+  .ready-strip > * { min-width: 0; }
+  .ready-strip .ready-people { display: none; }
+  .ready-strip .stamp { white-space: nowrap; padding: 0 10px; flex: none; }
+  .ready-strip .ready-held { font-size: var(--t-xs); }
+  .ready-strip .errata { position: absolute; left: 8px; right: 8px; bottom: calc(100% + 4px); margin: 0; }
   .ready-name { display: none; }
+  .ready-strip .btn, .ready-strip .stamp { min-height: 44px; }
   .ready-people { gap: 8px; }
   /* phones keep the short words: an unlabelled icon row is a guessing game */
   .host-label { display: none; }
-  .host-controls .btn.small { min-height: 36px; padding: 0 10px; }
+  .host-controls .btn.small { min-height: 44px; padding: 0 12px; }
+  .gate-timer-word { display: none; }
   .qa-banner { padding: 6px 10px; flex-wrap: wrap; width: 100%; }
   .qa-items { border-left: 0; padding-left: 0; flex-basis: 100%; }
   .qa-item { flex-wrap: wrap; }
@@ -54,3 +95,9 @@
   .qa-banner { flex-wrap: wrap; width: 100%; }
   .qa-items { border-left: 0; padding-left: 0; flex-basis: 100%; }
 }
+
+/* the tutor paused: one stamp in the captions slot, so the frozen board never looks broken */
+.paused-cue { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; margin: 0; font-family: var(--font-ui); }
+.paused-cue .stamp { min-height: 30px; padding: 0 10px; gap: 6px; font-size: var(--t-xs); }
+.paused-cue-note { font-size: var(--t-sm); color: var(--ink-2); }
+@media (max-width: 760px) { .paused-cue { gap: 6px; } .paused-cue-note { font-size: var(--t-xs); } }

@@ -1,8 +1,10 @@
 /* W2: the class shelf. One printed leaf on the section board, punched at the binding, with
    the class's sections as divider tabs on the fore edge (across the top on phones). */
 
-.shelf { height: 100%; overflow-y: auto; padding: 36px 84px 40px 40px; background: var(--paper); }
-.shelf-manual { position: relative; max-width: 1120px; min-height: 640px; margin: 0 auto; padding: 22px 48px 44px 70px; }
+.shelf { --page-top: 36px; height: 100%; overflow-y: auto; padding: 36px 84px 0 40px; background: var(--paper); }
+/* the leaf fills the screen down to a clear bottom margin (.page-fill); the open section takes the room */
+.shelf-manual { position: relative; max-width: 1120px; margin: 0 auto; padding: 22px 48px 44px 70px; display: flex; flex-direction: column; }
+.shelf-manual > .shelf-panel { flex: 1 0 auto; }
 
 /* ---------- running head ---------- */
 .shelf-head { padding-bottom: 18px; border-bottom: 1.5px solid var(--ink); }
@@ -27,18 +29,20 @@
   writing-mode: vertical-rl; transform: rotate(180deg);
   width: 42px; min-height: 96px; padding: 16px 0; margin: 0;
   display: flex; align-items: center; justify-content: center; gap: 8px;
-  border: 0; border-radius: 6px 0 0 6px; cursor: pointer;
-  background: var(--hue); color: var(--on-hue);
+  border: 1px solid var(--rule-2); border-right: 0; border-radius: 6px 0 0 6px; cursor: pointer;
+  background: var(--paper-2); color: var(--ink-2);
   font-size: var(--t-xs); font-weight: 750; font-stretch: 78%; letter-spacing: 0.12em; text-transform: uppercase;
-  box-shadow: 0 10px 18px -12px rgba(60, 45, 15, 0.5);
-  transition: transform var(--step) steps(2), width var(--step) steps(2);
+  /* pale like Home's tabs: the section hue is a strip on the outer edge (the tab is turned 180deg) */
+  box-shadow: inset 4px 0 0 var(--hue), 0 10px 18px -12px rgba(60, 45, 15, 0.5);
+  transition: transform var(--step) steps(2), width var(--step) steps(2), background var(--step) steps(2);
 }
+.shelf-tab:hover { background: var(--paper-3); color: var(--ink); }
 .shelf-tab:hover { transform: rotate(180deg) translateX(-4px); }
 .shelf-tab:active { transform: rotate(180deg) translateX(-1px); }
 .shelf-tab:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 /* the open section extends past the others and owns the fore edge */
-.shelf-tab[aria-selected='true'] { width: 50px; box-shadow: inset 3px 0 0 var(--ink), 0 10px 18px -12px rgba(60, 45, 15, 0.5); }
-.shelf-tab[aria-selected='true']:hover { transform: rotate(180deg); }
+.shelf-tab[aria-selected='true'] { width: 50px; border-color: transparent; background: var(--hue); color: var(--on-hue); box-shadow: inset 3px 0 0 var(--ink), 0 10px 18px -12px rgba(60, 45, 15, 0.5); }
+.shelf-tab[aria-selected='true']:hover { transform: rotate(180deg); background: var(--hue); color: var(--on-hue); }
 .shelf-tab-count {
   writing-mode: horizontal-tb; transform: rotate(180deg);
   min-width: 20px; padding: 1px 4px; border-radius: 2px; text-align: center;
@@ -129,7 +133,7 @@
 
 /* ---------- tablet ---------- */
 @media (max-width: 1080px) {
-  .shelf { padding: 24px 66px 28px 24px; }
+  .shelf { --page-top: 24px; padding: 24px 66px 0 24px; }
   .shelf-manual { padding: 20px 30px 36px 56px; }
   .flash-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .flash-row-due { grid-column: 1 / -1; justify-self: start; text-align: left; }
@@ -139,8 +143,8 @@
 
 /* ---------- phone: tabs run across the top ---------- */
 @media (max-width: 760px) {
-  .shelf { padding: 0; }
-  .shelf-manual { padding: 12px 16px 32px; min-height: 100%; border: 0; border-radius: 0; box-shadow: none; }
+  .shelf { --page-top: 0px; padding: 0; }
+  .shelf-manual { padding: 12px 16px calc(32px + env(safe-area-inset-bottom, 0px)); min-height: 100dvh; margin-bottom: 0; border: 0; border-radius: 0; box-shadow: none; }
   .shelf-manual.punched::before, .shelf-manual.punched::after { display: none; }
   .shelf-head { padding-bottom: 14px; }
   .shelf-running { padding-bottom: 10px; }
@@ -154,12 +158,13 @@
   .shelf-tabs::-webkit-scrollbar { display: none; }
   .shelf-tab {
     writing-mode: horizontal-tb; transform: none; flex: 1 0 auto;
-    width: auto; min-height: 0; margin-top: 6px; padding: 8px 6px 7px; gap: 5px;
-    border-radius: 6px 6px 0 0; box-shadow: none; font-size: 10.5px; letter-spacing: 0.04em;
+    width: auto; min-height: 44px; margin-top: 6px; padding: 8px 8px 7px; gap: 5px;
+    border: 1px solid var(--rule-2); border-bottom: 0; border-radius: 6px 6px 0 0;
+    box-shadow: inset 0 4px 0 var(--hue); font-size: 11px; letter-spacing: 0.04em;
   }
   .shelf-tab:hover { transform: translateY(-2px); }
   .shelf-tab:active { transform: none; }
-  .shelf-tab[aria-selected='true'] { width: auto; margin-top: 0; padding-top: 13px; box-shadow: inset 0 3px 0 var(--ink); }
+  .shelf-tab[aria-selected='true'] { width: auto; min-height: 50px; margin-top: 0; padding-top: 13px; box-shadow: inset 0 3px 0 var(--ink); }
   .shelf-tab[aria-selected='true']:hover { transform: none; }
   .shelf-tab:focus-visible { outline-offset: -3px; }
   .shelf-tab-count { writing-mode: horizontal-tb; transform: none; min-width: 16px; padding: 0 3px; font-size: 10px; }
@@ -174,3 +179,6 @@
   .shelf-check-prompt, .shelf-check-body { margin-left: 0; }
   .shelf-q-by { margin-left: 0; }
 }
+
+/* Lane P guard: board.css has a bare .leaf { pointer-events: none } meant for the board svg group. */
+article.leaf, section.leaf, div.leaf, aside.leaf, figure.leaf { pointer-events: auto; }

@@ -61,3 +61,15 @@ body[data-laser='on'] #chalk-board, body[data-laser='on'] #chalk-board .shape { 
   .board-wrap:hover .laser-hint, .laser-hint.on { display: inline-flex; gap: 4px; align-items: center; }
 }
 .phase-lobby .laser-hint, .phase-ended .laser-hint { display: none !important; }
+
+/* lane C: the permanent Lost / Got it pair in the control bar */
+.lost-got { display: inline-flex; align-items: center; gap: 0; flex-wrap: wrap; }
+.lost-got .btn { gap: 6px; border-radius: 0; }
+.lost-got .btn:first-child { border-radius: var(--r) 0 0 var(--r); }
+.lost-got .btn:nth-child(2) { border-radius: 0 var(--r) var(--r) 0; margin-left: -1.5px; }
+.lost-got .btn[aria-pressed='true'] { background: var(--ink); color: var(--paper); border-color: var(--ink); position: relative; z-index: 1; }
+.lost-got .btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; position: relative; z-index: 2; }
+.lost-got-error { flex-basis: 100%; font-size: var(--t-xs); color: var(--errata); margin-top: 2px; }
+@media (max-width: 760px) {
+  .lost-got .btn { min-height: 44px; padding: 0 12px; }
+}

@@ -6,12 +6,13 @@ import { ArrowUpRight, Check, Pin, Split } from 'lucide-react';
 import { Stamp } from '../../ui/Stamp';
 import { selectIsHost, useRoom } from '../../room/store';
 import { api } from '../../lib/api';
+import { hostApi } from '../gate/hostApi';
 import { creditLine, type RailCard } from './railModel';
 import { nameFor } from '../../lib/text';
 
 const ICON = { size: 12, strokeWidth: 2.5 } as const;
 
-export function QuestionCard({ card, stale }: { card: RailCard; stale: boolean }) {
+export function QuestionCard({ card, stale, arriving = false }: { card: RailCard; stale: boolean; arriving?: boolean }) {
   const me = useRoom((s) => s.me);
   const myName = useRoom((s) => (s.me ? s.members[s.me]?.display_name ?? null : null));
   const room = useRoom((s) => s.room)!;
@@ -21,6 +22,7 @@ export function QuestionCard({ card, stale }: { card: RailCard; stale: boolean }
   const [voted, setVoted] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [pinned, setPinned] = useState<'no' | 'pinning' | 'yes'>('no');
 
   const { cluster, questions, status } = card;
   const lone = questions.length === 1 && (!cluster || cluster.title === questions[0].text);
@@ -47,6 +49,16 @@ export function QuestionCard({ card, stale }: { card: RailCard; stale: boolean }
       .finally(() => setSplitting(null));
   };
 
+  // the host moves this question up to the next Q&A (lane C's endpoint)
+  const canPin = isHost && !settled && (status === 'pending' || status === 'later');
+  const pin = () => {
+    setPinned('pinning');
+    setError('');
+    hostApi.pin(room.id, { questionId: questions[0].id })
+      .then(() => setPinned('yes'))
+      .catch((e) => { setPinned('no'); setError(`Could not pin this to the next Q&A. ${(e as Error).message}`); });
+  };
+
   const enterThread = () => {
     if (card.myThread) { useRoom.setState({ openThreadId: card.myThread.id }); return; }
     setBusy(true);
@@ -59,7 +71,7 @@ export function QuestionCard({ card, stale }: { card: RailCard; stale: boolean }
   };
 
   return (
-    <article className={`qcard step-in${card.attention ? ' attention' : ''}${settled ? ' settled' : ''}`} aria-label={card.title}>
+    <article className={`qcard${arriving ? ' note-in' : ''}${card.attention ? ' attention' : ''}${settled ? ' settled' : ''}${card.mine ? ' mine' : ''}`} aria-label={card.title}>
       <header className="qcard-head">
         <span key={`${status}-${card.answeredInClass}-${stale}`} className="step-in"><StatusStamp card={card} stale={stale} segment={room.segment} /></span>
         <span className="spacer" />
@@ -103,6 +115,20 @@ export function QuestionCard({ card, stale }: { card: RailCard; stale: boolean }
 
       {card.answeredInClass && card.askers.length > 0 && (
         <p className="qcard-credit"><Check {...ICON} aria-hidden />{creditLine(card.askers, myName)}</p>
+      )}
+
+      {canPin && (
+        <div className="qcard-actions">
+          {pinned === 'yes' ? (
+            <span className="qcard-pinned"><Pin {...ICON} aria-hidden />Pinned to the next Q&amp;A</span>
+          ) : (
+            <button type="button" className="btn small" onClick={pin} disabled={pinned === 'pinning'}
+              title="The tutor answers this for the class at the next Q&A">
+              <Pin size={14} strokeWidth={2.25} aria-hidden />
+              {pinned === 'pinning' ? 'Pinning' : 'Pin to next Q&A'}
+            </button>
+          )}
+        </div>
       )}
 
       {status === 'thread' && card.mine && !card.threadDone && openThreadId !== card.myThread?.id && (

@@ -7,6 +7,7 @@ import { Pin, X } from 'lucide-react';
 import { useRoom } from '../../room/store';
 import { useRoomConn } from '../../room/context';
 import { api, ApiError } from '../../lib/api';
+import { addPendingAsk, dropPendingAsk } from './pending';
 import './ask.css';
 
 const MAX = 500;
@@ -29,6 +30,8 @@ export function AskBar() {
   const ended = room.phase === 'ended';
   const muted = useRoom((s) => !!(s.me && s.members[s.me]?.muted));
   const closed = ended || muted;
+  // while a side thread is open, this box still talks to the whole class: say so
+  const inThread = useRoom((s) => !!s.openThreadId);
   const anchored = !closed && selection.length > 0;
 
   const setTyping = (on: boolean) => {
@@ -44,19 +47,27 @@ export function AskBar() {
 
   const submit = (raw: string) => {
     const body = raw.trim();
-    if (!body || sending || closed) return;
+    if (!body || closed) return;
     const shapeIds = useRoom.getState().selection;
     const anchor = shapeIds.length ? { streamId: room.main_stream_id, shapeIds } : undefined;
     setSending(true);
     setError('');
     setTyping(false);
+    // optimistic: the box clears and a pending sticky shows in the rail at once
+    setText('');
+    if (anchor) useRoom.setState({ selection: [] });
+    const pendingId = addPendingAsk(body, shapeIds.length);
     api.ask(room.id, anchor ? { text: body, anchor } : { text: body })
-      .then(() => {
-        setText((t) => (t.trim() === body ? '' : t));
-        if (anchor) useRoom.setState({ selection: [] });
+      .then((row) => {
+        // the row broadcast may already have landed (with a newer status): never overwrite it
+        if (row && row.id) useRoom.setState((s) => (s.questions[row.id] ? {} : { questions: { ...s.questions, [row.id]: row } }));
       })
-      .catch((err) => { setText((t) => t || body); setError(errorText(err)); })
-      .finally(() => setSending(false));
+      .catch((err) => {
+        setText((t) => t || body);
+        if (anchor && !useRoom.getState().selection.length) useRoom.setState({ selection: shapeIds });
+        setError(errorText(err));
+      })
+      .finally(() => { dropPendingAsk(pendingId); setSending(false); });
   };
 
   useEffect(() => () => {
@@ -66,8 +77,9 @@ export function AskBar() {
 
   const placeholder = ended ? 'Class has ended.' : muted ? 'The host muted your questions for now.'
     : anchored ? 'Ask about the selected shapes'
+    : inThread ? 'Ask the class'
     : 'Ask anything';
-  const canSend = !!text.trim() && !sending && !closed;
+  const canSend = !!text.trim() && !closed;
 
   return (
     <form className="askbar" onSubmit={(e) => { e.preventDefault(); submit(text); }} aria-busy={sending}>
@@ -91,7 +103,7 @@ export function AskBar() {
 
       <span className="ask-field">
         <input className="input" placeholder={placeholder} value={text} maxLength={MAX}
-          disabled={closed} aria-label={anchored ? 'Ask about the selected shapes' : 'Ask a question'}
+          disabled={closed} aria-label={anchored ? 'Ask about the selected shapes' : inThread ? 'Ask the class a question' : 'Ask a question'}
           aria-invalid={!!error || undefined}
           onChange={(e) => { setText(e.target.value); setError(''); if (e.target.value) bumpTyping(); else setTyping(false); }}
           onBlur={() => setTyping(false)} />
@@ -99,7 +111,7 @@ export function AskBar() {
       </span>
 
       <button type="submit" className={`btn${canSend ? ' primary' : ''}`} disabled={!canSend}>
-        {sending ? 'Sending' : anchored ? 'Ask about this' : 'Ask'}
+        {anchored ? 'Ask about this' : inThread ? 'Ask the class' : 'Ask'}
       </button>
     </form>
   );

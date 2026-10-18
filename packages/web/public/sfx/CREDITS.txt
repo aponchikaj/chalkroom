@@ -1,0 +1,8 @@
+Sound effects, all CC0 1.0 (public domain), trimmed and converted to mono MP3.
+
+page-turn.mp3  "Page Turn" by davidbain, https://freesound.org/s/136778/
+pencil.mp3     "Writing Short with Pencil" by WaltzOfTheWifi, https://freesound.org/s/742623/
+bell.mp3       "Soft-Notifications - Bell - HighDing" by LegitCheese, https://freesound.org/s/571512/
+sticky.mp3     "Sticky Note" by Keegan_Miner, https://freesound.org/s/474580/
+click.mp3      Kenney Interface Sounds, click_002, https://github.com/Calinou/kenney-interface-sounds
+confirm.mp3    Kenney Interface Sounds, confirmation_002, https://github.com/Calinou/kenney-interface-sounds

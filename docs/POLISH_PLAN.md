@@ -1,5 +1,30 @@
 # Polish plan: the Class Notebook (2026-10-18)
 
+## Owner decisions, added mid-build (these override anything below)
+
+1. **English only, no Georgian anywhere.**
+   - Remove the Georgian language option from settings UI and preferences.
+   - Do not ship Noto Georgian fonts or Georgian `unicode-range` faces.
+   - The tutor teaches in English.
+2. **Natural voice (Kokoro) as an opt-in download on the account page.** Account, Preferences,
+   "Improve your voice":
+   - A short explanation: "Downloads a more natural voice to this browser once (about 90 MB).
+     Classes then use it automatically. Nothing downloads unless you choose this."
+   - A Download button with a progress bar, then a Remove button that clears the cache.
+   - Nothing downloads at signup or class start.
+   - It must not slow the app. Load the model in a Web Worker after the person opts in. Never
+     put it in the main bundle or on the classroom's critical path. If the first sentence is
+     slow, fall back to the system voice for that sentence.
+   - The account page exists (`/account`); give its Preferences section this block.
+3. **Thread drawer (lane R).**
+   - The follow-up text box is smaller, at most 2 lines and growing to 4.
+   - It sits directly below that thread's messages, not at the bottom of the screen.
+   - Every thread the person can see (their own, joined ones, peeked ones) is a collapsible
+     section: a header with the title, owner and status, then the messages, the mini board and
+     the follow-up box.
+   - People choose which threads to expand. Their own open thread starts expanded; the
+     choices are remembered per class (sessionStorage).
+
 Goal: an app nobody can find a fault with. It should feel like a real notebook and classroom,
 with ruled pages, handwriting where people and the tutor write, and smooth, interactive motion.
 It also gets a landing page, a better free voice, and fixes for every UX and technical gap the
@@ -50,9 +75,8 @@ background, and controls get no texture.
 | Notes and questions hand | Shantell Sans variable (wght, INFM 55-70; subset or static weights, no more than about 60 KB) | Notes 17/32 (16/30 on phones); stickies 500, 19/1.35 |
 | Display | Gochi Hand | Masthead class title, landing hero |
 | UI | Archivo (kept) | All controls |
-| Reading | Source Serif 4 (kept), then Noto Serif Georgian | Captions, answers |
+| Reading | Source Serif 4 (kept) | Captions, answers |
 | Mono | JetBrains Mono (kept) | Numbers, code |
-| Georgian | Noto Sans Georgian via `unicode-range`, `size-adjust: 88%`, same metric overrides | No Google handwriting face covers Georgian |
 
 **Ruled-line alignment:** every hand face, including the fallbacks, gets
 `ascent-override: 78%; descent-override: 22%; line-gap-override: 0%`. Then a `.ruled`

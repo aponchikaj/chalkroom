@@ -1,12 +1,30 @@
-// Markdown from the tutor: sanitised, with KaTeX math and citation chips.
+// Markdown from the tutor: sanitised, with KaTeX math and citation chips. KaTeX loads only when
+// a text first carries a '$' (plan 8.1): until then the formula shows as its plain source.
 // AM: a chip [[res:<id>#p<page>]] names its source when the title is known (features/materials
 // cache) and, pressed, asks the materials list on screen to show that source.
-import { useMemo, type MouseEvent } from 'react';
+import { useEffect, useMemo, useState, type MouseEvent } from 'react';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
-import katex from 'katex';
 import { openSource, useMaterials } from '../features/materials/store';
 import '../features/materials/materials.css';
+
+type Katex = typeof import('katex').default;
+let katex: Katex | null = null;
+let katexPending: Promise<Katex> | null = null;
+/** KaTeX, loaded once on first need (the same chunk the board's formula shapes use). */
+export function getKatex(): Promise<Katex> {
+  if (!katexPending) {
+    katexPending = import('katex').then((m) => (katex = m.default));
+    // a failed chunk load (offline, a deploy in between) may be retried by the next formula
+    katexPending.catch(() => { katexPending = null; });
+  }
+  return katexPending;
+}
+
+/** A formula: typeset when KaTeX is here, else its source as escaped text. */
+const tex = (src: string, displayMode: boolean) => katex
+  ? katex.renderToString(src, { displayMode, throwOnError: false })
+  : `<span class="math-pending">${esc(displayMode ? `$$${src}$$` : `$${src}$`)}</span>`;
 
 marked.setOptions({ gfm: true, breaks: true });
 
@@ -27,8 +45,8 @@ export function renderMarkdown(md: string, titles: Record<string, string> = {}):
   const stash: string[] = [];
   const keep = (html: string) => `\u0000${stash.push(html) - 1}\u0000`;
   let src = md
-    .replace(/\$\$([\s\S]+?)\$\$/g, (_m, tex) => keep(katex.renderToString(tex, { displayMode: true, throwOnError: false })))
-    .replace(/(^|[^\\$])\$([^$\n]+?)\$/g, (_m, pre, tex) => pre + keep(katex.renderToString(tex, { throwOnError: false })))
+    .replace(/\$\$([\s\S]+?)\$\$/g, (_m, t) => keep(tex(t, true)))
+    .replace(/(^|[^\\$])\$([^$\n]+?)\$/g, (_m, pre, t) => pre + keep(tex(t, false)))
     .replace(CITE, (_m, id, page) => keep(chip(id, page, titles)));
   src = marked.parse(src, { async: false }) as string;
   src = src.replace(/\u0000(\d+)\u0000/g, (_m, i) => stash[Number(i)]);
@@ -47,7 +65,15 @@ const onCite = (e: MouseEvent<HTMLDivElement>) => {
 
 export function Markdown({ text, className = '' }: { text: string; className?: string }) {
   const titles = useMaterials((s) => s.titles);
-  const html = useMemo(() => renderMarkdown(text, titles), [text, titles]);
+  const math = text.includes('$');
+  const [ready, setReady] = useState(!!katex);
+  useEffect(() => {
+    if (!math || katex) return;
+    let alive = true;
+    getKatex().then(() => { if (alive) setReady(true); }, () => { /* the source stays as text */ });
+    return () => { alive = false; };
+  }, [math]);
+  const html = useMemo(() => renderMarkdown(text, titles), [text, titles, ready]);
   return (
     <div
       className={`md ${className}`}

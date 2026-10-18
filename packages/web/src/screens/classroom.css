@@ -1,4 +1,4 @@
-/* Classroom layout: an open manual. Four columns wide, two at tablet, one on a phone.
+/* Classroom layout: an open notebook. Four columns wide, two at tablet, one on a phone.
    Only layout and regions live here; features style their own insides. */
 
 .live { display: flex; flex-direction: column; height: 100%; min-height: 0; background: var(--paper); }
@@ -16,10 +16,11 @@
 }
 .masthead-brand:hover { text-decoration: underline; text-underline-offset: 4px; }
 .masthead-title { min-width: 0; }
-.masthead-title h1 { font-size: clamp(1.4rem, 2.4vw, 2.1rem); font-stretch: 78%; font-weight: 800; letter-spacing: -0.015em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.masthead-title h1 { font-size: clamp(1.6rem, 2.6vw, 2.3rem); line-height: 1.05; color: var(--pen); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-bottom: 2px; }
+:root[data-type='plain'] .masthead-title h1 { font-weight: 800; font-stretch: 78%; letter-spacing: -0.015em; color: var(--ink); }
+.masthead-clock { display: inline-flex; }
 .masthead-sub { font-size: var(--t-sm); color: var(--ink-2); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .masthead-state { display: flex; align-items: center; gap: 10px; align-self: center; }
-.gate-timer { display: inline-flex; align-items: center; gap: 4px; font-size: var(--t-sm); color: var(--ink); }
 .masthead-voice { min-height: 32px; padding: 0 10px; gap: 6px; }
 .masthead-people { display: none; }
 
@@ -33,7 +34,8 @@
 .live-tabs-v { min-height: 0; background: var(--paper-2); }
 .live-tabs-h { display: none; }
 
-/* binding edge: people as punched holes */
+/* binding edge: people as punched holes down the left of the page, a faint ring-binder seam */
+.live-binding { background: linear-gradient(90deg, transparent calc(100% - 6px), color-mix(in srgb, var(--rule) 60%, transparent)); }
 .binding { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 18px 0; }
 .binding ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; gap: 16px; }
 .binding li { display: flex; flex-direction: column; align-items: center; gap: 4px; }
@@ -47,7 +49,9 @@
 /* stage: the Q&A strip above the leaf, the board leaf, captions, then the dock (check, thread slips) */
 .stage { min-width: 0; min-height: 0; display: flex; flex-direction: column; padding: 18px 22px 12px; gap: 10px; }
 .stage > * { flex: none; }
-.board-wrap { position: relative; flex: 1 1 0; min-height: 120px; display: flex; align-items: center; justify-content: center; container-type: size; }
+/* the leaf sits at the top of the stage at its own proportions; the captions follow right under
+   it, and when space runs short (a check is open) it shrinks instead of pushing them off */
+.board-wrap { position: relative; flex: 0 1 auto; width: 100%; aspect-ratio: 1320 / 640; min-height: 120px; display: flex; align-items: flex-start; justify-content: center; container-type: size; }
 .stage-head { display: flex; justify-content: center; container-type: inline-size; }
 .stage-head:empty { display: none; }
 /* the board shrinks a little while a check is open; the dock scrolls past that */
@@ -57,12 +61,30 @@
 }
 .stage-dock:not(:has(> :not(:empty))) { display: none; }
 .stage-dock > .check-card { flex: 1 1 520px; }
+/* catch-up first: while the catch-up card is up, the check waits folded to its header */
+.stage-dock > .thread-slips { order: -1; }
+.stage-dock:has(#catchup-title) > .check-card :is(.check-prompt, .check-inputs, .check-foot, .check-body, .who-answered, .errata) { display: none; }
+.stage-dock:has(#catchup-title) > .check-card { padding-bottom: 12px; opacity: 0.85; }
+.stage-dock:has(#catchup-title) > .check-card .check-folded-note { display: inline; }
 .stage-dock > .check-chip { flex: none; }
 .stage-dock > .thread-slips { flex: 1 1 320px; }
 /* the leaf keeps the board's 12 x 8 grid proportions (1320 x 640) and fits the space */
 .board-wrap > .board-svg { width: min(100cqw, 100cqh * 2.0625); height: auto; aspect-ratio: 1320 / 640; }
-/* focus economy: a check or a thread puts the rest of the stage back to paper */
-.stage.in-focus-elsewhere .captions, .stage.in-focus-elsewhere .pagestrip { opacity: 0.5; }
+/* focus economy: a check or a thread puts the rest of the stage back a step. Captions are the
+   text of the voice, so they step down in colour (never by opacity) and stay above 4.5:1 */
+.stage.in-focus-elsewhere .captions { color: var(--ink-2); }
+.stage.in-focus-elsewhere .pagestrip { opacity: 0.5; }
+
+/* the lobby: the invitation leaf lies over the whole stage (it scrolls there when it is taller),
+   while the empty board under it keeps the size it has in class, so nothing moves at the start */
+@media (min-width: 761px) {
+  .live.phase-lobby .stage { position: relative; }
+  .live.phase-lobby .board-wrap { position: static; }
+  .live.phase-lobby .lobby-overlay {
+    position: absolute; inset: 0; z-index: 6; overflow: auto;
+    display: grid; justify-items: center; align-items: safe center; padding: 18px 22px; background: var(--paper);
+  }
+}
 
 /* overlays over the board share one frame */
 .board-overlay { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; background: color-mix(in srgb, var(--paper) 55%, transparent); }
@@ -91,13 +113,26 @@
 .thread-layer > * { flex: 1; min-width: 0; }
 
 /* ---------- control bar ---------- */
+/* wide screens: two rows that keep their height in every phase. The class row (ready gate, host
+   tools, activities, Lost / Got it) is one 44 px line; the ask box has the row under it. */
 .controlbar {
-  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
-  padding: 10px 20px; border-top: 1.5px solid var(--ink); background: var(--paper);
+  position: relative;
+  display: flex; flex-direction: column; align-items: stretch; gap: 6px;
+  padding: 6px 20px 10px; border-top: 1.5px solid var(--ink); background: var(--paper);
 }
-.controlbar > :last-child { flex: 1; min-width: 260px; }
+.controlbar-class { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 14px; min-height: 44px; min-width: 0; }
+.controlbar-class > * { flex: none; }
+.controlbar > .askbar { width: 100%; }
 .ready-strip, .host-controls { display: flex; align-items: center; gap: 8px; }
 .host-controls { padding-left: 14px; border-left: 1px solid var(--rule); }
+.host-controls.is-phone { padding-left: 0; border-left: 0; }
+
+/* phones: the lesson as a thin progress line under the masthead (always there: no jump at start) */
+.segline { display: flex; gap: 3px; height: 4px; }
+.segline-part { flex: 1; background: var(--rule); border-radius: 1px; }
+.segline-part.is-done { background: var(--ink-2); }
+.segline-part.is-now { background: linear-gradient(90deg, var(--hue) 0 50%, color-mix(in srgb, var(--hue) 35%, var(--rule)) 50%); }
+.segline-part.is-now.is-started { background: var(--hue); }
 .askbar { display: flex; gap: 8px; align-items: center; }
 .askbar .input { flex: 1; }
 
@@ -115,20 +150,21 @@
 /* ---------- phone: one column. Masthead with people across, lesson tabs across, the board
    at full width, the rail as the bottom section, and the ask bar on its own row. ---------- */
 @media (max-width: 760px) {
-  .masthead { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'title state' 'people people'; padding: 8px 12px 6px; gap: 4px 10px; align-items: center; }
+  .masthead { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'title state' 'people people'; padding: calc(8px + env(safe-area-inset-top, 0px)) calc(12px + env(safe-area-inset-right, 0px)) 6px calc(12px + env(safe-area-inset-left, 0px)); gap: 4px 10px; align-items: center; }
+  .masthead-clock { display: none; }
   .masthead-brand { display: none; }
   .masthead-title { grid-area: title; }
-  .masthead-title h1 { font-size: 1.3rem; }
+  .masthead-title h1 { font-size: 1.45rem; }
   .masthead-sub { font-size: var(--t-xs); margin-top: 0; }
   .masthead-state { grid-area: state; gap: 6px; }
-  .masthead-voice { min-height: 32px; width: 32px; padding: 0; }
+  .masthead-voice { min-height: 44px; width: 44px; padding: 0; }
   .masthead-people { grid-area: people; display: block; margin: 2px -12px 0; overflow-x: auto; }
   .masthead-people .binding-horizontal { padding: 6px 12px 2px; gap: 10px; justify-content: flex-start; }
   .masthead-people .binding-horizontal ul { gap: 12px; }
   .masthead-people .binding-ring { width: 24px; height: 24px; }
   .masthead-people .binding-count { font-size: var(--t-xs); white-space: nowrap; }
 
-  .live-tabs-h { display: block; padding: 0 8px; border-bottom: 1.5px solid var(--ink); }
+  .live-tabs-h { display: block; padding: 6px 12px 7px; border-bottom: 1.5px solid var(--ink); }
   .live-tabs-v, .live-binding { display: none; }
 
   /* the body scrolls as one page: board first, then the rail */
@@ -136,25 +172,38 @@
   .stage { flex: none; padding: 8px 8px 4px; gap: 6px; }
   .stage-dock { max-height: none; overflow: visible; padding: 0; }
   .stage-dock > .check-card, .stage-dock > .thread-slips { flex-basis: 100%; }
-  .board-wrap { flex: none; width: 100%; min-height: 0; aspect-ratio: 1320 / 640; height: auto; }
-  .captions { min-height: 38px; font-size: 1rem; padding: 4px 6px; }
+  .board-wrap { flex: none; width: 100%; min-height: 160px; aspect-ratio: 1320 / 640; height: auto; }
+  /* two caption lines reserved, so a long sentence does not push the page below it */
+  .captions { min-height: calc(2.8em + 8px); font-size: 1rem; padding: 4px 6px; }
   .pagestrip { padding-top: 4px; }
   .live-rail { flex: 1 0 auto; min-height: 58vh; border-left: 0; border-top: 1.5px solid var(--ink); }
   /* nothing to read in the rail before class starts: the invitation owns the page */
   .phase-lobby .live-rail { display: none; }
 
-  /* overlays that need room (lobby, recap) take the board's place and grow with their content */
-  .board-wrap:has(> .board-overlay) { aspect-ratio: auto; container-type: normal; display: block; }
-  .board-wrap:has(> .board-overlay) > .board-svg { display: none; }
-  .board-wrap > .board-overlay { position: relative; inset: auto; padding: 0; background: none; }
+  /* the lobby leaf lies over the whole page, so the board keeps its place underneath and
+     nothing moves when the class starts */
+  .live.phase-lobby .live-body { position: relative; }
+  .live.phase-lobby .board-wrap { position: static; }
+  .live.phase-lobby .lobby-overlay { position: absolute; inset: 0; z-index: 6; display: block; padding: 8px; overflow: auto; background: var(--paper); }
+  /* the recap takes the board's place and grows with its content */
+  .board-wrap:has(> .recap) { aspect-ratio: auto; container-type: normal; display: block; }
+  .board-wrap:has(> .recap) > .board-svg { display: none; }
 
   .thread-layer { position: fixed; top: 0; left: 0; right: 0; bottom: 0; padding: 0; z-index: 40; }
 
-  .controlbar { padding: 6px 8px calc(6px + env(safe-area-inset-bottom)); gap: 6px 8px; }
-  .controlbar > .ready-strip, .controlbar > .host-controls { flex: 0 1 auto; }
+  .controlbar { flex-direction: row; flex-wrap: wrap; align-items: center; min-height: 0; padding: 6px calc(8px + env(safe-area-inset-right, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) calc(8px + env(safe-area-inset-left, 0px)); gap: 6px 8px; }
+  /* the class row's parts flow in the bar itself on phones */
+  .controlbar-class { display: contents; }
+  .controlbar .btn { min-height: 44px; }
+  /* the host's activities live in the Host menu on phones */
+  .controlbar-class > .activity-controls { display: none; }
+  .host-sheet .activity-controls { display: flex; flex-wrap: wrap; gap: 8px; }
+  .host-sheet .activity-controls .btn { flex: 1; min-height: 44px; justify-content: center; }
+  .controlbar-class > .host-controls { flex: 0 1 auto; }
+  /* the ready strip is the bar's first row in every phase (gate.css keeps it one row high) */
+  .controlbar-class > .ready-strip { order: -1; flex: 1 1 100%; }
   .controlbar > .askbar { order: 3; flex: 1 1 100%; min-width: 0; }
   .host-controls { padding-left: 0; border-left: 0; flex-wrap: wrap; }
-  .ready-strip { flex-wrap: wrap; }
 }
 
 /* phone, class over: the recap replaces the board in the page flow, so it never covers the captions */

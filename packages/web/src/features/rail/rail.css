@@ -1,7 +1,20 @@
-/* A1 (Dev A): the question rail. Cards are entries ruled on the rail's leaf, not raised
-   cards: only the one that needs you stands up off the page. */
+/* A1 (Dev A): the question rail. Questions are sticky notes stuck to the rail's leaf: pale note
+   paper, a strip of tape, a slight tilt. A group is a stack of notes. Answered ones fade toward
+   the leaf with the answer on a strip in the reading serif. Your own note has an ink outline.
+   Controls on the notes (stamps, +1, buttons) stay print. */
 
-.qrail { display: flex; flex-direction: column; gap: 12px; padding: 14px; }
+/* ---------- rail tabs: counts (the tabs themselves are drawn in classroom.css) ---------- */
+.rail-tab { display: inline-flex; align-items: center; gap: 6px; }
+.rail-tab:focus-visible { outline: 2px solid var(--ink); outline-offset: -4px; }
+.rail-count {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 16px; padding: 0 4px;
+  border: 1px solid currentColor; border-radius: 2px;
+  font-size: 10px; font-weight: 500; letter-spacing: 0; line-height: 1; color: var(--ink-2);
+}
+.rail-count.fresh { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+@media (max-width: 760px) { .rail-tab { min-height: 44px; } }
+
+.qrail { display: flex; flex-direction: column; gap: 18px; padding: 22px 16px 24px; }
 
 /* system lines ("Class ended") */
 .qrail-notices { list-style: none; margin: 0; padding: 0 0 10px; border-bottom: 1px solid var(--rule); display: flex; flex-direction: column; gap: 4px; }
@@ -9,59 +22,115 @@
 .qrail-notice .lucide { flex: none; margin-top: 2px; }
 .qrail-notice.warn { color: var(--warn); }
 
-.qrail-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.qrail-list { list-style: none; margin: 0; padding: 0 4px; display: flex; flex-direction: column; gap: 22px; }
 
-.qrail-empty { padding: 22px 6px; display: flex; flex-direction: column; gap: 8px; font-size: var(--t-sm); color: var(--ink-2); }
+.qrail-empty { padding: 22px 6px; display: flex; flex-direction: column; gap: 8px; font-size: var(--t-sm); color: var(--ink-2); max-width: 36ch; }
 .qrail-empty-head { font-size: var(--t-lg); font-weight: 700; font-stretch: 82%; color: var(--ink); }
 
-/* ---------- card ---------- */
+/* ---------- the sticky note ---------- */
+/* the list item holds the tilt (and the sheets of a stack); the note inside can land on its own */
+.qnote { position: relative; transform: rotate(var(--tilt, -0.6deg)); view-transition-class: qnote; }
 .qcard {
-  display: flex; flex-direction: column; gap: 7px;
-  padding: 11px 12px 12px;
-  background: var(--leaf); border: 1px solid var(--rule); border-radius: var(--r);
+  position: relative; z-index: 1;
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 16px 16px 14px;
+  background: var(--note); color: var(--note-ink);
+  /* the bottom-left corner curls a little off the page */
+  border-radius: 1px 1px 2px 18px / 1px 1px 2px 6px;
+  box-shadow: 0 1px 1px rgba(60, 45, 15, 0.18), 0 10px 14px -10px rgba(60, 45, 15, 0.45);
+  transition: background-color var(--dur-quick) var(--ease-out), box-shadow var(--dur-quick) var(--ease-out);
 }
-.qcard.attention { border-color: var(--ink); box-shadow: var(--shadow-leaf); }
-/* settled: answered, so it falls back to the page */
-.qcard.settled { background: color-mix(in srgb, var(--paper) 55%, var(--leaf)); }
-.qcard.settled .qcard-title { color: var(--ink-2); }
+/* the tape strip across the top */
+.qcard::before {
+  content: ''; position: absolute; left: 50%; top: -9px; width: 64px; height: 18px;
+  transform: translateX(-50%) rotate(-3deg);
+  background: color-mix(in srgb, #fff 55%, transparent);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.06);
+  pointer-events: none;
+}
+/* a group is a stack: one or two notes peek out from under the top one */
+.qnote.stacked::before, .qnote.stack-2::after {
+  content: ''; position: absolute; inset: 0; z-index: 0;
+  background: var(--note-2); border-radius: 1px 1px 2px 14px / 1px 1px 2px 5px;
+  box-shadow: 0 1px 1px rgba(60, 45, 15, 0.16);
+  transform: rotate(2.4deg) translate(6px, 5px);
+}
+.qnote.stack-2::after { background: color-mix(in srgb, var(--note-2) 70%, var(--note-edge)); transform: rotate(-1.8deg) translate(-4px, 8px); z-index: -1; }
+
+/* yours: an ink outline, as if you pressed it down harder */
+.qcard.mine { outline: 1.5px solid var(--ink); outline-offset: 0; }
+/* the one that needs you lifts a little further off the page */
+.qcard.attention { box-shadow: 0 1px 1px rgba(60, 45, 15, 0.2), 0 16px 22px -12px rgba(60, 45, 15, 0.55); }
+/* settled: answered, so it fades toward the leaf */
+.qcard.settled { background: color-mix(in srgb, var(--note) 42%, var(--leaf)); }
+.qnote:has(.qcard.settled)::before, .qnote:has(.qcard.settled)::after { background: color-mix(in srgb, var(--note-2) 40%, var(--leaf)); }
+.qcard.settled .qcard-title { color: color-mix(in srgb, var(--note-ink) 78%, var(--leaf)); }
+/* still on its way to the API */
+.qcard.pending { background: color-mix(in srgb, var(--note) 70%, var(--leaf)); }
+.qcard.pending .qcard-title { color: color-mix(in srgb, var(--note-ink) 70%, var(--leaf)); }
 
 .qcard-head { display: flex; align-items: center; gap: 8px; min-height: 28px; }
 .qcard-head .stamp { white-space: normal; }
 
-.qcard-title { font-size: var(--t-md); font-weight: 680; font-stretch: 86%; line-height: 1.28; letter-spacing: 0; }
-
-.qcard-by { font-size: var(--t-xs); color: var(--ink-3); font-weight: 600; font-stretch: 85%; letter-spacing: 0.04em; }
-
-.qcard-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
-.qcard-list li { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 8px; font-size: var(--t-sm); line-height: 1.38; }
-.qcard-who {
-  padding-top: 2px; font-size: 10.5px; font-weight: 750; font-stretch: 80%; letter-spacing: 0.08em; text-transform: uppercase;
-  color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+/* the question is written by a person: the notes hand */
+.qcard-title {
+  font-family: var(--hand-notes); font-size: 19px; font-weight: 500; line-height: 1.35; letter-spacing: 0;
+  font-variation-settings: 'INFM' 70; color: var(--note-ink); overflow-wrap: anywhere;
 }
-.qcard-text { color: var(--ink); overflow-wrap: anywhere; }
 
-.qcard-meta, .qcard-credit { display: flex; align-items: center; gap: 6px; font-size: var(--t-xs); color: var(--ink-2); }
+.qcard-by { font-size: 11px; color: color-mix(in srgb, var(--note-ink) 72%, transparent); font-weight: 600; font-stretch: 85%; letter-spacing: 0.08em; text-transform: uppercase; }
+
+.qcard-list { list-style: none; margin: 2px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.qcard-list li { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 2px 8px; align-items: baseline; }
+.qcard-who {
+  font-size: 10.5px; font-weight: 750; font-stretch: 80%; letter-spacing: 0.08em; text-transform: uppercase;
+  color: color-mix(in srgb, var(--note-ink) 78%, transparent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.qcard-text { font-family: var(--hand-notes); font-size: 16px; line-height: 1.35; color: var(--note-ink); overflow-wrap: anywhere; }
+
+.qcard-meta, .qcard-credit { display: flex; align-items: center; gap: 6px; font-size: var(--t-xs); color: color-mix(in srgb, var(--note-ink) 80%, transparent); }
 .qcard-meta .lucide, .qcard-credit .lucide { flex: none; }
 .qcard-credit { font-size: var(--t-sm); color: var(--ok); font-weight: 600; }
 
-.qcard-note { font-size: var(--t-sm); color: var(--ink-2); line-height: 1.4; }
-.qcard-note strong { color: var(--ink); font-weight: 650; }
+.qcard-note { font-size: var(--t-sm); color: color-mix(in srgb, var(--note-ink) 86%, transparent); line-height: 1.4; }
+.qcard-note strong { color: var(--note-ink); font-weight: 650; }
 
-/* the inline answer reads as body text in the manual */
+/* the answer sits on a strip of leaf stuck under the note, in the reading serif */
 .qcard-answer {
-  font-family: var(--font-read); font-size: 0.98rem; line-height: 1.5; color: var(--ink);
-  padding-top: 8px; border-top: 1px solid var(--rule);
+  margin: 6px -16px -14px; padding: 10px 16px 12px;
+  background: var(--leaf); border-top: 1px dashed var(--note-edge);
+  border-radius: 0 0 2px 18px / 0 0 2px 6px;
+  font-family: var(--font-read); font-size: 15px; line-height: 1.5; color: var(--ink);
 }
+.qcard:has(.qcard-answer) .qcard-credit { order: 1; }
 
 .qcard-actions { display: flex; gap: 8px; padding-top: 2px; }
 .qcard .errata { font-size: var(--t-xs); }
 
+/* controls on the paper stay print, on leaf so they read as pressable */
+.qcard .btn:not(.primary):not(.ghost) { background: var(--leaf); }
+.qcard .btn.ghost { color: color-mix(in srgb, var(--note-ink) 85%, transparent); }
+
 /* anonymous +1 */
 .qvote { gap: 6px; min-width: 52px; letter-spacing: 0.02em; }
-.qvote[aria-pressed='true']:hover:not(:disabled) { background: var(--ink-2); color: var(--paper); }
+.qvote[aria-pressed='true'] { background: var(--ink) !important; color: var(--paper); }
+.qvote[aria-pressed='true']:hover:not(:disabled) { background: var(--ink-2) !important; }
 .qvote-n { font-size: 11px; font-weight: 500; }
-.qvote-static { display: inline-flex; align-items: center; gap: 6px; font-size: var(--t-xs); font-weight: 650; color: var(--ink-3); padding: 0 4px; }
+.qvote-static { display: inline-flex; align-items: center; gap: 6px; font-size: var(--t-xs); font-weight: 650; color: color-mix(in srgb, var(--note-ink) 75%, transparent); padding: 0 4px; }
 
 /* lane Q: take an over-merged question back out of its group */
-.qcard-split { grid-column: 2; justify-self: start; margin: -2px 0 0 -10px; color: var(--ink-2); font-weight: 600; }
+.qcard-split { grid-column: 2; justify-self: start; margin: -2px 0 0 -10px; font-weight: 600; }
 .qcard-split:hover:not(:disabled) { color: var(--ink); }
+
+/* regrouping is a view transition: each note slides to its new place and settles */
+::view-transition-group(*.qnote) { animation-duration: var(--dur-note); animation-timing-function: var(--ease-settle); }
+
+@media (max-width: 760px) {
+  .qrail { padding: 20px 12px 24px; }
+  .qcard-title { font-size: 18px; }
+  .qvote { min-height: 44px; }
+  .qcard-actions .btn { min-height: 44px; }
+}
+
+/* host: pinned to the next Q&A */
+.qcard-pinned { display: inline-flex; align-items: center; gap: 6px; font-size: var(--t-xs); font-weight: 650; font-stretch: 85%; letter-spacing: 0.04em; color: var(--note-ink); }

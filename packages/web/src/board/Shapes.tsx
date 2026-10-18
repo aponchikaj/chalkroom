@@ -1,16 +1,19 @@
-// One React component per Board Script shape kind. Geometry comes from rough.js with the
-// manual world's settings (rough.ts): clean single strokes and flat tint fills.
-import { memo, useEffect, useMemo, useState, type CSSProperties } from 'react';
-import katex from 'katex';
-import hljs from 'highlight.js/lib/common';
+// One React component per Board Script shape kind, written on a ruled notebook leaf. Geometry comes
+// from rough.js (rough.ts): clean single strokes in the tutor's blue-black pen. Diagram boxes are
+// cards whose leaf fill hides the rules; free text is Kalam handwriting whose baselines sit on the
+// 40 px rules; code stays mono and formulas stay typeset (both libraries load on first use).
+import { memo, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import type { ShapeStyle } from '@chalk/schema';
 import { arrowGeometry, tableColumnWidths, gridToPx, type BoardPage, type ShapeState } from '@chalk/board';
 import { rect, ellipse, line, curve, linear, FILL, type RPath } from './rough';
+import { useHljs, useKatex } from './lazy';
 import { openSource, useMaterials } from '../features/materials/store';
+import { ErrorBoundary, ErrorSlip } from '../ui/ErrorBoundary';
 import './citeTag.css';
+import './board.css';
 
 export const STROKE: Record<ShapeStyle, string> = {
-  default: 'var(--fig-ink)', accent: 'var(--fig-accent)', muted: 'var(--fig-muted)',
+  default: 'var(--pen)', accent: 'var(--fig-accent)', muted: 'var(--fig-muted)',
   good: 'var(--fig-good)', warn: 'var(--fig-warn)', bad: 'var(--fig-bad)',
 };
 const colorOf = (s: ShapeState) => STROKE[s.style ?? 'default'] ?? STROKE.default;
@@ -26,69 +29,159 @@ export function Paths({ paths, color, fill, width = 2.2, fillOpacity = 0.32, sol
   );
 }
 
-function Lines({ text, x, y, size = 26, anchor = 'middle', color, weight, lineH }: { text: string; x: number; y: number; size?: number; anchor?: 'start' | 'middle' | 'end'; color?: string; weight?: number; lineH?: number }) {
+/** The rule pitch of the leaf, in board px: half a Board Script cell, so cell centres sit on it. */
+export const RULE = 40;
+/** The baseline sits this far above its rule, so descenders cross the rule like real writing. */
+const BASE_LIFT = 3;
+/** Average Kalam advance per em (regular, bold): enough to keep a line inside its shape. */
+const ADV = { 400: 0.46, 700: 0.5 } as const;
+
+/** Line pitch on the open leaf: whole rules, never tighter than the type (a 44 px title takes two). */
+const snapPitch = (fs: number) => RULE * Math.max(1, Math.ceil((fs * 1.25) / RULE - 0.05));
+
+/** Shrink a hand size until the longest line fits maxW (never below 70 percent). */
+function fitSize(lines: string[], size: number, maxW: number, weight = 400) {
+  const chars = Math.max(1, ...lines.map((l) => l.length));
+  const k = weight >= 700 ? ADV[700] : ADV[400];
+  return chars * size * k <= maxW ? size : Math.max(size * 0.7, maxW / (chars * k));
+}
+
+/**
+ * Handwritten lines. Baselines are alphabetic. On the open leaf (snap) every baseline lands on a
+ * rule; inside a card the block is centred on y. While the shape is being drawn each line is
+ * written on in turn (a clip sweep), sharing the window [from, from + span] of the draw time.
+ */
+function Lines({ text, x, y, size = 28, anchor = 'middle', color = 'var(--pen)', weight = 400, snap = false, from = 0, span = 1, maxW }: {
+  text: string; x: number; y: number; size?: number; anchor?: 'start' | 'middle' | 'end'; color?: string; weight?: number;
+  snap?: boolean; from?: number; span?: number; maxW?: number;
+}) {
   const lines = text.split('\n');
-  const lh = lineH ?? size * 1.3;
-  const top = y - ((lines.length - 1) * lh) / 2;
+  const fs = maxW ? fitSize(lines, size, maxW, weight) : size;
+  const lh = snap ? snapPitch(fs) : Math.round(fs * 1.32);
+  // the em box centre is 0.28 em above the baseline with the hand faces' metric overrides
+  let base = y - ((lines.length - 1) * lh) / 2 + fs * 0.3;
+  if (snap) base = Math.round((base + BASE_LIFT) / RULE) * RULE - BASE_LIFT;
+  const total = lines.reduce((n, l) => n + Math.max(1, l.length), 0);
+  let done = 0;
   return (
-    <text className="label" x={x} y={top} textAnchor={anchor} dominantBaseline="central" style={{ fontSize: size, fill: color, fontWeight: weight }}>
-      {lines.map((l, i) => <tspan key={i} x={x} dy={i === 0 ? 0 : lh}>{l || ' '}</tspan>)}
-    </text>
+    <g className="hw" style={{ fontSize: fs, fill: color, fontWeight: weight }}>
+      {lines.map((l, i) => {
+        const n = Math.max(1, l.length);
+        const style = { '--ws': from + (span * done) / total, '--wl': (span * n) / total } as CSSProperties;
+        done += n;
+        return <text key={i} x={x} y={base + i * lh} textAnchor={anchor} dominantBaseline="alphabetic" style={style}>{l || ' '}</text>;
+      })}
+    </g>
   );
 }
 
+/** A card: the leaf colour under a figure, so the rules stop at its edge like pasted paper. */
+const Card = ({ x, y, w, h, round }: { x: number; y: number; w: number; h: number; round?: boolean }) => round
+  ? <ellipse className="card" cx={x + w / 2} cy={y + h / 2} rx={w / 2} ry={h / 2} />
+  : <rect className="card" x={x} y={y} width={w} height={h} />;
+
 const filled = (s: ShapeState) => s.style && s.style !== 'default' && s.style !== 'muted';
+
+// a label inside a figure is written once the pen has drawn most of the outline
+const LABEL_FROM = 0.4, LABEL_SPAN = 0.6;
 
 function Box({ s }: { s: ShapeState }) {
   const c = colorOf(s);
   const p = useMemo(() => rect(s.id, s.x, s.y, s.w, s.h, filled(s) ? { fill: FILL, fillStyle: 'hachure', hachureGap: 9 } : {}), [s.id, s.x, s.y, s.w, s.h, s.style]);
-  return <><Paths paths={p} color={c} />{s.text && <Lines text={s.text} x={s.x + s.w / 2} y={s.y + s.h / 2} color="var(--fig-ink)" />}</>;
+  return (
+    <>
+      <Card x={s.x} y={s.y} w={s.w} h={s.h} />
+      <Paths paths={p} color={c} width={2.4} solidOpacity={0.12} />
+      {s.text && <Lines text={s.text} x={s.x + s.w / 2} y={s.y + s.h / 2} maxW={s.w - 20} from={LABEL_FROM} span={LABEL_SPAN} />}
+    </>
+  );
 }
 
 function Circle({ s }: { s: ShapeState }) {
   const c = colorOf(s);
   const p = useMemo(() => ellipse(s.id, s.x + s.w / 2, s.y + s.h / 2, s.w, s.h, filled(s) ? { fill: FILL, fillStyle: 'hachure', hachureGap: 9 } : {}), [s.id, s.x, s.y, s.w, s.h, s.style]);
-  return <><Paths paths={p} color={c} />{s.text && <Lines text={s.text} x={s.x + s.w / 2} y={s.y + s.h / 2} color="var(--fig-ink)" />}</>;
+  return (
+    <>
+      <Card x={s.x} y={s.y} w={s.w} h={s.h} round />
+      <Paths paths={p} color={c} width={2.6} solidOpacity={0.12} />
+      {s.text && <Lines text={s.text} x={s.x + s.w / 2} y={s.y + s.h / 2} maxW={s.w * 0.8} weight={filled(s) ? 700 : 400} from={LABEL_FROM} span={LABEL_SPAN} />}
+    </>
+  );
 }
 
 function Sticky({ s }: { s: ShapeState }) {
-  const p = useMemo(() => rect(s.id, s.x, s.y, s.w, s.h, { fill: FILL, fillStyle: 'solid', roughness: 0.6 }), [s.id, s.x, s.y, s.w, s.h]);
   const tilt = ((s.id.charCodeAt(0) % 5) - 2) * 0.7;
+  const cx = s.x + s.w / 2;
   return (
-    <g transform={`rotate(${tilt} ${s.x + s.w / 2} ${s.y + s.h / 2})`}>
-      <Paths paths={p} color="var(--note-edge)" fill="var(--note)" width={1.2} solidOpacity={1} />
-      <foreignObject x={s.x} y={s.y} width={s.w} height={s.h}><div className="fo-sticky">{s.text}</div></foreignObject>
+    <g className="b-sticky" transform={`rotate(${tilt} ${cx} ${s.y + s.h / 2})`}>
+      <g className="b-sticky-in">
+        <rect x={s.x} y={s.y} width={s.w} height={s.h} className="b-sticky-paper" />
+        <path d={`M${s.x} ${s.y + s.h} H${s.x + s.w} V${s.y + 10}`} className="b-sticky-curl" />
+        <rect x={cx - 34} y={s.y - 10} width={68} height={20} className="b-sticky-tape" transform={`rotate(-4 ${cx} ${s.y})`} />
+        <foreignObject x={s.x} y={s.y} width={s.w} height={s.h}><div className="fo-sticky b-sticky-text">{s.text}</div></foreignObject>
+      </g>
     </g>
   );
 }
 
+/** Free text on the open leaf: handwriting on the rules. An accent line is a title, underlined in the segment hue. */
 function Text({ s }: { s: ShapeState }) {
   const accent = s.style === 'accent';
-  return <Lines text={s.text ?? ''} x={s.x + s.w / 2} y={s.y + s.h / 2} size={accent ? 34 : 28} weight={accent ? 700 : 400} color={s.style ? colorOf(s) : 'var(--fig-ink)'} />;
+  const text = s.text ?? '';
+  const lines = text.split('\n');
+  const size = accent ? 44 : 28;
+  const weight = accent ? 700 : 400;
+  const maxW = s.w + 40;
+  const fs = fitSize(lines, size, maxW, weight);
+  const color = accent || !s.style ? 'var(--pen)' : colorOf(s);
+  let underline: ReactNode = null;
+  if (accent) {
+    const chars = Math.max(1, ...lines.map((l) => l.length));
+    const w = Math.min(maxW, chars * fs * ADV[700]);
+    const cx = s.x + s.w / 2, x0 = cx - w / 2, x1 = cx + w / 2;
+    // just under the last baseline, with the slight wave of a hand-drawn rule
+    const lh = snapPitch(fs);
+    const first = Math.round((s.y + s.h / 2 - ((lines.length - 1) * lh) / 2 + fs * 0.3 + BASE_LIFT) / RULE) * RULE - BASE_LIFT;
+    const y = first + (lines.length - 1) * lh + 11;
+    underline = <path className="b-underline" pathLength={1} d={`M${x0} ${y} C ${x0 + w * 0.3} ${y - 4}, ${x0 + w * 0.65} ${y + 3}, ${x1} ${y - 2}`} />;
+  }
+  return (
+    <>
+      <Lines text={text} x={s.x + s.w / 2} y={s.y + s.h / 2} size={size} weight={weight} color={color} snap maxW={maxW} span={accent ? 0.82 : 1} />
+      {underline}
+    </>
+  );
 }
 
 function Formula({ s }: { s: ShapeState }) {
-  const html = useMemo(() => katex.renderToString(s.latex ?? s.text ?? '', { throwOnError: false, displayMode: true, output: 'html' }), [s.latex, s.text]);
+  const { lib: katex, failed } = useKatex();
+  const src = s.latex ?? s.text ?? '';
+  const html = useMemo(() => (katex ? katex.renderToString(src, { throwOnError: false, displayMode: true, output: 'html' }) : ''), [katex, src]);
   const pad = 40;
   return (
     <foreignObject x={s.x - pad} y={s.y - 8} width={s.w + pad * 2} height={s.h + 16}>
-      <div className="fo-formula" style={{ color: s.style ? colorOf(s) : undefined }} dangerouslySetInnerHTML={{ __html: html }} />
+      {html
+        ? <div className="fo-formula b-formula" style={{ color: s.style ? colorOf(s) : undefined }} dangerouslySetInnerHTML={{ __html: html }} />
+        : <div className={`fo-formula b-formula pending${failed ? ' failed' : ''}`}>{src}</div>}
     </foreignObject>
   );
 }
 
 function Code({ s }: { s: ShapeState }) {
+  const { lib: hljs } = useHljs();
   const code = s.code ?? s.text ?? '';
   const html = useMemo(() => {
+    if (!hljs) return escapeHtml(code);
     try {
       return s.lang && hljs.getLanguage(s.lang) ? hljs.highlight(code, { language: s.lang }).value : hljs.highlightAuto(code).value;
     } catch { return escapeHtml(code); }
-  }, [code, s.lang]);
+  }, [hljs, code, s.lang]);
   const p = useMemo(() => rect(s.id, s.x, s.y, s.w, s.h, { roughness: 0.7, strokeWidth: 1.5 }), [s.id, s.x, s.y, s.w, s.h]);
   return (
     <>
+      <Card x={s.x} y={s.y} w={s.w} h={s.h} />
       <Paths paths={p} color="var(--fig-muted)" width={1.5} />
-      <foreignObject x={s.x} y={s.y} width={s.w} height={s.h}><pre className="fo-code" dangerouslySetInnerHTML={{ __html: html }} /></foreignObject>
+      <foreignObject x={s.x} y={s.y} width={s.w} height={s.h}><pre className="fo-code b-code" dangerouslySetInnerHTML={{ __html: html }} /></foreignObject>
     </>
   );
 }
@@ -106,15 +199,19 @@ function Table({ s }: { s: ShapeState }) {
     for (let c = 0; c < widths.length - 1; c++) { x += widths[c]; out.push(...line(`${s.id}c${c}`, x, s.y, x, s.y + s.h, { roughness: 0.6, strokeWidth: 1 })); }
     return out;
   }, [s.id, s.x, s.y, s.w, s.h, rows.length, widths.join(',')]);
+  const cells = rows.length * Math.max(1, widths.length);
   return (
     <>
-      <Paths paths={paths} color={colorOf(s)} width={1.6} />
+      <Card x={s.x} y={s.y} w={s.w} h={s.h} />
+      <Paths paths={paths} color={s.style ? colorOf(s) : 'var(--pen)'} width={1.6} />
       {rows.map((row, r) => {
         let x = s.x;
         return row.map((cell, c) => {
           const cx = x + widths[c] / 2;
           x += widths[c];
-          return <Lines key={`${r}-${c}`} text={cell} x={cx} y={s.y + r * rh + rh / 2} size={22} weight={r === 0 ? 700 : 400} color={r === 0 ? 'var(--fig-accent)' : 'var(--fig-ink)'} />;
+          const k = r * widths.length + c;
+          return <Lines key={`${r}-${c}`} text={cell} x={cx} y={s.y + r * rh + rh / 2} size={22} maxW={widths[c] - 10} weight={r === 0 ? 700 : 400}
+            color={r === 0 ? 'var(--fig-accent)' : 'var(--pen)'} from={0.3 + (0.7 * k) / cells} span={0.7 / cells} />;
         });
       })}
     </>
@@ -139,7 +236,8 @@ function Chart({ s }: { s: ShapeState }) {
   const bw = data.length ? (iw / data.length) * 0.62 : 0;
   return (
     <>
-      <Paths paths={paths} color="var(--fig-ink)" />
+      <Card x={s.x} y={s.y} w={s.w} h={s.h} />
+      <Paths paths={paths} color="var(--pen)" />
       {spec?.type !== 'line' && data.map((d, i) => {
         const h = (d.y / max) * ih;
         const x = ox + (i + 0.19) * (iw / data.length);
@@ -147,12 +245,12 @@ function Chart({ s }: { s: ShapeState }) {
       })}
       {data.map((d, i) => {
         const x = spec?.type === 'line' ? ox + (data.length === 1 ? iw / 2 : (i / (data.length - 1)) * iw) : ox + (i + 0.5) * (iw / data.length);
-        return <text key={`x${i}`} className="label" x={x} y={oy + 18} textAnchor="middle" style={{ fontSize: 18, fill: 'var(--fig-ink-2)' }}>{String(d.x)}</text>;
+        return <text key={`x${i}`} className="label b-hand" x={x} y={oy + 24} textAnchor="middle" style={{ fontSize: 19 }}>{String(d.x)}</text>;
       })}
-      <text className="label" x={ox - 8} y={oy - ih} textAnchor="end" dominantBaseline="central" style={{ fontSize: 18, fill: 'var(--fig-ink-2)' }}>{fmt(max)}</text>
-      <text className="label" x={ox - 8} y={oy} textAnchor="end" dominantBaseline="central" style={{ fontSize: 18, fill: 'var(--fig-ink-2)' }}>0</text>
-      {spec?.yLabel && <text className="label" x={ox + 8} y={s.y + 2} style={{ fontSize: 18, fill: 'var(--fig-ink-2)' }} dominantBaseline="hanging">{spec.yLabel}</text>}
-      {spec?.xLabel && <text className="label" x={ox + iw} y={s.y + s.h - 2} textAnchor="end" style={{ fontSize: 18, fill: 'var(--fig-ink-2)' }}>{spec.xLabel}</text>}
+      <text className="label b-num" x={ox - 8} y={oy - ih} textAnchor="end" dominantBaseline="central">{fmt(max)}</text>
+      <text className="label b-num" x={ox - 8} y={oy} textAnchor="end" dominantBaseline="central">0</text>
+      {spec?.yLabel && <text className="label b-hand muted" x={ox + 8} y={s.y + 18} style={{ fontSize: 19 }}>{spec.yLabel}</text>}
+      {spec?.xLabel && <text className="label b-hand muted" x={ox + iw} y={s.y + s.h - 4} textAnchor="end" style={{ fontSize: 19 }}>{spec.xLabel}</text>}
     </>
   );
 }
@@ -167,18 +265,18 @@ function Mermaid({ s }: { s: ShapeState }) {
     let alive = true;
     (async () => {
       const { default: mermaid } = await import('mermaid');
-      const dark = false; // the manual world is a light, printed page
       const cs = getComputedStyle(document.documentElement);
+      const v = (name: string) => cs.getPropertyValue(name).trim();
       mermaid.initialize({
         startOnLoad: false, securityLevel: 'strict', theme: 'base',
         fontFamily: "'Archivo Variable', sans-serif",
         themeVariables: {
-          darkMode: dark, background: 'transparent', fontSize: '18px',
-          primaryColor: cs.getPropertyValue('--leaf').trim(), primaryTextColor: cs.getPropertyValue('--fig-ink').trim(),
-          primaryBorderColor: cs.getPropertyValue('--fig-ink').trim(), lineColor: cs.getPropertyValue('--fig-ink-2').trim(),
-          secondaryColor: cs.getPropertyValue('--leaf-edge').trim(), tertiaryColor: cs.getPropertyValue('--leaf').trim(),
-          actorBkg: cs.getPropertyValue('--leaf').trim(), actorBorder: cs.getPropertyValue('--fig-ink').trim(), actorTextColor: cs.getPropertyValue('--fig-ink').trim(),
-          signalColor: cs.getPropertyValue('--fig-ink').trim(), signalTextColor: cs.getPropertyValue('--fig-ink').trim(), noteBkgColor: cs.getPropertyValue('--note').trim(),
+          darkMode: false, background: 'transparent', fontSize: '18px',
+          primaryColor: v('--leaf'), primaryTextColor: v('--pen'),
+          primaryBorderColor: v('--pen'), lineColor: v('--pen'),
+          secondaryColor: v('--leaf-edge'), tertiaryColor: v('--leaf'),
+          actorBkg: v('--leaf'), actorBorder: v('--pen'), actorTextColor: v('--pen'),
+          signalColor: v('--pen'), signalTextColor: v('--pen'), noteBkgColor: v('--note'),
         },
       });
       try {
@@ -187,27 +285,35 @@ function Mermaid({ s }: { s: ShapeState }) {
       } catch (e) {
         if (alive) setErr(String((e as Error).message ?? e).slice(0, 200));
       }
-    })();
+    })().catch((e: unknown) => { if (alive) setErr(String((e as Error)?.message ?? e).slice(0, 200)); });
     return () => { alive = false; };
   }, [s.code]);
   return (
-    <foreignObject x={s.x} y={s.y} width={s.w} height={s.h}>
-      {err ? <pre className="fo-code" style={{ color: 'var(--fig-bad)', whiteSpace: 'pre-wrap' }}>Diagram error: {err}</pre>
-        : <div className="fo-mermaid" dangerouslySetInnerHTML={{ __html: svg }} />}
-    </foreignObject>
+    <>
+      <Card x={s.x} y={s.y} w={s.w} h={s.h} />
+      <foreignObject x={s.x} y={s.y} width={s.w} height={s.h}>
+        {err ? <pre className="fo-code" style={{ color: 'var(--fig-bad)', whiteSpace: 'pre-wrap' }}>Diagram error: {err}</pre>
+          : <div className="fo-mermaid" dangerouslySetInnerHTML={{ __html: svg }} />}
+      </foreignObject>
+    </>
   );
 }
 
 function Image({ s }: { s: ShapeState }) {
   if (s.lang === 'mermaid') return <Mermaid s={s} />;
+  return <Picture s={s} />;
+}
+
+function Picture({ s }: { s: ShapeState }) {
   const src = s.src ?? '';
   // TODO(frontend): resolve course resources from Supabase Storage once PDFs land (P1)
   const href = src.startsWith('data:image/') || /^https:\/\//.test(src) ? src : '';
   const p = useMemo(() => rect(s.id, s.x, s.y, s.w, s.h, { roughness: 0.5, strokeWidth: 1.2 }), [s.id, s.x, s.y, s.w, s.h]);
   return (
     <>
+      <Card x={s.x} y={s.y} w={s.w} h={s.h} />
       {href ? <image href={href} x={s.x} y={s.y} width={s.w} height={s.h} preserveAspectRatio="xMidYMid meet" className="label" />
-        : <Lines text={`image: ${src || '(missing src)'}`} x={s.x + s.w / 2} y={s.y + s.h / 2} size={15} color="var(--fig-muted)" />}
+        : <text className="label b-ui" x={s.x + s.w / 2} y={s.y + s.h / 2} textAnchor="middle" dominantBaseline="central">{`Image: ${src || 'missing source'}`}</text>}
       <Paths paths={p} color="var(--fig-muted)" width={1.2} />
     </>
   );
@@ -221,10 +327,11 @@ function PathShape({ s }: { s: ShapeState }) {
 
 function Frame({ s }: { s: ShapeState }) {
   const p = useMemo(() => rect(s.id, s.x, s.y, s.w, s.h, { roughness: 0.8, strokeWidth: 1.4, strokeLineDash: [10, 8] }), [s.id, s.x, s.y, s.w, s.h]);
+  const title = s.title ?? s.text;
   return (
     <>
       <Paths paths={p} color="var(--fig-muted)" width={1.4} />
-      {(s.title ?? s.text) && <text className="label" x={s.x + 10} y={s.y - 8} style={{ fontSize: 21, fill: 'var(--fig-muted)' }}>{s.title ?? s.text}</text>}
+      {title && <Lines text={title} x={s.x + 10} y={s.y - 16} size={22} anchor="start" color="var(--ink-3)" maxW={s.w - 20} />}
     </>
   );
 }
@@ -234,7 +341,7 @@ function Arrow({ s, page }: { s: ShapeState; page: BoardPage }) {
   const key = g ? `${g.x1.toFixed(1)},${g.y1.toFixed(1)},${g.x2.toFixed(1)},${g.y2.toFixed(1)}` : '';
   const paths = useMemo(() => {
     if (!g) return [];
-    const ang = Math.atan2(g.y2 - g.y1, g.x2 - g.x1), L = 14, spread = 0.45;
+    const ang = Math.atan2(g.y2 - g.y1, g.x2 - g.x1), L = 15, spread = 0.42;
     return [
       ...line(s.id, g.x1, g.y1, g.x2, g.y2, { roughness: 0.9 }),
       ...line(`${s.id}h1`, g.x2, g.y2, g.x2 - L * Math.cos(ang - spread), g.y2 - L * Math.sin(ang - spread), { roughness: 0.4 }),
@@ -243,13 +350,14 @@ function Arrow({ s, page }: { s: ShapeState; page: BoardPage }) {
   }, [s.id, key]);
   if (!g) return null;
   const mx = (g.x1 + g.x2) / 2, my = (g.y1 + g.y2) / 2;
+  const lw = (s.label?.length ?? 0) * 20 * ADV[400];
   return (
     <>
-      <Paths paths={paths} color={colorOf(s)} />
+      <Paths paths={paths} color={colorOf(s)} width={2.4} />
       {s.label && (
-        <g className="label">
-          <rect x={mx - s.label.length * 5.2 - 8} y={my - 16} width={s.label.length * 10.4 + 16} height={30} rx={7} style={{ fill: 'var(--leaf)' }} />
-          <Lines text={s.label} x={mx} y={my - 1} size={20} color="var(--fig-ink-2)" />
+        <g>
+          <rect className="card b-arrow-label" x={mx - lw / 2 - 8} y={my - 17} width={lw + 16} height={30} rx={6} />
+          <Lines text={s.label} x={mx} y={my - 2} size={20} color="var(--ink-2)" from={LABEL_FROM} span={LABEL_SPAN} />
         </g>
       )}
     </>
@@ -295,9 +403,13 @@ function CiteTag({ s }: { s: ShapeState }) {
   );
 }
 
-export const ShapeView = memo(function ShapeView({ s, page, animMs, selected, pulsing, onPointerDown, tags = true }: {
+export const ShapeView = memo(function ShapeView({ s, page, animMs, selected, pulsing, onPointerDown, onKeyDown, onFocus, tabStop, tags = true }: {
   s: ShapeState; page: BoardPage; animMs?: number; selected?: boolean; pulsing?: boolean;
   onPointerDown?: (e: React.PointerEvent, id: string) => void;
+  /** keyboard selection (Board): with these set the figure is focusable; tabStop marks the board's one tab stop */
+  onKeyDown?: (e: React.KeyboardEvent, id: string) => void;
+  onFocus?: (id: string) => void;
+  tabStop?: boolean;
   /** citation tags; off in page thumbnails (no buttons inside a button) */
   tags?: boolean;
 }) {
@@ -321,15 +433,33 @@ export const ShapeView = memo(function ShapeView({ s, page, animMs, selected, pu
   const style = animMs ? ({ '--dur': `${animMs}ms` } as CSSProperties) : undefined;
   const label = [s.text, s.label, s.latex, s.title].filter(Boolean).join(' ') || s.kind;
   return (
-    <g className={cls} style={style} data-id={s.id} onPointerDown={onPointerDown ? (e) => onPointerDown(e, s.id) : undefined} role="img" aria-label={`${s.kind}: ${label}`}>
+    <g className={cls} style={style} data-id={s.id} onPointerDown={onPointerDown ? (e) => onPointerDown(e, s.id) : undefined}
+      tabIndex={onKeyDown ? (tabStop ? 0 : -1) : undefined}
+      onKeyDown={onKeyDown ? (e) => { if (e.target === e.currentTarget) onKeyDown(e, s.id); } : undefined}
+      onFocus={onFocus ? (e) => { if (e.target === e.currentTarget) onFocus(s.id); } : undefined}
+      role="group" aria-label={`${s.kind}: ${label}${selected ? ', selected' : ''}`}>
       {s.kind !== 'arrow' && s.kind !== 'group' && <rect className="sel" x={s.x - 6} y={s.y - 6} width={s.w + 12} height={s.h + 12} rx={8} />}
       {/* invisible hit area so thin strokes are easy to click */}
       {s.kind !== 'arrow' && s.kind !== 'group' && s.kind !== 'frame' && <rect x={s.x} y={s.y} width={s.w} height={s.h} fill="transparent" />}
-      {body}
+      <ErrorBoundary what={`Board figure ${s.id} (${s.kind})`} resetKeys={[s]} fallback={(_e, reset) => <ShapeSlip s={s} onRetry={reset} />}>{body}</ErrorBoundary>
       {tags && s.source && <CiteTag s={s} />}
     </g>
   );
-}, (a, b) => a.s === b.s && a.animMs === b.animMs && a.selected === b.selected && a.pulsing === b.pulsing && a.tags === b.tags && (a.s.kind !== 'arrow' || a.page === b.page));
+// onPointerDown is part of the comparison: Board keeps it stable and reads the live selection
+// itself, so a re-render here only happens when the shape or its state changes.
+}, (a, b) => a.s === b.s && a.animMs === b.animMs && a.selected === b.selected && a.pulsing === b.pulsing && a.tags === b.tags
+  && a.onPointerDown === b.onPointerDown && a.onKeyDown === b.onKeyDown && a.onFocus === b.onFocus && a.tabStop === b.tabStop
+  && (a.s.kind !== 'arrow' || a.page === b.page));
+
+/** A figure that failed to render (a KaTeX or mermaid error): a small slip in its place. */
+function ShapeSlip({ s, onRetry }: { s: ShapeState; onRetry: () => void }) {
+  const w = Math.max(s.w, 260), h = Math.max(s.h, 96);
+  return (
+    <foreignObject x={s.x + s.w / 2 - w / 2} y={s.y + s.h / 2 - h / 2} width={w} height={h}>
+      <div className="b-slip" onPointerDown={(e) => e.stopPropagation()}><ErrorSlip what="This figure" compact onRetry={onRetry} /></div>
+    </foreignObject>
+  );
+}
 
 function escapeHtml(s: string) {
   return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
