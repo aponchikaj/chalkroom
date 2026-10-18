@@ -71,5 +71,14 @@ body[data-laser='on'] #chalk-board, body[data-laser='on'] #chalk-board .shape { 
 .lost-got .btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; position: relative; z-index: 2; }
 .lost-got-error { flex-basis: 100%; font-size: var(--t-xs); color: var(--errata); margin-top: 2px; }
 @media (max-width: 760px) {
-  .lost-got .btn { min-height: 44px; padding: 0 12px; }
+  /* phones: two compact marks beside the ask box, the icon over a short word, so the class's
+     two feedback signals never read as Help and Done */
+  .lost-got { flex-wrap: nowrap; position: relative; }
+  .lost-got .btn {
+    min-height: 44px; min-width: 44px; width: auto; padding: 3px 6px 2px;
+    flex-direction: column; justify-content: center; gap: 2px;
+  }
+  .lost-got .btn > span { font-size: 10px; line-height: 1; letter-spacing: 0.04em; white-space: nowrap; }
+  .lost-got .btn .lucide { width: 17px; height: 17px; }
+  .lost-got-error { position: absolute; left: 0; bottom: calc(100% + 6px); white-space: nowrap; background: var(--leaf); padding: 2px 6px; border: 1px solid var(--rule-2); border-radius: var(--r); z-index: 5; }
 }

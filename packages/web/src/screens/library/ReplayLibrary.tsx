@@ -1,7 +1,7 @@
 // Lane L, lane P: the replay library: finished public classes, with question chapters. Each
 // row says when the class ran (day and time of day) and who took it. The running head carries
 // the account menu and the way back to Home.
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, RotateCw, TriangleAlert } from 'lucide-react';
 import type { ReplayCard } from '@chalk/schema';
 import { api } from '../../lib/api';
@@ -10,6 +10,8 @@ import { sectionHue, sectionInk } from '../../ui/section';
 import { AccountMenu } from '../auth/AccountMenu';
 import '../../ui/ui.css';
 import './library.css';
+// Last on purpose: PhoneNav pulls in entry.css, which must not jump ahead of this page's stylesheets.
+import { PhoneNav, usePhone } from '../../ui/PhoneNav';
 
 const ICON = { size: 16, strokeWidth: 2, 'aria-hidden': true } as const;
 type Load = { state: 'loading' } | { state: 'error'; text: string } | { state: 'ready'; list: ReplayCard[] };
@@ -53,16 +55,30 @@ export function ReplayLibrary() {
   useEffect(() => fetchIt(), [fetchIt]);
   useEffect(() => { document.title = 'Replays · Chalkroom Live'; }, []);
 
+  // phones: the large-title pattern. The bar's "Replays" stays faded while the page's own h1 is
+  // on screen and fades in once the h1 scrolls up under the bar.
+  const phone = usePhone();
+  const h1 = useRef<HTMLHeadingElement>(null);
+  const [headSeen, setHeadSeen] = useState(true);
+  useEffect(() => {
+    const el = h1.current;
+    if (!phone || !el || typeof IntersectionObserver === 'undefined') return;
+    const io = new IntersectionObserver(([e]) => setHeadSeen(e.isIntersecting), { rootMargin: '-52px 0px 0px 0px' });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [phone]);
+
   return (
-    <main className="replay">
+    <main className="replay" data-head-seen={phone && headSeen ? '' : undefined}>
+      <PhoneNav title="Replays" back={{ label: 'Home', go: '/' }} current="replays" />
       <article className="replay-manual page-fill leaf punched replay-lib">
-        <header className="replay-running">
+        <header className="replay-running pn-hide">
           <button type="button" className="btn ghost small replay-back" onClick={() => navigate('/')}><ArrowLeft {...ICON} />Home</button>
           <span className="replay-brand">Chalkroom Live</span>
-          <AccountMenu />
+          <AccountMenu phoneMenu={false} />
         </header>
         <div className="replay-head">
-          <h1 className="replay-title">Replays</h1>
+          <h1 ref={h1} className="replay-title">Replays</h1>
           <p className="replay-lede">Finished public classes, played back on the board. Each class question the tutor answered is a chapter to jump to.</p>
         </div>
 

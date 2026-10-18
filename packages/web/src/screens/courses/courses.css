@@ -135,3 +135,38 @@
   .seg-key { padding: 0 11px; }
   .room-options .input[type='datetime-local'] { max-width: none; }
 }
+
+/* ---------- phone pass (lane P): printed keys sized for a thumb, catalog rows as index cards ---------- */
+@media (max-width: 760px) {
+  .seg { flex-wrap: nowrap; width: 100%; }
+  .seg-key { flex: 1 1 0; min-width: 0; min-height: 46px; padding: 0 8px; font-size: 0.8125rem; text-align: center; }
+  .seg-field > legend { margin-bottom: 8px; }
+  .room-options { gap: 14px; padding: 16px 0; }
+  .room-options .input[type='datetime-local'] { min-height: 48px; font-size: 1rem; }
+
+  /* the 16px / 48px field rule lives in ui/ui.css so /signup and /login get it too */
+  .search .input { min-height: 48px; }
+
+  .lobby-course { display: inline-flex; align-items: center; min-height: 40px; margin: 0; font-size: 1rem; }
+  .lobby-row .class-main { min-width: 0; }
+
+  .course-row { border-bottom: 0; }
+  .course-link {
+    gap: 6px; padding: 16px 14px 14px;
+    background: var(--leaf); border: 1px solid var(--leaf-edge); border-radius: 4px;
+    box-shadow: inset 0 3px 0 var(--hue, var(--ink)), 0 1px 0 var(--rule), 0 12px 18px -16px rgba(60, 45, 15, 0.5);
+  }
+  .course-link:hover { padding-left: 14px; }
+  .course-link:active { background: var(--paper-2); transform: translateY(1px); }
+  .course-goal { font-size: 1rem; }
+  .new-course { padding: 16px 14px; border: 1.5px solid var(--ink); border-radius: 4px; background: var(--leaf); }
+
+  /* course page: the title block, then Start as one thumb-sized key */
+  .course-title { font-size: clamp(2rem, 10vw, 2.6rem); }
+  .course-facts { gap: 10px 22px; }
+  .course-buttons { width: 100%; }
+  .course-buttons .btn { flex: 1 1 100%; min-height: 48px; justify-content: center; }
+  .star-key { width: 44px; height: 44px; }
+  .syl-topic { padding-top: 12px; padding-bottom: 12px; padding-left: calc(var(--depth, 0) * 16px); }
+  .faq-a { font-size: 1.02rem; }
+}

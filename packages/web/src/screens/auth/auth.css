@@ -182,3 +182,29 @@ article.leaf, section.leaf, div.leaf, aside.leaf, figure.leaf { pointer-events: 
   .acct-trigger { position: relative; }
   .acct-trigger::before { content: ''; position: absolute; inset: -6px 0; }
 }
+
+/* invite gate keys: the short words appear on phones only (shared.tsx AuthMode) */
+.auth-mode-short { display: none; }
+
+/* ---------- phone pass (lane P): thumb-sized keys, 16px fields, the switch link a full row ---------- */
+@media (max-width: 760px) {
+  .auth-mode-long { display: none; }
+  .auth-mode-short { display: inline; }
+  .auth-mode-key { min-height: 48px; font-size: 0.8125rem; }
+  .entry .swatches { gap: 10px; }
+  .entry .swatch { width: 44px; height: 44px; }
+  .pw-toggle { width: 44px; min-height: 44px; right: 2px; }
+  .pw-row .input { padding-right: 52px; }
+  .auth-side .entry-form > .btn.primary { min-height: 52px; width: 100%; justify-content: center; }
+  .auth-switch { display: flex; flex-wrap: wrap; align-items: center; gap: 0 6px; }
+  .auth-switch .text-link { display: inline-flex; align-items: center; min-height: 44px; padding-block: 0; }
+  .auth-code { font-size: 12px; }
+  .field-label { font-size: 12px; }
+  .field-note, .auth-small { font-size: 0.875rem; }
+}
+
+/* narrow phones (360): all six colour swatches stay on one row, each as large as fits up to 44px */
+@media (max-width: 380px) {
+  .entry .swatches { flex-wrap: nowrap; gap: 8px; }
+  .entry .swatch { flex: 1 1 0; min-width: 0; max-width: 44px; width: auto; height: auto; aspect-ratio: 1; }
+}

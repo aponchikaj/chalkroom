@@ -1,18 +1,25 @@
 // AU: who is signed in (their punch and name) with a small menu: Account, Your classes, Replays, Log out.
-// Used on Home's running head and in the classroom masthead.
+// Used on Home's running head and in the classroom masthead. On phones it is the burger of
+// ui/PhoneNav.tsx instead.
 import { useEffect, useRef, useState } from 'react';
 import { ChevronDown, Library, LogOut, CirclePlay, UserRound } from 'lucide-react';
 import { signOut, useAuth } from '../../lib/auth';
 import { navigate } from '../../lib/router';
 import { Punch } from '../../ui/Punch';
+import { PhoneMenu, usePhone } from '../../ui/PhoneNav';
 import { forgetJoined } from './shared';
 import './auth.css';
 
-export function AccountMenu({ onClasses }: { onClasses?: () => void }) {
+export function AccountMenu({ onClasses, phoneMenu = true }: {
+  onClasses?: () => void;
+  /** phones: render the burger here; false when the page's PhoneNav bar already has one */
+  phoneMenu?: boolean;
+}) {
   const me = useAuth((s) => s.me);
   const [open, setOpen] = useState(false);
   const wrap = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
+  const phone = usePhone();
 
   useEffect(() => {
     if (!open) return;
@@ -34,6 +41,8 @@ export function AccountMenu({ onClasses }: { onClasses?: () => void }) {
   }, [open]);
 
   if (!me) return null;
+  // phones: the burger and its divider-tab index drawer (same name, "Account menu")
+  if (phone) return phoneMenu ? <PhoneMenu /> : null;
   const name = me.profile.display_name || me.profile.username;
   const go = (f: () => void) => () => { setOpen(false); f(); };
 

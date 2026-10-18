@@ -17,6 +17,8 @@ import { REPLAYS, TABS, type Tab } from './home/contents';
 import '../ui/ui.css';
 import './entry.css';
 import './home/home.css';
+// Last on purpose: PhoneNav pulls in entry.css, which must not jump ahead of this page's stylesheets.
+import { PhoneNav } from '../ui/PhoneNav';
 
 const CONTENTS = [
   ['Start', 'Name a topic. You get an invite code, a link and a QR code.'],
@@ -97,6 +99,12 @@ export function Home() {
     storeTab(t);
     if (location.hash) history.replaceState(null, '', `#${t}`);
     if (focus) tabRefs.current[t]?.focus();
+    // phones: when the page was scrolled past the tabs, the new section opens at its top
+    if (phone) requestAnimationFrame(() => {
+      const panel = panelRef.current;
+      const pinned = document.querySelector('.home-tabs')?.getBoundingClientRect().bottom ?? 0;
+      if (panel && panel.getBoundingClientRect().top < pinned) panel.scrollIntoView({ block: 'start' });
+    });
   };
 
   // on a narrow leaf the panel sits below the contents: bring it into view
@@ -118,6 +126,7 @@ export function Home() {
 
   return (
     <main className="entry">
+      <PhoneNav current={`home:${tab}`} />
       <article className="manual leaf punched home-manual page-fill">
         <div className="home-tabs" role="tablist" aria-label="Home" aria-orientation={phone ? 'horizontal' : 'vertical'} onKeyDown={onTabKey}>
           {TABS.map((t, i) => (
@@ -131,13 +140,13 @@ export function Home() {
           ))}
         </div>
 
-        <header className="manual-head">
+        <header className="manual-head pn-hide">
           <span className="manual-brand">Chalkroom Live</span>
           <span className="manual-meta home-meta">Live classes for up to five people</span>
-          <AccountMenu onClasses={() => select('classes', true)} />
+          <AccountMenu onClasses={() => select('classes', true)} phoneMenu={false} />
         </header>
 
-        <div className="manual-body home-body">
+        <div className="manual-body home-body" data-tab={tab}>
           <section className="title-block home-title" aria-labelledby="home-title">
             <h1 id="home-title" className="display">Learn it live, together.</h1>
             <p className="lede">An AI tutor teaches your group on one shared whiteboard. Anyone can ask at any time, and the class keeps moving.</p>
@@ -192,7 +201,7 @@ export function Home() {
                 <div className="field">
                   <label className="field-label" htmlFor="code">Invite code</label>
                   <div className="join-row">
-                    <input id="code" className="input code-input" value={code} maxLength={14} placeholder="KPXCNK" autoComplete="off" autoCapitalize="characters" spellCheck={false}
+                    <input id="code" className="input code-input" value={code} maxLength={14} placeholder="KPXCNK" autoComplete="off" autoCapitalize="characters" spellCheck={false} enterKeyHint="go"
                       onChange={(e) => setCode(e.target.value.toUpperCase())} />
                     <button className="btn primary" disabled={c.length < 4}>Find class</button>
                   </div>

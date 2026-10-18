@@ -1,0 +1,197 @@
+/* Lane N: the phone running head and the divider-tab index drawer (ui/PhoneNav.tsx).
+   Phones only: every rule that can touch a page sits inside the 760 px breakpoint, and the
+   components themselves render only on phones. The drawer is portaled to <body>. */
+
+@media (max-width: 760px) {
+  /* the page's own running head (brand, back link, account chip) gives way to the phone bar */
+  .pn-hide { display: none !important; }
+
+  /* a page with the bar: the sheet fills what is left under it, so short pages do not scroll */
+  :is(.entry, .shelf, .replay, .ld):has(> .pn-bar) { --page-top: calc(52px + env(safe-area-inset-top, 0px)); }
+  :is(.entry, .shelf, .replay):has(> .pn-bar) > .manual,
+  :is(.entry, .shelf, .replay):has(> .pn-bar) > :is(.shelf-manual, .replay-manual) { min-height: calc(100dvh - var(--page-top)); }
+
+  /* ---------- the bar ---------- */
+  .pn-bar {
+    position: sticky; top: 0; z-index: 30;
+    display: flex; align-items: center; gap: 2px;
+    min-height: calc(52px + env(safe-area-inset-top, 0px));
+    padding: env(safe-area-inset-top, 0px) calc(4px + env(safe-area-inset-right, 0px)) 0 calc(4px + env(safe-area-inset-left, 0px));
+    background: var(--paper) var(--grain);
+    border-bottom: 1.5px solid var(--ink);
+  }
+  .pn-brand {
+    display: block; min-height: 44px; line-height: 44px; padding: 0 12px; margin-right: auto;
+    font-size: var(--t-sm); font-weight: 800; font-stretch: 75%; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--ink); text-decoration: none; white-space: nowrap;
+    /* at high zoom the word gives way before the 44 px burger does */
+    min-width: 0; overflow: hidden; text-overflow: ellipsis;
+  }
+  .pn-back {
+    flex: none; display: grid; place-items: center; width: 44px; height: 44px;
+    border: 0; border-radius: var(--r, 3px); background: none; color: var(--ink); cursor: pointer;
+    transition: background var(--step) steps(2);
+  }
+  .pn-back:active { background: var(--paper-2); }
+  .pn-title {
+    flex: 1; min-width: 0; padding: 0 4px;
+    font-size: 0.875rem; font-weight: 800; font-stretch: 78%; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .pn-brand + .pn-title { display: none; }
+}
+
+/* ---------- the burger: three divider tabs on a fore edge ---------- */
+.pn-burger {
+  flex: none; display: grid; place-items: center; width: 44px; height: 44px; margin-left: auto;
+  border: 0; border-radius: 3px; background: none; cursor: pointer; color: var(--ink);
+  transition: background var(--step) steps(2);
+  -webkit-tap-highlight-color: transparent;
+}
+.pn-burger:active { background: var(--paper-2); }
+.pn-burger-tabs {
+  position: relative; display: flex; flex-direction: column; justify-content: center; gap: 3px;
+  width: 26px; height: 22px; padding-left: 4px; border-left: 2px solid var(--ink);
+}
+.pn-burger-tabs i {
+  display: block; height: 4.5px; border-radius: 0 2px 2px 0;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 35%, transparent);
+  transform-origin: left center;
+  transition: transform calc(260ms * var(--motion, 1)) var(--ease-settle);
+}
+.pn-burger-tabs i:nth-child(1) { width: 20px; background: var(--h-orange); }
+.pn-burger-tabs i:nth-child(2) { width: 14px; background: var(--h-teal); transition-delay: calc(30ms * var(--motion, 1)); }
+.pn-burger-tabs i:nth-child(3) { width: 17px; background: var(--h-ultra); transition-delay: calc(60ms * var(--motion, 1)); }
+.pn-burger[aria-expanded='true'] .pn-burger-tabs i:nth-child(1) { transform: translateX(2px) rotate(-14deg); }
+.pn-burger[aria-expanded='true'] .pn-burger-tabs i:nth-child(2) { transform: translateX(6px); }
+.pn-burger[aria-expanded='true'] .pn-burger-tabs i:nth-child(3) { transform: translateX(2px) rotate(14deg); }
+
+/* ---------- the drawer: a ruled leaf from the right, divider tabs fanning out of its edge ---------- */
+.pn-root { position: fixed; inset: 0; z-index: 1000; }
+.pn-scrim {
+  position: absolute; inset: 0; background: color-mix(in srgb, var(--ink) 38%, transparent);
+  animation: pn-fade 220ms var(--ease-out) both;
+}
+.pn-leaf {
+  --strip: 24px;
+  position: absolute; top: 0; right: 0; bottom: 0; width: min(88vw, 368px);
+  padding-left: var(--strip);
+  overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y;
+  animation: pn-in 340ms var(--ease-out) both;
+}
+.pn-root[data-state='closing'] .pn-scrim { animation: pn-fade-out 200ms var(--ease-out) both; }
+.pn-root[data-state='closing'] .pn-leaf { animation: pn-out 220ms var(--ease-out) both; }
+
+.pn-sheet {
+  --pn-margin: color-mix(in srgb, var(--pn-hue, var(--h-orange)) 45%, var(--leaf));
+  position: relative; min-height: 100%;
+  padding: calc(16px + env(safe-area-inset-top, 0px)) calc(16px + env(safe-area-inset-right, 0px)) calc(22px + env(safe-area-inset-bottom, 0px)) 22px;
+  background:
+    linear-gradient(to right, transparent 11px, var(--pn-margin) 11px 12.5px, transparent 12.5px),
+    var(--grain), var(--leaf);
+  border-left: 1px solid var(--leaf-edge);
+  box-shadow: -1px 0 0 var(--leaf-edge), -22px 0 36px -18px rgba(60, 45, 15, 0.5);
+}
+
+.pn-close {
+  position: absolute; top: calc(8px + env(safe-area-inset-top, 0px)); right: calc(6px + env(safe-area-inset-right, 0px));
+  display: grid; place-items: center; width: 44px; height: 44px;
+  border: 0; border-radius: 3px; background: none; color: var(--ink); cursor: pointer;
+  transition: background var(--step) steps(2);
+}
+.pn-close:active { background: var(--paper-2); }
+
+/* the cover label: whose notebook this is */
+.pn-cover { margin: 2px 48px 6px 0; padding: 10px 12px 12px; border: 1.5px solid var(--ink); border-radius: 3px; background: var(--leaf); box-shadow: inset 0 0 0 3px var(--leaf), inset 0 0 0 4px var(--rule); }
+.pn-cover-out { display: flex; align-items: center; min-height: 44px; }
+.pn-brand-word { font-size: var(--t-sm); font-weight: 800; font-stretch: 75%; letter-spacing: 0.16em; text-transform: uppercase; }
+.pn-belongs { font-size: var(--t-xs); font-weight: 700; font-stretch: 78%; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-2); text-wrap: balance; }
+@media (max-width: 380px) { .pn-belongs { letter-spacing: 0.08em; } }
+.pn-owner { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+.pn-owner-text { display: flex; flex-direction: column; min-width: 0; }
+.pn-owner-name { font-size: 1.6rem; line-height: 1.1; color: var(--pen); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pn-owner-email { font-size: 0.875rem; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.pn-group { margin-top: 20px; }
+.pn-group-title { margin: 0 0 2px; font-size: var(--t-xs); font-weight: 700; font-stretch: 78%; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-2); }
+.pn-list { list-style: none; margin: 0; padding: 0; }
+
+.pn-row {
+  position: relative; display: flex; align-items: center; gap: 6px; width: 100%; min-height: 48px; padding: 0 2px 0 6px;
+  border: 0; border-bottom: 1px solid var(--rule); background: none; border-radius: 0;
+  font-family: var(--font-ui); font-size: 1rem; font-weight: 600; font-stretch: 88%; line-height: 1.2; text-align: left;
+  color: var(--ink); text-decoration: none; cursor: pointer;
+  transition: background var(--step) steps(2);
+  -webkit-tap-highlight-color: transparent;
+}
+.pn-row:not(.is-static):active { background: color-mix(in srgb, var(--hue) 14%, var(--leaf)); }
+.pn-row:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+.pn-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pn-leader { flex: 1; min-width: 12px; align-self: center; height: 0; margin-top: 8px; border-bottom: 2px dotted var(--rule-2); }
+.pn-page { flex: none; display: inline-flex; align-items: center; justify-content: flex-end; min-width: 26px; font-size: 0.9375rem; color: var(--ink-3); }
+.pn-page .mono { font-family: var(--font-mono); }
+
+/* the divider tab: sticks out of the leaf's fore edge, emerging from under it */
+.pn-tab {
+  position: absolute; top: 7px; bottom: 7px; left: calc(-22px - 14px); width: 16px;
+  background: var(--hue); border-radius: 6px 0 0 6px;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 22%, transparent), -3px 4px 8px -5px rgba(60, 45, 15, 0.5);
+  animation: pn-tab-out 420ms var(--ease-settle) both;
+  animation-delay: calc(140ms + var(--i, 0) * 28ms);
+}
+.pn-tab.is-plain { background: var(--paper-3); }
+
+.pn-row.is-current { font-weight: 800; }
+.pn-row.is-current .pn-tab { left: calc(-22px - 22px); width: 24px; box-shadow: inset 3px 0 0 var(--ink), -3px 4px 10px -5px rgba(60, 45, 15, 0.6); }
+.pn-row.is-current .pn-page { color: var(--ink); }
+.pn-row[aria-pressed='true'] .pn-page { color: var(--ink); font-weight: 750; }
+
+/* the lesson outline: where the class is, read-only, so drawn as a plain numbered list (no
+   divider tabs, no leaders) and kept apart from the destinations above */
+.pn-outline .pn-list { border-top: 1px solid var(--rule); }
+.pn-step {
+  display: flex; align-items: center; gap: 10px; min-height: 36px; padding: 4px 2px 4px 6px;
+  border-bottom: 1px dashed var(--rule); font-size: 0.9375rem; font-weight: 500; line-height: 1.25; color: var(--ink-2);
+}
+.pn-step-mark {
+  flex: none; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%;
+  border: 1.5px solid var(--hue); font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-2);
+}
+.pn-step .pn-label { flex: 1; }
+.pn-step.is-current { color: var(--ink); font-weight: 750; }
+.pn-step.is-current .pn-step-mark { background: var(--hue); border-color: var(--ink); color: var(--ink); }
+.pn-step-now {
+  flex: none; padding: 1px 6px; border: 1.5px solid var(--ink); border-radius: 3px;
+  font-size: var(--t-xs); font-weight: 800; font-stretch: 78%; letter-spacing: 0.12em; text-transform: uppercase;
+}
+.pn-step.is-done { color: var(--ink-3); }
+.pn-step.is-done .pn-label { text-decoration: line-through; text-decoration-color: var(--rule-2); }
+
+/* the bar's compact action (the landing page's Log in) */
+.pn-action {
+  flex: none; display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; padding: 0 10px;
+  font-size: 0.9375rem; font-weight: 700; color: var(--ink); text-decoration: underline; text-underline-offset: 3px;
+}
+.pn-action + .pn-burger { margin-left: 0; }
+.pn-row.is-done .pn-tab { filter: saturate(0.55); opacity: 0.7; }
+.pn-row.is-done .pn-label { color: var(--ink-3); }
+
+.pn-foot { display: flex; flex-direction: column; gap: 10px; margin-top: 28px; }
+.pn-foot-btn { min-height: 48px; width: 100%; }
+
+@keyframes pn-fade { from { opacity: 0; } }
+@keyframes pn-fade-out { to { opacity: 0; } }
+@keyframes pn-in { from { transform: translateX(104%); } }
+@keyframes pn-out { to { transform: translateX(104%); } }
+@keyframes pn-tab-out { from { clip-path: inset(0 0 0 100%); transform: translateX(6px) rotate(-4deg); } }
+
+/* reduced motion: the leaf fades in and out, the tabs are simply there */
+/* (the OS setting, unless the account asks for full motion; the account's reduced choice below) */
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-motion='full']) .pn-leaf { animation: pn-fade 120ms linear both; }
+  :root:not([data-motion='full']) .pn-root[data-state='closing'] .pn-leaf { animation: pn-fade-out 120ms linear both; }
+  :root:not([data-motion='full']) .pn-tab { animation: none; }
+}
+:root[data-motion='reduced'] .pn-leaf { animation: pn-fade 120ms linear both; }
+:root[data-motion='reduced'] .pn-root[data-state='closing'] .pn-leaf { animation: pn-fade-out 120ms linear both; }
+:root[data-motion='reduced'] .pn-tab { animation: none; }

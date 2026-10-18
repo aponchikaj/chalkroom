@@ -3,7 +3,8 @@
 // microphone (decision 2026-10-17); the AI tutor is the only voice.
 import { useEffect, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { Pin, X } from 'lucide-react';
+import { Pin, SendHorizontal, X } from 'lucide-react';
+import { usePhone } from '../phone';
 import { useRoom } from '../../room/store';
 import { useRoomConn } from '../../room/context';
 import { api, ApiError } from '../../lib/api';
@@ -80,6 +81,9 @@ export function AskBar() {
     : inThread ? 'Ask the class'
     : 'Ask anything';
   const canSend = !!text.trim() && !closed;
+  const sendLabel = anchored ? 'Ask about this' : inThread ? 'Ask the class' : 'Ask';
+  // phones: a square send button, so the box gets the width
+  const phone = usePhone();
 
   return (
     <form className="askbar" onSubmit={(e) => { e.preventDefault(); submit(text); }} aria-busy={sending}>
@@ -110,9 +114,15 @@ export function AskBar() {
         {text.length > MAX - 100 && <span className="ask-count mono" aria-live="polite">{text.length}/{MAX}</span>}
       </span>
 
-      <button type="submit" className={`btn${canSend ? ' primary' : ''}`} disabled={!canSend}>
-        {anchored ? 'Ask about this' : inThread ? 'Ask the class' : 'Ask'}
-      </button>
+      {phone ? (
+        <button type="submit" className={`btn ask-send${canSend ? ' primary' : ''}`} disabled={!canSend} aria-label={sendLabel} title={sendLabel}>
+          <SendHorizontal size={18} strokeWidth={2.25} aria-hidden />
+        </button>
+      ) : (
+        <button type="submit" className={`btn${canSend ? ' primary' : ''}`} disabled={!canSend}>
+          {sendLabel}
+        </button>
+      )}
     </form>
   );
 }

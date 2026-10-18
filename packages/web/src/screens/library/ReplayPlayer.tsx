@@ -12,6 +12,8 @@ import { sectionHue, sectionInk } from '../../ui/section';
 import { ReplayDriver } from './replay';
 import '../../ui/ui.css';
 import './library.css';
+// Last on purpose: PhoneNav pulls in entry.css, which must not jump ahead of this page's stylesheets.
+import { PhoneNav } from '../../ui/PhoneNav';
 
 const ICON = { size: 16, strokeWidth: 2, 'aria-hidden': true } as const;
 const SPEEDS = [1, 1.5, 2] as const;
@@ -62,8 +64,9 @@ export function ReplayPlayer({ roomId }: { roomId: string }) {
 function Frame({ children }: { children: React.ReactNode }) {
   return (
     <main className="replay">
+      <PhoneNav title="Replay" back={{ label: 'All replays', go: '/replays' }} current="replays" />
       <article className="replay-manual page-fill leaf punched">
-        <header className="replay-running">
+        <header className="replay-running pn-hide">
           <button type="button" className="btn ghost small replay-back" onClick={() => navigate('/replays')}><ArrowLeft {...ICON} />All replays</button>
           <span className="replay-brand">Chalkroom Live</span>
         </header>
@@ -102,8 +105,9 @@ function Replay({ res }: { res: ReplayRes }) {
 
   return (
     <main className="replay" style={{ ['--section' as string]: sectionHue(current ? segOf.get(current.seq) ?? 0 : 0) }}>
+      <PhoneNav title="Replay" back={{ label: 'All replays', go: '/replays' }} current="replays" />
       <article className="replay-manual page-fill leaf punched">
-        <header className="replay-running">
+        <header className="replay-running pn-hide">
           <button type="button" className="btn ghost small replay-back" onClick={() => navigate('/replays')}><ArrowLeft {...ICON} />All replays</button>
           <span className="replay-brand">Chalkroom Live</span>
         </header>

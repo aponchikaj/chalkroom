@@ -24,6 +24,7 @@ import { Stamp } from '../../ui/Stamp';
 import { transition } from '../../ui/motion';
 import { nameFor } from '../../lib/text';
 import { readExpanded, readPeeked, rememberPeek, useThreadUi, writeExpanded } from './focus';
+import { PHONE_QUERY } from '../phone';
 import './thread.css';
 
 type Chat = StreamEvent<'chat'>;
@@ -150,8 +151,8 @@ export function ThreadLeaf({ threadId }: { threadId: string }) {
           </p>
         </div>
         <ClassPip />
-        <button ref={backRef} type="button" className="btn tl-back" onClick={back}>
-          <ArrowLeft {...ICON} />Back to class
+        <button ref={backRef} type="button" className="btn tl-back" onClick={back} aria-label="Back to class">
+          <ArrowLeft {...ICON} /><span><span className="tl-back-long">Back to </span>class</span>
         </button>
       </header>
 
@@ -304,6 +305,8 @@ function ThreadBody({ thread, mine, joined, ownerName, follow }: { thread: Threa
     const ro = new ResizeObserver(toEnd);
     ro.observe(log);
     for (const c of log.children) ro.observe(c);
+    // phones: the scroller itself shrinks when the keyboard opens or the phone turns
+    if (matchMedia(PHONE_QUERY).matches) ro.observe(sc);
     toEnd();
     sc.addEventListener('scroll', onScroll, { passive: true });
     return () => { cancelAnimationFrame(frame); ro.disconnect(); sc.removeEventListener('scroll', onScroll); };

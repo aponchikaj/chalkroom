@@ -3,7 +3,7 @@
 // gesture that lets the tutor's voice play. A browser
 // that already joined this room goes straight back in after a refresh, and is offered one tap
 // to turn the voice back on.
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, RotateCw, Volume2, VolumeX } from 'lucide-react';
 import type { RoomPreview } from '@chalk/schema';
 import { api } from '../lib/api';
@@ -18,6 +18,8 @@ import { forgetJoined } from './auth/shared';
 import { describe, joinMuted, unlockVoice, type Problem } from './entry';
 import '../ui/ui.css';
 import './entry.css';
+// after the page's stylesheets, like the other pages that mount the phone bar
+import { PhoneNav } from '../ui/PhoneNav';
 
 const ICON = { size: 16, strokeWidth: 2 } as const;
 const PHASE_WORDS = { lobby: 'Starting soon', teaching: 'In class now', check: 'In class now', qa: 'In class now', ended: 'Ended' } as const;
@@ -77,11 +79,12 @@ export function RoomRoute({ code }: { code: string }) {
 
   return (
     <main className="entry">
+      <PhoneNav title={`Invite ${code}`} back={{ label: 'Chalkroom Live home', go: '/' }} />
       <article className="manual leaf punched">
-        <header className="manual-head">
+        <header className="manual-head pn-hide">
           <button type="button" className="btn ghost small manual-back" onClick={() => navigate('/')}><ArrowLeft {...ICON} aria-hidden /> Chalkroom Live</button>
           <span className="manual-meta prejoin-meta">Invite code <span className="mono">{code}</span></span>
-          <AccountMenu />
+          <AccountMenu phoneMenu={false} />
         </header>
 
         {loadProblem ? (
@@ -165,6 +168,24 @@ export function RoomRoute({ code }: { code: string }) {
 /** After a refresh there was no click yet, so speech is blocked until the next tap. */
 function VoicePrompt() {
   const [open, setOpen] = useState(true);
+  const box = useRef<HTMLDivElement>(null);
+  // phones: dock just under the class masthead, so its title, mute and burger stay in reach
+  // (the first tap on the burger both turns the voice on and opens the menu)
+  useEffect(() => {
+    if (!open || typeof matchMedia !== 'function' || !matchMedia('(max-width: 760px)').matches) return;
+    let ro: ResizeObserver | undefined;
+    let raf = 0, tries = 0;
+    const place = (m: Element) => box.current?.style.setProperty('--vp-top', `${Math.round(m.getBoundingClientRect().bottom) + 6}px`);
+    const find = () => {
+      const m = document.querySelector('.masthead');
+      if (!m) { if (tries++ < 600) raf = requestAnimationFrame(find); return; }
+      place(m);
+      ro = new ResizeObserver(() => place(m));
+      ro.observe(m);
+    };
+    find();
+    return () => { cancelAnimationFrame(raf); ro?.disconnect(); };
+  }, [open]);
   useEffect(() => {
     if (!open) return;
     const done = () => { unlockVoice(); setOpen(false); };
@@ -174,7 +195,7 @@ function VoicePrompt() {
   }, [open]);
   if (!open) return null;
   return (
-    <div className="voice-prompt leaf step-in" role="status">
+    <div ref={box} className="voice-prompt leaf step-in" role="status">
       <Volume2 {...ICON} aria-hidden />
       <span>Tap anywhere to turn on the tutor's voice.</span>
       <button className="btn small primary" onClick={() => { unlockVoice(); mainPlayer.setMuted(false); setOpen(false); }}>Turn on voice</button>

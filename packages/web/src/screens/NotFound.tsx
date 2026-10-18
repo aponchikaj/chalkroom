@@ -11,6 +11,8 @@ import '../ui/ui.css';
 import './entry.css';
 import './home/home.css';
 import './notfound.css';
+// Last on purpose: PhoneNav pulls in entry.css, which must not jump ahead of this page's stylesheets.
+import { PhoneNav } from '../ui/PhoneNav';
 
 const ICON = { size: 16, strokeWidth: 2 } as const;
 
@@ -26,10 +28,11 @@ export function NotFound() {
 
   return (
     <div className="entry nf-page">
+      <PhoneNav />
       <article className="manual leaf punched page-fill nf-leaf">
-        <header className="manual-head">
+        <header className="manual-head pn-hide">
           <a className="btn ghost small manual-back" href="/" onClick={go('/')}><ArrowLeft {...ICON} aria-hidden /> Chalkroom Live</a>
-          <AccountMenu />
+          <AccountMenu phoneMenu={false} />
         </header>
 
         <main className="manual-body nf-body">

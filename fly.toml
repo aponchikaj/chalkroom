@@ -11,6 +11,9 @@ primary_region = "lhr"  # nearest to the Supabase project (eu-west-1, Ireland)
   PORT = "8080"
   REQUIRE_ACCOUNT = "1"
   SANDBOX = "0"
+  # server voice (Kokoro, docs/DEPLOY.md): every narration sentence made once, stored in the tts bucket
+  TTS = "kokoro"
+  TTS_THREADS = "2"
 
 [http_service]
   internal_port = 8080
@@ -28,7 +31,8 @@ primary_region = "lhr"  # nearest to the Supabase project (eu-west-1, Ireland)
     timeout = "5s"
 
 [[vm]]
-  # the local embeddings model needs room next to Node
-  memory = "1gb"
-  cpu_kind = "shared"
-  cpus = 1
+  # Node + the embeddings model + the Kokoro voice (~750 MB resident). The voice needs two dedicated
+  # cores to make speech faster than the class plays it (RTF ~0.55 on 2 threads); a shared vCPU
+  # is throttled to a fraction of a core and falls behind. TTS=off fits the old 1 GB shared machine.
+  size = "performance-2x"
+  memory = "4gb"

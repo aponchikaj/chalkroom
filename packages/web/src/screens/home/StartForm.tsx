@@ -65,7 +65,7 @@ export function StartForm() {
       {source === 'topic' && (
         <div className="field">
           <label className="field-label" htmlFor="topic">What do you want to learn?</label>
-          <input id="topic" className="input input-lg" value={title} maxLength={80} placeholder="A topic, e.g. Solana PDAs" onChange={(e) => setTitle(e.target.value)} />
+          <input id="topic" className="input input-lg" value={title} maxLength={80} placeholder="A topic, e.g. Solana PDAs" enterKeyHint="go" onChange={(e) => setTitle(e.target.value)} />
         </div>
       )}
 

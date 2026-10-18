@@ -37,6 +37,7 @@ import { LostGotIt } from '../features/layers/LostGotIt';
 import { claimVoice } from '../lib/voiceFront';
 import { ActivityLayer } from '../features/activities/ActivityLayer';
 import { ActivityControls } from '../features/activities/ActivityControls';
+import { usePhone, useVisualViewport } from '../features/phone';
 import '../ui/ui.css';
 import './classroom.css';
 
@@ -56,6 +57,9 @@ function Classroom() {
   const checkOpen = useRoom((s) => !!s.check);
   const ended = room.phase === 'ended';
   const lobby = room.phase === 'lobby';
+  // phones: the class is pinned to what the soft keyboard leaves of the screen (classroom.css)
+  const phone = usePhone();
+  const keyboard = useVisualViewport(phone);
 
   if (conn === 'removed') {
     return (
@@ -70,7 +74,7 @@ function Classroom() {
   }
 
   return (
-    <div className={`live phase-${room.phase}`} style={{ ['--section' as string]: sectionHue(room.segment) }}>
+    <div className={`live phase-${room.phase}${keyboard ? ' kb-open' : ''}`} style={{ ['--section' as string]: sectionHue(room.segment) }}>
       <ClassVoice />
       <HostAnswerSync />
       <Masthead />

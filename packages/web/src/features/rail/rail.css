@@ -134,3 +134,40 @@
 
 /* host: pinned to the next Q&A */
 .qcard-pinned { display: inline-flex; align-items: center; gap: 6px; font-size: var(--t-xs); font-weight: 650; font-stretch: 85%; letter-spacing: 0.04em; color: var(--note-ink); }
+
+/* ---------- phones: the rail is a bottom sheet (classroom.css places it and draws the tabs;
+   it loads after this file, so the tab overrides here carry .rail to win) ---------- */
+.rail-grip { display: none; }
+@media (max-width: 760px) {
+  .rail { position: relative; background: var(--paper-2); }
+  /* the grip: a 4 px bar to drag inside a 44 px tall strip, the whole strip the tap target */
+  .rail-grip {
+    display: flex; align-items: center; justify-content: center; position: relative; flex: none;
+    height: 44px; width: 100%; padding: 0; border: 0; background: none; cursor: grab;
+    color: var(--ink-2); touch-action: none; -webkit-tap-highlight-color: transparent;
+  }
+  .rail-grip-bar { width: 40px; height: 4px; border-radius: 2px; background: var(--rule-2); transition: background var(--step) steps(2); }
+  .rail-grip:active .rail-grip-bar, .rail-grip:focus-visible .rail-grip-bar { background: var(--ink); }
+  .rail-grip:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+  .rail-grip-word {
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    display: inline-flex; align-items: center; gap: 3px;
+    font-size: var(--t-xs); font-weight: 750; font-stretch: 80%; letter-spacing: 0.1em; text-transform: uppercase;
+  }
+  /* the three tabs share the sheet's width; the leaf under them scrolls */
+  /* the tabs sit above the grip's tall invisible hit area, so a tap on a tab's top edge switches tab */
+  .rail .rail-tabs { gap: 4px; padding: 0 8px; flex: none; position: relative; z-index: 1; }
+  .rail .rail-tab { flex: 1 1 auto; min-width: 0; justify-content: center; padding: 6px 8px 5px; letter-spacing: 0.06em; font-size: 12px; }
+  .rail .rail-tab[aria-selected='true'] { padding-top: 9px; }
+  .rail-tab > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rail-count { font-size: 11px; min-width: 20px; height: 18px; }
+  .rail-body { min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+  .rail.is-full .rail-body { padding-bottom: env(safe-area-inset-bottom, 0px); }
+}
+
+/* narrow phones: three labelled tabs with counts still fit their words */
+@media (max-width: 380px) {
+  .rail .rail-tabs { gap: 2px; padding: 0 6px; }
+  .rail .rail-tab { gap: 4px; padding: 6px 5px 5px; letter-spacing: 0.02em; }
+  .rail-count { min-width: 18px; padding: 0 3px; }
+}

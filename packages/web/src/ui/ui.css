@@ -92,3 +92,19 @@
 .error-slip-body { font-family: var(--font-read); color: var(--ink-2); font-size: var(--t-sm); }
 .error-slip.compact { margin: 0; padding: 8px 10px; gap: 6px; max-width: none; height: 100%; justify-content: center; box-shadow: none; }
 .error-slip.compact .error-slip-title { font-size: var(--t-sm); }
+
+/* ---------- phone pass (lane P): on the pages around the class (not the classroom), the small
+   label size and printed stamps read at 12px; nothing under 12px on a phone. The landing hero
+   mock (.ld-stage) is exempt on purpose: a scaled picture of a class that speaks through its group label ---------- */
+@media (max-width: 760px) {
+  .entry, .shelf, .replay, .ld { --t-xs: 0.75rem; }
+  .entry .stamp, .shelf .stamp, .replay .stamp { min-height: 24px; font-size: 12px; }
+  .class-meta .mono, .contents-tab { font-size: 12px; }
+  /* every text field at 16px or more, so iOS does not zoom the page on focus; every page loads this file */
+  :is(.entry, .shelf, .replay) :is(.input:not(.input-lg), .select, .textarea) { font-size: max(16px, 1em); }
+  :is(.entry, .shelf, .replay) :is(.input, .select) { min-height: 48px; }
+}
+@media (max-width: 760px) {
+  /* the phone running head (ui/PhoneNav.tsx) is 52px plus the notch; pinned strips sit under it */
+  :is(.entry, .shelf, .replay, .ld):has(> .pn-bar) { --phone-bar-h: calc(52px + env(safe-area-inset-top, 0px)); }
+}

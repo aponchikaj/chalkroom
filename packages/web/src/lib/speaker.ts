@@ -1,13 +1,13 @@
-// Text-to-speech for the tutor. Two voices, chosen per device (Preferences, "Voice on this
-// device"): Natural (Kokoro, an opt-in download that runs in a Web Worker, lib/kokoro.ts) and
-// System (the browser's Web Speech API). Off reads at caption pace without sound.
+// Text-to-speech for the tutor. Two voices, chosen per device (Preferences, "Voice"): Natural
+// (speech made on our server, one shared file per sentence, lib/serverVoice.ts) and System (the
+// browser's Web Speech API). Off reads at caption pace without sound.
 // Every speak() resolves when the sentence ends, whatever voice spoke it, so the board player's
-// timing never changes. The voice only ever comes out of the page in front of the person:
-// never from a hidden tab, never from a tab behind another Chalkroom tab, and never from a
-// page that is not a class or a replay.
+// timing never changes. A sentence the server has not made in time is read by the system voice.
+// The voice only ever comes out of the page in front of the person: never from a hidden tab,
+// never from a tab behind another Chalkroom tab, and never from a page that is not a class or a replay.
 import { create } from 'zustand';
-import { naturalDownloaded, naturalKeepsUp, synthesize, useNaturalVoice, warmNaturalVoice } from './kokoro';
-import { audioContext } from './sfx';
+import { TTS_SAMPLE as SAMPLE } from '@chalk/schema';
+import { clipFor, clipWithin, loadServerVoice, useServerVoice } from './serverVoice';
 import { onVoiceOwner, ownsVoice, speaksOn } from './voiceFront';
 
 export interface VoiceSettings {
@@ -22,28 +22,33 @@ export interface VoiceSettings {
 
 export type VoiceMode = 'natural' | 'system' | 'off';
 const MODE_KEY = 'chalkroom.voice.mode';
-const storedMode = (): VoiceMode => {
+/** the person's own choice on this device; null until they make one */
+const storedMode = (): VoiceMode | null => {
   try {
     const v = localStorage.getItem(MODE_KEY);
-    return v === 'natural' || v === 'off' ? v : 'system';
-  } catch { return 'system'; }
+    return v === 'natural' || v === 'system' || v === 'off' ? v : null;
+  } catch { return null; }
 };
 
-/** The voice this device uses (a hook for the settings UI). Natural needs the download first. */
-export const useVoiceMode = create<{ mode: VoiceMode }>(() => ({ mode: storedMode() }));
+/** The voice this device uses (a hook for the settings UI). Without a choice: Natural when the
+ *  server makes it (/health says tts: 'kokoro'), else System. */
+export const useVoiceMode = create<{ mode: VoiceMode }>(() => ({ mode: storedMode() ?? 'system' }));
+
+useServerVoice.subscribe(({ engine }) => {
+  if (engine && !storedMode()) useVoiceMode.setState({ mode: engine === 'kokoro' ? 'natural' : 'system' });
+});
+loadServerVoice();
 
 export function setVoiceMode(mode: VoiceMode) {
   try { localStorage.setItem(MODE_KEY, mode); } catch { /* storage blocked */ }
   useVoiceMode.setState({ mode });
   if (mode === 'off') hushAll();
-  if (mode === 'natural') warmNaturalVoice();
 }
 
-/** What actually speaks in a class: Natural falls back to System until it is downloaded, and
- *  on a device too slow to make speech as fast as the lesson plays (it would fall behind). */
+/** What actually speaks in a class: Natural only while the server makes it. */
 const effectiveMode = (): VoiceMode => {
   const m = useVoiceMode.getState().mode;
-  return m === 'natural' && (!naturalDownloaded() || !naturalKeepsUp()) ? 'system' : m;
+  return m === 'natural' && useServerVoice.getState().engine === 'off' ? 'system' : m;
 };
 
 // ---------- where the voice may come out ----------
@@ -63,7 +68,30 @@ export function hushAll() {
   if (typeof window !== 'undefined' && 'speechSynthesis' in window) window.speechSynthesis.cancel();
 }
 
-if (typeof window !== 'undefined') {
+// ---------- the one audio element the Natural voice plays through ----------
+
+/** A short silent WAV: played once on the first tap or key, so phones (iOS) let this element
+ *  play the lesson's sentences later without another tap. */
+function silentWav(): string {
+  const n = 240;
+  const b = new DataView(new ArrayBuffer(44 + n * 2));
+  const str = (o: number, s: string) => { for (let i = 0; i < s.length; i++) b.setUint8(o + i, s.charCodeAt(i)); };
+  str(0, 'RIFF'); b.setUint32(4, 36 + n * 2, true); str(8, 'WAVE'); str(12, 'fmt ');
+  b.setUint32(16, 16, true); b.setUint16(20, 1, true); b.setUint16(22, 1, true); b.setUint32(24, 24000, true);
+  b.setUint32(28, 48000, true); b.setUint16(32, 2, true); b.setUint16(34, 16, true); str(36, 'data'); b.setUint32(40, n * 2, true);
+  let s = '';
+  for (const x of new Uint8Array(b.buffer)) s += String.fromCharCode(x);
+  return `data:audio/wav;base64,${btoa(s)}`;
+}
+
+let voiceEl: HTMLAudioElement | null = null;
+const voiceElement = (): HTMLAudioElement | null => {
+  if (typeof Audio === 'undefined') return null;
+  if (!voiceEl) { voiceEl = new Audio(); voiceEl.preload = 'auto'; }
+  return voiceEl;
+};
+
+if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   // a tab out of view: cut the sentence being spoken; the next ones run silent at reading pace
   document.addEventListener('visibilitychange', () => { if (pageHidden()) hushAll(); });
   // another Chalkroom tab or window is the one in use now (lib/voiceFront.ts): fall quiet
@@ -73,22 +101,35 @@ if (typeof window !== 'undefined') {
   window.addEventListener('popstate', check);
   const nav = (window as unknown as { navigation?: EventTarget }).navigation;
   nav?.addEventListener('currententrychange', check);
+  // unlock the audio element with the person's first tap or key (phones need it)
+  const unlock = () => {
+    document.removeEventListener('pointerdown', unlock, true);
+    document.removeEventListener('keydown', unlock, true);
+    const el = voiceElement();
+    if (!el || el.src) return;
+    const silence = silentWav();
+    el.src = silence;
+    void el.play().then(() => { if (el.src === silence) el.pause(); }, () => {});
+  };
+  document.addEventListener('pointerdown', unlock, true);
+  document.addEventListener('keydown', unlock, true);
 }
 
 const readingMs = (text: string, rate: number) => Math.max(1200, (text.split(/\s+/).length / 2.7) * 1000 / rate);
-/** how long the first Natural sentence may take before the system voice says it instead */
-const FIRST_SENTENCE_MS = 1800;
-/** later sentences were prefetched; allow more, then fall back too */
-const LATER_SENTENCE_MS = 5000;
-/** the fastest the Natural voice speaks (kokoro.ts clamps its speed there) */
-const NATURAL_MAX_RATE = 2;
+/** how long a sentence may wait for its server audio before the system voice says it */
+const NATURAL_WAIT_MS = 1200;
+/** The opening sentence after a quiet spell is asked for the moment the tutor writes it, so the
+ *  server has not made it yet (1 to 3 s). Waiting a little longer there keeps one voice for the
+ *  whole lesson; the sentences after it are made ahead and need no wait. */
+const NATURAL_FIRST_WAIT_MS = 4500;
+/** after this much quiet, the next sentence counts as an opening one */
+const QUIET_MS = 8000;
 
 export class Speaker {
   settings: VoiceSettings = { voice: '', rate: 1, muted: false, textOnly: false, lang: 'en' };
   private stopFns = new Set<() => void>();
   private voiceFns = new Set<() => void>();
   private generation = 0;
-  private naturalSpoke = false;
   /** the class silenced the voice for now (in a side thread, class over); not the person's setting */
   silenced = false;
 
@@ -102,18 +143,14 @@ export class Speaker {
   speak(text: string): Promise<void> {
     if (this.silent || !text.trim()) return this.wait(readingMs(text, this.settings.rate));
     speakers.add(this);
-    if (this.natural()) return this.speakNatural(text);
+    if (effectiveMode() === 'natural') return this.speakNatural(text);
     return this.speakBrowser(text);
   }
 
-  /** Natural speaks this sentence: chosen, ready, and no faster than Kokoro goes (2x). Above
-   *  that the system voice reads it, so a sentence lasts as long whichever voice speaks. */
-  private natural() { return effectiveMode() === 'natural' && this.settings.rate <= NATURAL_MAX_RATE; }
-
-  /** Warm the next sentence so playback has no gaps (Natural voice only; the system voice needs none). */
+  /** Fetch a coming sentence's audio now, so it plays without a gap (Natural voice only). */
   prefetch(text: string) {
-    if (this.silent || !this.natural() || !useNaturalVoice.getState().live) return;
-    void synthesize(text, this.settings.rate).catch(() => {});
+    if (this.silent || effectiveMode() !== 'natural' || !text.trim()) return;
+    void clipFor(text);
   }
 
   stop() {
@@ -142,61 +179,64 @@ export class Speaker {
     return this.wait(Math.max(0, readingMs(text, this.settings.rate) - (performance.now() - startedAt)));
   }
 
+  /** when the last server sentence finished (an opening sentence after a quiet spell waits longer) */
+  private lastNaturalEnd = -Infinity;
+
   private async speakNatural(text: string): Promise<void> {
     const gen = this.generation;
     const startedAt = performance.now();
     const rate = this.settings.rate;
-    // not loaded in this tab yet: start loading in the background, the system voice says this one
-    if (!useNaturalVoice.getState().live) { warmNaturalVoice(); return this.speakBrowser(text); }
-    let clip: { audio: Float32Array; rate: number } | null = null;
-    try {
-      const budget = this.naturalSpoke ? LATER_SENTENCE_MS : FIRST_SENTENCE_MS;
-      clip = await Promise.race([
-        synthesize(text, rate),
-        new Promise<null>((r) => setTimeout(() => r(null), budget)),
-      ]);
-    } catch (e) {
-      console.warn('Natural voice failed, using the system voice', e);
-    }
+    // wait for the server's audio briefly; stop() ends the wait at once
+    let cancel: () => void = () => {};
+    const stopped = new Promise<null>((r) => { cancel = () => r(null); });
+    this.stopFns.add(cancel);
+    const opening = performance.now() - this.lastNaturalEnd > QUIET_MS;
+    const url = await Promise.race([clipWithin(text, opening ? NATURAL_FIRST_WAIT_MS : NATURAL_WAIT_MS), stopped]);
+    this.stopFns.delete(cancel);
     if (gen !== this.generation) return;
     if (this.silent) return this.finishSilently(text, startedAt);
-    const ac = audioContext();
-    if (ac && ac.state === 'suspended') await ac.resume().catch(() => {});
-    if (!clip || !ac || ac.state !== 'running') return this.speakBrowser(text);
-    this.naturalSpoke = true;
-    const { audio, rate: sampleRate } = clip;
+    const el = voiceElement();
+    if (!url || !el) return this.speakBrowser(text);
+    el.src = url;
+    el.defaultPlaybackRate = rate;
+    el.playbackRate = rate;
+    el.preservesPitch = true;
+    let started = true;
+    await el.play().catch(() => { started = false; });
+    if (gen !== this.generation) { el.pause(); return; }
+    // the browser refused to play (no tap yet): the system voice reads it
+    if (!started) return this.speakBrowser(text);
     return new Promise<void>((resolve) => {
-      const buf = ac.createBuffer(1, audio.length, sampleRate);
-      buf.copyToChannel(audio as Float32Array<ArrayBuffer>, 0);
-      const src = ac.createBufferSource();
-      src.buffer = buf;
-      src.connect(ac.destination);
       let finished = false;
-      const guard = setTimeout(() => done(), buf.duration * 1000 + 1500);
-      const silence = () => { try { src.stop(); } catch { /* not started */ } };
+      const end = () => { el.onended = null; el.onerror = null; el.onloadedmetadata = null; };
+      const settle = () => { finished = true; clearTimeout(guard); end(); this.stopFns.delete(done); this.voiceFns.delete(cut); };
+      // some players never fire ended; never hold the lesson on that
+      let guard = setTimeout(() => done(), readingMs(text, rate) * 2.2 + 4000);
+      const fit = () => {
+        if (!Number.isFinite(el.duration) || finished) return;
+        clearTimeout(guard);
+        guard = setTimeout(() => done(), (el.duration * 1000) / rate + 1500);
+      };
       const done = () => {
         if (finished) return;
-        finished = true;
-        clearTimeout(guard);
-        silence();
-        this.stopFns.delete(done);
-        this.voiceFns.delete(cut);
+        settle();
+        el.pause();
+        this.lastNaturalEnd = performance.now();
         resolve();
       };
       // cut the sound but keep the sentence's time, so the board does not jump ahead
       const cut = () => {
         if (finished) return;
-        finished = true;
-        clearTimeout(guard);
-        silence();
-        this.stopFns.delete(done);
-        this.voiceFns.delete(cut);
+        settle();
+        el.pause();
         void this.finishSilently(text, startedAt).then(resolve);
       };
-      src.onended = done;
+      el.onended = done;
+      el.onerror = done;
+      el.onloadedmetadata = fit;
+      fit();
       this.stopFns.add(done);
       this.voiceFns.add(cut);
-      src.start();
     });
   }
 
@@ -245,46 +285,39 @@ export function listBrowserVoices(): Promise<SpeechSynthesisVoice[]> {
   });
 }
 
+
 /** Play one sample sentence in a voice, from the settings page (a click, so audio may start).
- *  Calls onStart when the sound begins (the Natural voice may first need seconds to load) and
+ *  Calls onStart when the sound begins (the server may first need a few seconds to make it) and
  *  resolves when it ends or is stopped (stopVoicePreview). Uses the person's speed. Natural falls
  *  back to System on any error. */
 export async function previewVoice(mode: 'natural' | 'system', rate = 1, onStart?: () => void): Promise<'natural' | 'system'> {
-  const text = 'This is how I will sound when I teach your class.';
   hushAll();
   let stopped = false;
   let end: () => void = () => {};
   const mine = () => { stopped = true; end(); };
   stopPreview = mine;
   try {
-    if (mode === 'natural' && rate <= NATURAL_MAX_RATE) {
-      const ac = audioContext();
-      try {
-        if (ac && ac.state === 'suspended') await ac.resume();
-        const clip = await synthesize(text, rate);
-        if (stopped) return 'natural';
-        if (ac && ac.state === 'running') {
-          const buf = ac.createBuffer(1, clip.audio.length, clip.rate);
-          buf.copyToChannel(clip.audio as Float32Array<ArrayBuffer>, 0);
-          const src = ac.createBufferSource();
-          src.buffer = buf;
-          src.connect(ac.destination);
-          await new Promise<void>((r) => {
-            end = () => { try { src.stop(); } catch { /* not started */ } r(); };
-            src.onended = () => r();
-            src.start();
-            onStart?.();
-          });
-          return 'natural';
-        }
-      } catch (e) {
-        if (stopped) return 'natural';
-        console.warn('Natural voice sample failed, using the system voice', e);
+    if (mode === 'natural') {
+      // made on demand the first time (POST /tts, then polled): allow the server a few seconds
+      const url = await clipWithin(SAMPLE, 9000);
+      if (stopped) return 'natural';
+      if (url && typeof Audio !== 'undefined') {
+        const el = new Audio(url);
+        el.defaultPlaybackRate = rate;
+        el.playbackRate = rate;
+        el.preservesPitch = true;
+        const played = await new Promise<boolean>((r) => {
+          end = () => { el.pause(); r(true); };
+          el.onended = () => r(true);
+          el.onerror = () => r(false);
+          el.play().then(() => onStart?.(), () => r(false));
+        });
+        if (played || stopped) return 'natural';
       }
     }
     if (stopped || !('speechSynthesis' in window)) return 'system';
     await new Promise<void>((resolve) => {
-      const u = new SpeechSynthesisUtterance(text);
+      const u = new SpeechSynthesisUtterance(SAMPLE);
       u.lang = 'en';
       u.rate = rate;
       const t = setTimeout(resolve, 8000 / Math.min(1, rate));

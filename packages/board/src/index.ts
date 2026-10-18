@@ -317,3 +317,14 @@ export function splitSentences(text: string): string[] {
   }
   return out;
 }
+
+/** Event kinds whose narration the main board player speaks (packages/web/src/lib/player.ts). */
+export const SPOKEN_KINDS = ['board', 'answer_cluster'] as const;
+
+/** Every sentence the main board player speaks for one stream event, in order: each `say`
+ *  step, split with splitSentences. The server voice makes exactly these, so the web finds them. */
+export function spokenSentences(ev: { kind: string; data: unknown }): string[] {
+  if (!(SPOKEN_KINDS as readonly string[]).includes(ev.kind)) return [];
+  const steps = (ev.data as { steps?: BoardStep[] } | null)?.steps ?? [];
+  return steps.flatMap((s) => ('say' in s && s.say.trim() ? splitSentences(s.say) : []));
+}

@@ -379,20 +379,10 @@
 @media (max-width: 760px) {
   .ld { padding-top: 0; --page-top: 44px; }
   .ld-book { display: block; padding: 0; }
-  .ld-tabs { position: sticky; top: 0; margin: 0; padding: 8px 12px 0; background: var(--paper) var(--grain); border-bottom: 1.5px solid var(--ink); overflow-x: auto; scrollbar-width: none; }
-  .ld-tabs::-webkit-scrollbar { display: none; }
-  .ld-tabs ol { flex-direction: row; gap: 4px; }
-  .ld-tabs a {
-    writing-mode: horizontal-tb; width: auto; min-height: 36px; padding: 0 12px; margin: 0;
-    border-radius: 6px 6px 0 0; white-space: nowrap; box-shadow: none;
-  }
-  .ld-tabs a[aria-current='true'] { width: auto; min-height: 44px; box-shadow: inset 0 -3px 0 var(--ink); }
-  .ld-tabs ol { align-items: flex-end; }
+  /* .ld-tabs and .ld-head carry pn-hide: on a phone the PhoneNav bar and menu stand in for them */
   .ld-page { padding: 0 16px; border: 0; border-radius: 0; box-shadow: none; --lh: 30px;
     background-image: repeating-linear-gradient(to bottom, transparent 0 29px, color-mix(in srgb, var(--ruling) 55%, transparent) 29px 30px), var(--grain); }
   .ld-page::before { display: none; }
-  .ld-head nav .ld-nav-wide { display: none; }
-  .ld-head nav a { padding: 10px 0; }
   .ld-hero, .ld-sect { scroll-margin-top: 56px; }
   .ld-hero { padding: 28px 0 48px; }
   .ld-hero-copy { display: block; }
@@ -429,4 +419,15 @@
   .ld-ledger li .ld-by-agent { grid-column: 2; }
   .ld-ledger li .ld-what { grid-column: 2; }
   .ld-ledger-head .faint { display: none; }
+}
+
+/* ---------- phone pass (lane P): the join fields and start key are full thumb targets ---------- */
+@media (max-width: 760px) {
+  .ld-join label { font-size: 12px; }
+  .ld-join .input { min-height: 52px; font-size: 1.15rem; }
+  .ld-join .btn { min-height: 52px; }
+  .ld-start { min-height: 54px; }
+}
+@media (max-width: 760px) {
+  .ld-fine a { display: inline-flex; align-items: center; min-height: 44px; }
 }

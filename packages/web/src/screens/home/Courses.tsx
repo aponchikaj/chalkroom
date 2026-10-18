@@ -95,7 +95,7 @@ export function Courses() {
           <div className="search">
             <Search size={16} strokeWidth={2} aria-hidden className="search-icon" />
             <label className="sr-only" htmlFor="course-q">Search courses</label>
-            <input id="course-q" className="input" type="search" value={q} placeholder="Search courses by title or goal" onChange={(e) => setQ(e.target.value)} />
+            <input id="course-q" className="input" type="search" value={q} placeholder="Search courses by title or goal" enterKeyHint="search" onChange={(e) => setQ(e.target.value)} />
           </div>
           {load.status === 'loading' && (
             <ol className="class-list" aria-busy="true" aria-label="Loading courses">

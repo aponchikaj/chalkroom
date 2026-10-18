@@ -1,4 +1,5 @@
-import { hostname } from 'node:os';
+import { homedir, hostname } from 'node:os';
+import { join } from 'node:path';
 
 // Environment for the API. `npm run env` at the repo root writes .env from `supabase status`.
 const need = (k: string) => {
@@ -89,6 +90,17 @@ export const config = {
   /** RAG embeddings (B12): 'local' runs multilingual-e5-small in the API; 'none' is full-text search only. */
   embeddings: {
     provider: (process.env.EMBEDDINGS === 'none' ? 'none' : 'local') as 'local' | 'none',
+  },
+  /** Server voice: 'kokoro' makes each narration sentence once (Kokoro-82M on the CPU) and stores it
+   *  in the public `tts` bucket; 'off' (default) leaves the web on the system voice. */
+  tts: {
+    engine: (process.env.TTS === 'kokoro' ? 'kokoro' : 'off') as 'kokoro' | 'off',
+    /** fp32 is the fastest on x86 CPUs (RTF ~0.4 on 6 cores); q8 is smaller but slower */
+    dtype: (process.env.TTS_DTYPE ?? 'fp32') as 'fp32' | 'fp16' | 'q8' | 'q4',
+    /** model files (~330 MB for fp32); the image bakes them in */
+    cacheDir: process.env.TTS_CACHE ?? join(homedir(), '.cache', 'chalkroom-models'),
+    /** ONNX intra-op threads; 0 lets onnxruntime pick (all cores) */
+    threads: Number(process.env.TTS_THREADS ?? 0),
   },
   /** dev console at /sandbox. On by default only against a local Supabase; SANDBOX=1/0 overrides. */
   sandbox: process.env.SANDBOX ? process.env.SANDBOX === '1' : /^http:\/\/(127\.0\.0\.1|localhost)[:/]/.test(process.env.SUPABASE_URL ?? ''),

@@ -101,3 +101,32 @@
 .paused-cue .stamp { min-height: 30px; padding: 0 10px; gap: 6px; font-size: var(--t-xs); }
 .paused-cue-note { font-size: var(--t-sm); color: var(--ink-2); }
 @media (max-width: 760px) { .paused-cue { gap: 6px; } .paused-cue-note { font-size: var(--t-xs); } }
+
+/* phones: the Host button is one square beside the marks; its sheet opens above the bar */
+@media (max-width: 760px) {
+  .host-menu-btn { width: 44px; padding: 0; justify-content: center; position: relative; }
+  .host-menu-btn .host-menu-word { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .host-menu-btn > .lucide:last-child { display: none; }
+  .host-menu-btn > .lucide:first-child { width: 20px; height: 20px; }
+  /* paused for everyone: a warn dot on the corner, the word stays for screen readers */
+  .host-menu-btn .host-menu-flag { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .host-menu-btn.is-paused::after {
+    content: ''; position: absolute; top: 5px; right: 5px; width: 9px; height: 9px; border-radius: 50%;
+    background: var(--warn); box-shadow: 0 0 0 2px var(--paper);
+  }
+  .host-sheet { left: 0; right: 0; bottom: calc(100% + 8px); max-height: calc(var(--vvh, 100dvh) * 0.6); overflow-y: auto; animation: sheet-up var(--dur-quick, 180ms) var(--ease-out, ease-out) both; }
+  /* End class sits apart at the bottom of the sheet, after a rule, so it is never hit by mistake */
+  .host-sheet-items > .host-end { margin-top: 6px; position: relative; }
+  .host-sheet-items > .host-end::before { content: ''; position: absolute; left: 0; right: 0; top: -9px; border-top: 1px dashed var(--rule-2); }
+  .host-sheet-items > .host-end { order: 99; }
+  /* the gate row: count and timer on the left, I'm ready fills the rest */
+  .ready-strip:not(.is-idle):not(.is-waiting) { gap: 10px; }
+  .ready-strip:not(.is-idle):not(.is-waiting) > .btn.primary, .ready-strip:not(.is-idle):not(.is-waiting) > .stamp { margin-left: auto; flex: 1 1 auto; max-width: 60%; justify-content: center; }
+  .ready-strip.is-waiting { justify-content: space-between; gap: 10px; }
+  .ready-strip.is-waiting .ready-wait { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--t-xs); }
+}
+
+/* phones: the end-class sheet's danger button meets AA contrast on the leaf (4.33:1 before) */
+@media (max-width: 760px) {
+  .host-controls.is-confirm .btn.danger { color: #c2331a; border-color: #c2331a; }
+}

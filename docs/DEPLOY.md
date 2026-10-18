@@ -45,6 +45,23 @@ A 1 GB shared machine is a few dollars a month on Fly (not free). The app `chalk
 3. `fly deploy --ha=false`, then `fly scale count 1` if a second machine was created.
 4. Check `https://<app>.fly.dev/health`. Use that URL as `VITE_API_URL` on Vercel.
 
+#### Server voice (TTS=kokoro)
+
+The API makes every narration sentence once with Kokoro-82M (fp32, voice af_heart, in a worker
+thread) and stores it in the public Storage bucket `tts` (migration `20261018130000_tts_bucket.sql`);
+every learner plays the same file. The image bakes the model (~330 MB) into `/app/.models`.
+
+- Machine: **2 dedicated vCPUs, 2 GB or more** (`performance-2x`, 4 GB, in `fly.toml`). Measured on
+  a 6-core laptop: real-time factor 1.15 on 1 thread (slower than speech: the class would outrun
+  it), 0.53 on 2 threads, 0.39 on all cores. A shared vCPU is throttled to a fraction of a core and
+  falls behind. Memory: the voice worker is ~730 MB resident, next to Node and the embeddings model.
+- `TTS_THREADS=2` matches the machine; `TTS=off` turns the voice off (the web then uses the system
+  voice) and fits the old 1 GB shared machine.
+- Push the migration (`npm run db:push:prod`) before deploying, or uploads fail and every sentence
+  falls back to the system voice.
+- Deploy: `npm run db:push:prod`, then `fly deploy --ha=false`, then `fly scale vm performance-2x
+  --vm-memory 4096` if the machine kept its old size, and check `/health` shows `"tts":"kokoro"`.
+
 ## 3. Web on Vercel
 
 The API is live at `https://chalkroom-api.fly.dev`. It accepts calls from

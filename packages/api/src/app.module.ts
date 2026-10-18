@@ -36,11 +36,15 @@ import { HostController } from './host/host.controller';
 import { EmbeddingPort } from './rag/embeddings/embedding.port';
 import { NoEmbeddings } from './rag/embeddings/no.embeddings';
 import { LocalEmbeddings } from './rag/embeddings/local.embeddings';
+import { TtsService } from './tts/tts.service';
+import { TtsController } from './tts/tts.controller';
 
 @Controller()
 class HealthController {
+  constructor(private tts: TtsService) {}
+
   @Get('health')
-  health(): HealthRes { return { ok: true, embeddings: config.embeddings.provider, model: config.model, modelId: config.model === 'mock' ? null : config.agentModels.lead, agents: config.model === 'mock' ? null : config.agentModels }; }
+  health(): HealthRes { return { ok: true, embeddings: config.embeddings.provider, tts: this.tts.engine, model: config.model, modelId: config.model === 'mock' ? null : config.agentModels.lead, agents: config.model === 'mock' ? null : config.agentModels }; }
 }
 
 @Module({
@@ -48,7 +52,7 @@ class HealthController {
   // One module wires every feature: feature modules would import each other in a cycle
   // (threads -> conductor -> triage -> thread offers). Folders, not modules, carry the structure.
   providers: [
-    RoomsService, ConductorService, ProfilesService, AvatarsService, TwoFactorService, ThreadStore, TriageService, ThreadsService, PresenceService, SourcesService, IngestWorker, RetrieveService, CoursesService, ActivitiesService, LibraryService,
+    RoomsService, ConductorService, ProfilesService, AvatarsService, TwoFactorService, ThreadStore, TriageService, ThreadsService, PresenceService, SourcesService, IngestWorker, RetrieveService, CoursesService, ActivitiesService, LibraryService, TtsService,
     // meaning-based search: the model warms in the background so boot is not held up
     { provide: EmbeddingPort, useFactory: () => {
       if (config.embeddings.provider === 'none') return new NoEmbeddings();
@@ -57,6 +61,6 @@ class HealthController {
       return local;
     } },
   ],
-  controllers: [HealthController, MeController, TwoFactorController, UsersController, RoomsController, QuestionsController, ThreadsController, NotesController, SourcesController, CardsController, CoursesController, ActivitiesController, LibraryController, HostController, ...(config.sandbox ? [SandboxController] : [])],
+  controllers: [HealthController, MeController, TwoFactorController, UsersController, RoomsController, QuestionsController, ThreadsController, NotesController, SourcesController, CardsController, CoursesController, ActivitiesController, LibraryController, HostController, TtsController, ...(config.sandbox ? [SandboxController] : [])],
 })
 export class AppModule {}

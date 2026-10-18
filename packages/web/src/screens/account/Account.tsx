@@ -14,6 +14,8 @@ import { AccountSection } from './AccountSection';
 import '../../ui/ui.css';
 import '../entry.css';
 import './account.css';
+// Last on purpose: PhoneNav pulls in entry.css, which must not jump ahead of this page's stylesheets.
+import { PhoneNav } from '../../ui/PhoneNav';
 
 const TABS = [
   { id: 'profile', label: 'Profile' },
@@ -59,6 +61,7 @@ export function Account() {
 
   return (
     <main className="entry">
+      <PhoneNav title="Account" back={{ label: 'Back to your classes', go: '/' }} current={`account:${tab}`} />
       <article className="manual leaf punched acct-manual page-fill">
         <div className="acct-tabs" role="tablist" aria-label="Account" aria-orientation={phone ? 'horizontal' : 'vertical'} onKeyDown={onTabKey}>
           {TABS.map((t, i) => (
@@ -72,14 +75,14 @@ export function Account() {
           ))}
         </div>
 
-        <header className="manual-head">
+        <header className="manual-head pn-hide">
           <a className="btn ghost manual-back" href="/" onClick={(e) => { e.preventDefault(); navigate('/'); }}>
             <ArrowLeft {...ICON} aria-hidden />Back to your classes
           </a>
           <span className="manual-brand">Chalkroom Live</span>
         </header>
 
-        <div className="manual-body acct-body">
+        <div className="manual-body acct-body" data-tab={tab}>
           <aside className="acct-id cover-label" aria-label="Whose notebook this is">
             <p className="cover-belongs">This notebook belongs to</p>
             {me ? (

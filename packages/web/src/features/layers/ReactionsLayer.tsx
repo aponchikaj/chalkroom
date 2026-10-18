@@ -9,6 +9,7 @@ import type { BoardPage, Camera } from '@chalk/board';
 import { mainPlayer, selectActiveMembers, useRoom } from '../../room/store';
 import { useBoardViewCamera, usePlayer } from '../../board/Board';
 import { api } from '../../lib/api';
+import { usePhone } from '../../ui/PhoneNav';
 import { frameStyle, toPct, useBoardFrame } from './boardFrame';
 import './layers.css';
 
@@ -36,6 +37,7 @@ export function ReactionsLayer() {
   const selection = useRoom(useShallow((s) => s.selection));
   const classSize = useRoom((s) => selectActiveMembers(s).length);
   const live = phase === 'teaching' || phase === 'check' || phase === 'qa';
+  const phone = usePhone();
 
   const byShape = new Map<string, ReactionRow[]>();
   for (const r of reactions) byShape.set(r.shape_id, [...(byShape.get(r.shape_id) ?? []), r]);
@@ -50,6 +52,9 @@ export function ReactionsLayer() {
         const level = confused === 0 ? 0 : confused >= 3 || confused / Math.max(classSize, 1) >= 0.4 ? 2 : 1;
         const a = toPct(camera, s.x, s.y);
         const b = toPct(camera, s.x + s.w, s.y + s.h);
+        // phones: the follow camera crops the page, so a mark on a figure out of view would float
+        // over the page outside the board; leave it out until the figure is in view
+        if (phone && (b.x <= 0 || a.x >= 100 || b.y <= 0 || a.y >= 100)) return null;
         return (
           <div key={id} className={`heat heat-${level}`} style={{ left: `${a.x}%`, top: `${a.y}%`, width: `${b.x - a.x}%`, height: `${b.y - a.y}%` }}>
             <span className={`heat-tag ${b.x > 82 ? 'flip' : ''}`}>

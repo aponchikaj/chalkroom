@@ -12,13 +12,16 @@ export const ICON = { size: 16, strokeWidth: 2 } as const;
 /** One manual leaf: the running head, the title side, and the form on a library card tucked
  *  into the leaf. `cardNo` prints in the card's number box (an invite code, for example); the
  *  card's foot is ruled like a date-due slip. */
-export function AuthLeaf({ title, lede, aside, children, wide, cardNo }: {
+export function AuthLeaf({ title, lede, aside, children, wide, cardNo, phoneNav }: {
   title: ReactNode; lede?: ReactNode; aside?: ReactNode; children: ReactNode; wide?: boolean; cardNo?: ReactNode;
+  /** phones: the page's PhoneNav running head; the manual head then hides on phones (pn-hide) */
+  phoneNav?: ReactNode;
 }) {
   return (
     <main className="entry">
+      {phoneNav}
       <article className="manual leaf punched page-fill auth-manual">
-        <header className="manual-head">
+        <header className={phoneNav ? 'manual-head pn-hide' : 'manual-head'}>
           <button type="button" className="btn ghost small manual-back" onClick={() => navigate('/')}><ArrowLeft {...ICON} aria-hidden /> Chalkroom Live</button>
           <span className="manual-meta auth-meta">Live classes for up to five people</span>
         </header>
@@ -52,13 +55,13 @@ export function AuthLeaf({ title, lede, aside, children, wide, cardNo }: {
 /** On an invite link: Sign up first, Log in second, as two keys at the top of the card. The
  *  pressed key names the form, so the form's own heading is for screen readers only. */
 export function AuthMode({ mode, onSwitch }: { mode: 'signup' | 'login'; onSwitch: () => void }) {
-  const key = (m: 'signup' | 'login', words: string) => (
-    <button type="button" className="auth-mode-key" aria-pressed={mode === m} onClick={() => { if (mode !== m) onSwitch(); }}>{words}</button>
+  const key = (m: 'signup' | 'login', words: React.ReactNode) => (
+    <button type="button" className="auth-mode-key" aria-label={m === 'signup' ? 'New here: sign up' : 'I have an account: log in'} aria-pressed={mode === m} onClick={() => { if (mode !== m) onSwitch(); }}>{words}</button>
   );
   return (
     <div className="auth-mode" role="group" aria-label="Account">
-      {key('signup', 'New here: sign up')}
-      {key('login', 'I have an account: log in')}
+      {key('signup', <><span className="auth-mode-long">New here: sign up</span><span className="auth-mode-short" aria-hidden>Sign up</span></>)}
+      {key('login', <><span className="auth-mode-long">I have an account: log in</span><span className="auth-mode-short" aria-hidden>Log in</span></>)}
     </div>
   );
 }
@@ -127,7 +130,7 @@ export function PasswordField({ id, label, value, onChange, autoComplete, rule, 
         {labelAside}
       </div>
       <div className="pw-row">
-        <input id={id} className="input input-lg" type={shown ? 'text' : 'password'} value={value} autoComplete={autoComplete}
+        <input id={id} className="input input-lg" type={shown ? 'text' : 'password'} value={value} autoComplete={autoComplete} enterKeyHint="go"
           autoFocus={autoFocus} spellCheck={false} autoCapitalize="none" aria-invalid={invalid || undefined}
           aria-describedby={rule ? hint : undefined} onChange={(e) => onChange(e.target.value)} />
         <button type="button" className="btn ghost icon-btn pw-toggle" aria-pressed={shown} aria-controls={id}

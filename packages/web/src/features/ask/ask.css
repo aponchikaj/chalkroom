@@ -24,3 +24,15 @@
 
 /* small square dismiss (errata slip, anchor chip) */
 .errata .ask-dismiss { margin: -4px -6px -4px 0; }
+
+/* phones: one row with a square send button; 16 px text so the browser never zooms on focus */
+@media (max-width: 760px) {
+  .askbar { gap: 6px; }
+  .askbar .ask-field .input { min-height: 44px; font-size: 16px; }
+  .askbar .ask-send { width: 44px; min-width: 44px; padding: 0; justify-content: center; flex: none; }
+  .askbar .ask-send:disabled { background: transparent; background-image: none; color: var(--ink-3); border-color: var(--rule-2); }
+  .askbar .ask-anchor { min-height: 44px; }
+  .askbar .ask-anchor > span { display: none; }
+  .askbar .ask-anchor .ask-dismiss { min-height: 36px; min-width: 36px; }
+  .ask-slip { left: 0; right: 0; }
+}
