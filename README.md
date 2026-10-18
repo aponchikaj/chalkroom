@@ -87,7 +87,7 @@ endpoint is also in the sandbox at `http://localhost:3001/sandbox/` and in
 ## How it fits together
 
 ```
- web (Vite + React + Zustand)  ──REST──▶  api (NestJS)  ──ModelPort──▶  Claude Sonnet 5.5 / free tier / mock
+ web (Vite + React + Zustand)  ──REST──▶  api (NestJS)  ──ModelPort──▶  Claude Haiku 5.5 / free tier / mock
    ▲ board player (pure reducer)            RoomConductor per room (phase, gate)
    │ StreamSync per stream                  agents: lead · triage · thread · scribe
    │                                         │ append_event() (gap-free seq)

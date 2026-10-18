@@ -27,26 +27,26 @@ Done = built and tested. Next = being built. Todo = planned.
 
 | Area | Done | Next / todo | Dev A | Dev B |
 |---|---|---|---|---|
-| **Platform** | Monorepo, CI, contracts, board engine, local Supabase (Postgres 17), env split local/prod, backend folder structure, sandbox console, e2e + pgTAP + smoke + bench, room conductor leases, hosting prep (PORT, vercel.json, runtime deps) | Deploy to hosted Supabase, API host, Vercel (needs the hosted keys) | | B0 done, B7 prepared |
+| **Platform** | Monorepo, CI, contracts, board engine, local Supabase (Postgres 17), env split local/prod, backend folder structure, sandbox console, e2e + pgTAP + smoke + bench, room conductor leases, hosting prep (PORT, vercel.json, runtime deps) | Deploy to hosted Supabase, API host, Vercel (needs the hosted keys) | | B0 done, B7 API live |
 | **Accounts and security** | Schema for profiles, settings, 2FA, moderation; signup trigger; `GET /me`; rooms use the profile; `PATCH /me`, settings, profile picture, public profiles, account deletion; 2FA: authenticator app enforcement and email codes (`/me/2fa`), gated in the API and in RLS; email users in every test; `REQUIRE_ACCOUNT` switch | Web login screens: until A8 ships, the web cannot sign anyone in (anonymous sign-in is off) | A8 login (blocking), A9 profile and settings, A10 2FA (todo) | B9, B10, B11 done |
 | **Live class** | Rooms (max 5), join by code, gate (all ready / 60 s / skip), hold, resume, slower, end, checks with spread, reactions, Q&A beat, resume after restart; presence-aware gate (gone after 15 s, back on return), host handoff to the longest-present member; web: classroom in the Acetate Manual design, check card, gate, laser, confusion heat | | A4, A6, A7 done on fixtures | B5 done |
 | **Questions** | Ask, anonymous +1, rate limit 6/min; triage: clusters, the four routes, thread offers, every question routed within ~4.5 s; web: question rail and ask bar (text only) | Connect the rail to real statuses (Dev A) | A1, A2 done on fixtures | B2 done |
 | **Threads** | Open, accept an offer, message (tutor chat + mini board on the thread stream), close, share as an answered cluster; owners excused at the gate; catch-up from `segment_summary`; web: thread drawer, offer, catch-up | | A3 done on fixtures | B4 done |
 | **Notes and recap** | Segment summaries (`segment_summary`), notes at class end (segments, takeaways, class questions), `PUT /rooms/:id/notes/:blockId` with version check, course FAQ; web: notes and recap, one editor per block | | A5 done on fixtures | B3 done |
-| **AI tutor** | Groq free tier (lead gpt-oss-120b, thread qwen3.8-27b, triage/scribe/planning/Q&A gpt-oss-20b) with per-model pacing and mock fallback; Claude adapter kept; usage metering per room; steps streamed as written; pipelining (off on the free tier); a full class runs end to end on Groq | Prompt tuning by watching real boards | | B1 done |
-| **Knowledge (RAG)** | Upload (PDF, PPTX, DOCX, text, Markdown) and links (SSRF-guarded), ingest worker, page-numbered chunks, keyword search (embeddings pluggable), passages for every tutor, citation check, syllabus/transcript/notes/FAQ indexed automatically | | A11 sources panel, citations (todo) | B12 done |
+| **AI tutor** | Production: Claude Haiku 5.5 (`claude-haiku-5-5`, decided 2026-10-18). Free tiers for testing: Gemini (lead 3.6-flash, thread 3.8-flash, the rest 3.5-flash-lite) and Groq (gpt-oss-120b, qwen3.8-27b, gpt-oss-20b), paced per model with spares; the mock tutor answers when a call fails; usage metering per room; steps streamed as written; pipelining (off on the free tiers); a full class runs end to end on Groq | Prompt tuning by watching real boards | | B1 done |
+| **Knowledge (RAG)** | Upload (PDF, PPTX, DOCX, text, Markdown) and links (SSRF-guarded), ingest worker, page-numbered chunks, hybrid search (full text plus local multilingual-e5-small embeddings; `EMBEDDINGS=none` for full text only), passages for every tutor, citation check, syllabus/transcript/notes/FAQ indexed automatically | | A11 sources panel, citations (todo) | B12 done |
 | **Community and library** | Courses (catalog, search, page, fork, ratings, owner edit; syllabus drafted by the planner), lobby of public rooms with start times, start from a topic, course or goal, FAQ reuse in triage; quiz duel and teach-back at checks; replays with chapters, book the next session (.ics, Google Calendar), kudos, export notes (Markdown) and cards (Anki CSV); unmerge a grouped question, join a thread from a peek, citation tags on board shapes; pitch deck in `docs/pitch/` | Feed `duel_end.reteach` into the next segment; real-model rehearsal | A12 done | API for A12 built with it |
 | **Reliability** | Room token budget (`ROOM_TOKEN_BUDGET`, then the backup tutor with one notice), simple-mode retry for invalid Board Script, `POST /rooms/:id/moderate` (mute, unmute, kick), auto-mute after 3 flagged questions | | mute/kick buttons (todo) | B6 done |
 
-## Numbers (measured 2026-10-17, local, mock tutor)
+## Numbers (tests counted 2026-10-18, timings measured 2026-10-17; local, mock tutor)
 
 **Tests**
 
 | Layer | Command | Count | Covers |
 |---|---|---|---|
-| Unit | `npm test` | 103 tests, 24 files | pure modules: tool schemas, board, sync, mock tutor, username, settings mapping, email codes, the MFA rule, mail and embedding adapters |
-| API end to end | `npm run test:api` | 105 tests, 14 files | every route: happy path, 400/401/403/404/409/429, RLS, realtime, a full class, accounts, profiles, avatars, settings, 2FA (Mailpit codes, TOTP), mail |
-| Database | `npm run test:db` | 50 pgTAP checks, 5 files | signup trigger, usernames, RLS, 2FA rule and `mfa_facts()`, bans, settings, deletion cascade, hybrid search |
+| Unit | `npm test` | 249 tests, 44 files | pure modules: tool schemas, board, sync, mock tutor, username, settings mapping, email codes, the MFA rule, mail and embedding adapters |
+| API end to end | `npm run test:api` | 136 tests, 19 files | every route: happy path, 400/401/403/404/409/429 (Retry-After), RLS, realtime, a full class, an ended class, host tools, courses, library, accounts, profiles, avatars, settings, 2FA (Mailpit codes, TOTP), mail |
+| Database | `npm run test:db` | 81 pgTAP checks, 7 files | signup trigger (also a name taken in another case), usernames, RLS, 2FA rule and `mfa_facts()`, bans, settings, deletion cascade, hybrid search, leases, gap-free events, votes, course visibility, one-row-per-thing constraints, foreign key indexes |
 | Smoke | `npm run smoke` | 1 two-user class | join, stream, check, gate, next segment, end |
 
 **Latency** (`npm run bench`; MacBook, local Docker; p50 / p95 / max in ms)
@@ -256,10 +256,10 @@ Detail: [`DEVB_TASKS.md`](DEVB_TASKS.md). Steps, code and tests: [`PLANS_DEVB.md
 | B4 Threads | done | open (or accept an offer), message with tutor replies, close, share |
 | B3 Scribe and notes | done | segment summaries, notes, edit route with version check, course FAQ |
 | B5 Presence and host handoff | done | gate counts present learners (15 s), host handoff on leave or drop |
-| B1 Real model | done | Groq free tier across three models with pacing; metering, streaming steps, pipelining; full class verified on Groq |
+| B1 Real model | done | Claude Haiku 5.5 in production; Gemini and Groq free tiers for testing, paced per model; metering, streaming steps, pipelining; full class verified on Groq |
 | B12 RAG | done | ingest (files, links), keyword retrieval, citations, automatic sources |
 | B6 Reliability | done | room token budget (backup tutor + notice), simple-mode retry, mute/unmute/kick, auto-mute after 3 flags |
-| B7 Deploy | prepared | code ready (PORT, runtime deps, vercel.json, SMOKE_ENV, leases); needs the hosted keys |
+| B7 Deploy | API live | the API runs on Fly.io (`chalkroom-api.fly.dev`, docs/DEPLOY.md); code ready for Render too (PORT, runtime deps, vercel.json, SMOKE_ENV, leases) |
 
 ## Definition of done for the demo (P0)
 

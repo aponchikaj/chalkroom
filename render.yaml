@@ -22,8 +22,12 @@ services:
         sync: false
       - key: WEB_URL
         sync: false
-      # model: a GROQ_API_KEY runs the agents on Groq's free tier; without any key the scripted
-      # mock tutor runs (free); ANTHROPIC_API_KEY switches to Claude (paid)
+      # model: the first key set wins: ANTHROPIC_API_KEY (production, Claude Haiku 5.5, paid),
+      # then GEMINI_API_KEY, then GROQ_API_KEY (free tiers, testing only); none: the mock tutor
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
       - key: GROQ_API_KEY
         sync: false
       # mail for 2FA codes and account notices

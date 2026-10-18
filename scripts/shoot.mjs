@@ -11,7 +11,10 @@ const states = (args.find((a) => !a.startsWith('--')) ?? 'lobby,teaching,check,r
 const as = opt('as', 'ana');
 const out = opt('out', '.impeccable/review');
 const base = opt('base', 'http://localhost:5173');
-const executablePath = opt('chrome', process.platform === 'win32' ? 'C:/Program Files/Google/Chrome/Application/chrome.exe' : '/usr/bin/google-chrome');
+const executablePath = opt('chrome', process.env.CHROME_PATH ?? ({
+  win32: 'C:/Program Files/Google/Chrome/Application/chrome.exe',
+  darwin: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+}[process.platform] ?? '/usr/bin/google-chrome'));
 const sizes = { desktop: { width: 1440, height: 900 }, mobile: { width: 390, height: 844 } };
 
 mkdirSync(out, { recursive: true });

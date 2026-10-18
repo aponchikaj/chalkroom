@@ -3,6 +3,9 @@
 .git
 .env
 .env.*
+# also nested ones, such as packages/api/sandbox/.env (sandbox tokens)
+**/.env
+**/.env.*
 .impeccable
 docs
 supabase/.temp

@@ -7,7 +7,11 @@ import { chromium } from 'playwright-core';
 
 const BASE = process.env.WEB_URL ?? 'http://localhost:5173';
 const OUT = '.impeccable/e2e';
-const CHROME = process.platform === 'win32' ? 'C:/Program Files/Google/Chrome/Application/chrome.exe' : '/usr/bin/google-chrome';
+// Chrome per platform; CHROME_PATH overrides
+const CHROME = process.env.CHROME_PATH ?? ({
+  win32: 'C:/Program Files/Google/Chrome/Application/chrome.exe',
+  darwin: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+}[process.platform] ?? '/usr/bin/google-chrome');
 mkdirSync(OUT, { recursive: true });
 
 const browser = await chromium.launch({ executablePath: CHROME, headless: !process.argv.includes('--headed') });

@@ -236,15 +236,17 @@ device's own audio, so voice and board always match.
 
 The NestJS `Conductor` is a per-room actor: a serial queue that owns the room's phase (`teaching |
 check | qa | ended`), the gate, and which agent may write to `main`. The phase lives in
-`rooms.phase`, so a restarted server resumes from the database. For the hackathon a single Nest
-instance runs every room. Later, a Postgres advisory lock per room lets several instances share the
-load.
+`rooms.phase`, so a restarted server resumes from the database. Several Nest instances can run
+side by side: an instance moves a room only while it holds the room's lease (`room_leases`,
+`take_room_lease()`), heartbeats its leases every 10 s, and takes over a room whose owner in the
+same instance group (`INSTANCE_GROUP`) stopped heartbeating for 30 s. Idle conductors of rooms in
+the lobby or ended are released at the heartbeat.
 
 ### Failure handling
 
 | Failure | Behaviour |
 |---|---|
-| Model error or timeout | Retry with backoff, then the fallback model through `ModelPort` |
+| Model error or timeout | The adapter retries (the Anthropic SDK twice; Groq and Gemini once on a 503, then the provider's spare models), then the scripted mock tutor answers through `FallbackModel` |
 | Invalid Board Script | Zod error sent back to the model for one repair pass; if still invalid, the tutor answers text-only in chat |
 | Client drops | Presence leave after 15 s; the gate stops counting them; rejoin replays from `lastSeq` |
 | Nest restarts | Phase and events are in Postgres; the conductor resumes on the next tick |
@@ -265,17 +267,19 @@ Groq: lead `gemini-3.6-flash` (same lesson quality as 3.8-flash in the eval, 12 
 19 s per segment), thread `gemini-3.8-flash`, triage, the scribe, planning and Q&A
 `gemini-3.5-flash-lite`. The free tier limits requests per minute and per day per model (Google no
 longer publishes the numbers; about 10 per minute is reported), so calls are paced per model
-(`GEMINI_RPM`), a per-day 429 moves the agent to the next spare (`GEMINI_SPARES`) until the quota
+(`GEMINI_RPM`), a per-day 429 moves the agent to the next spare (`GEMINI_SPARES_TUTOR` for the
+tutors, `GEMINI_SPARES_LITE` for triage and the scribe) until the quota
 is back, and the mock answers when nothing is left. Free-tier prompts may be used by Google to
 improve its products: test classes only, never real learners' data.
 
-**Production: Claude Sonnet 5.5 (`claude-sonnet-5-5`) for all four agents (decision
-2026-10-18).** $2 / M input, $10 / M output, cache reads $0.20 / M. Sonnet 5.5 rejects forced
-tool use, so each agent's tool is offered with `tool_choice: auto` and the prompt names it (a reply
-without the call goes through the repair pass, then the mock); thinking stays adaptive, effort is
-`medium` for the lead and thread tutors and `low` for triage and the scribe; refusals use the
-server-side fallback. The original analysis below was written for Claude Haiku 4.5; the needs are
-the same.
+**Production: Claude Haiku 5.5 (`claude-haiku-5-5`) for all four agents (decision
+2026-10-18; the default in `config.ts`, `MODEL_ID` and `MODEL_ID_<AGENT>` override).** The provider
+order is Anthropic, Gemini, Groq, mock (the first key set wins; `MODEL` forces one). At run time a
+failed call falls back to the scripted mock tutor, not to another provider. The request settings in
+`agents/anthropic.params.ts` (`tool_choice: auto`, adaptive thinking, per-agent effort, the
+server-side refusal fallback) were written while Sonnet 5.5 was the plan; they still need a check
+against Haiku 5.5. The original analysis below was written for Claude Haiku 4.5; the needs are the
+same.
 
 **Original choice: Claude Haiku 4.5 for all four agents.**
 
@@ -328,12 +332,12 @@ the agents.
 ```
  React (Vite, Zustand, Chalkroom board)            NestJS                                    Anthropic API
  ┌──────────────────────────────┐   REST    ┌─────────────────────────────────┐  stream  ┌──────────────┐
- │ Classroom · Thread drawer    ├──────────▶│ RoomsModule   (join, ask, ready)│─────────▶│ Haiku 4.5    │
- │ Board player (pure reducer)  │           │ ConductorModule (room actor,    │◀─────────│ (ModelPort)  │
- │ Question rail · Notes        │           │   gates, phase)                 │          └──────────────┘
+ │ Classroom · Thread drawer    ├──────────▶│ Rooms (join, ask, ready)        │─────────▶│ Haiku 5.5    │
+ │ Board player (pure reducer)  │           │ Conductor (room actor, gates,   │◀─────────│ (ModelPort)  │
+ │ Question rail · Notes        │           │   phase, leases)                │          └──────────────┘
  └──────▲───────────────▲───────┘           │ AgentsModule  lead·thread·      │
         │ Realtime      │ Presence /        │   triage·scribe                 │
-        │ (broadcast    │ laser             │ ResourcesModule (ingest, FTS)   │
+        │ (broadcast    │ laser             │ Sources + ingest (FTS, vectors) │
         │  from DB)     │                   └───────────────┬─────────────────┘
  ┌──────┴───────────────┴──────────────────────────────────▼──────────────────┐
  │ Supabase: Auth (anonymous → claim) · Postgres (events, rooms, questions,    │
@@ -348,7 +352,7 @@ the agents.
 | Web | React + Vite + Zustand + TanStack Query | Reuses `packages/web` board, quiz grading, FSRS and markdown |
 | Board | `packages/board` + `packages/schema` | Pure reducer: replay any stream from its events |
 | API / agents | NestJS (Node 20) | Holds the API key; the conductor actor; agents; Zod validation |
-| Model | Claude Haiku 4.5 via `@anthropic-ai/sdk` | Streaming + tool use + prompt caching |
+| Model | Claude Haiku 5.5 via `@anthropic-ai/sdk` (Gemini or Groq free tiers for testing) | Streaming + tool use + prompt caching |
 | Data / realtime | Supabase Postgres + Realtime + Presence + Storage + Auth | RLS: members read their room; only the service role writes `events` |
 | Hosting | Static web on Vercel or Netlify; Nest on Railway, Fly or Render; Supabase Cloud | One Nest instance for the demo |
 | Demo insurance | `packages/mock-tutor` behind `ModelPort` | Scripted lesson if the network or API fails on stage |

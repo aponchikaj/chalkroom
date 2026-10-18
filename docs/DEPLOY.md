@@ -23,7 +23,8 @@ Do them in this order. Nothing here costs money on the free tiers except a paid 
 
 1. New > Blueprint > this repository (it reads `render.yaml`).
 2. Fill the env vars: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `WEB_URL` (the Vercel URL),
-   `GROQ_API_KEY` (free tier) or leave it empty for the scripted tutor, `SMTP_URL`,
+   the model key (`ANTHROPIC_API_KEY` in production, Claude Haiku 5.5; `GEMINI_API_KEY` or
+   `GROQ_API_KEY` for free testing; none for the scripted tutor), `SMTP_URL`,
    `MAIL_FROM`. `REQUIRE_ACCOUNT=1` and `OTP_SECRET` are set by the blueprint.
 3. Check `https://<api>/health` answers `{"ok":true,...}`.
 

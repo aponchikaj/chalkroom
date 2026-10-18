@@ -31,6 +31,6 @@ const managed = {
 };
 const keep = existsSync('.env')
   ? readFileSync('.env', 'utf8').split(/\r?\n/).filter((l) => l.trim() && !Object.keys(managed).some((k) => l.startsWith(`${k}=`)))
-  : ['# MODEL=mock               # force the scripted tutor', '# ANTHROPIC_API_KEY=sk-ant-...  # set to use Claude Haiku 4.5'];
+  : ['# MODEL=mock               # force the scripted tutor', '# ANTHROPIC_API_KEY=sk-ant-...  # set to use Claude Haiku 5.5'];
 writeFileSync('.env', [...Object.entries(managed).map(([k, v]) => `${k}=${v}`), ...keep, ''].join('\n'));
 console.log('Wrote .env for', url);
