@@ -1,4 +1,5 @@
--- Integrity fixes from the backend review (2026-10-18).
+-- Integrity fixes from the backend review (2026-10-18). Safe to run again (if not exists).
+-- Version 20261018140000: 20261018130000 is the tts bucket (server voice).
 --   1. Signup: the username collision check is case-insensitive like the unique index, so a
 --      name someone holds in capitals gets a suffix instead of failing the signup.
 --   2. Room leases: a room that was deleted is skipped instead of failing the whole heartbeat.
@@ -75,14 +76,14 @@ delete from public.note_blocks n
 using public.note_blocks k
 where n.room_id = k.room_id and n.idx = k.idx
   and (n.version, n.updated_at, n.id) < (k.version, k.updated_at, k.id);
-create unique index note_blocks_room_idx on public.note_blocks (room_id, idx);
+create unique index if not exists note_blocks_room_idx on public.note_blocks (room_id, idx);
 
 -- cards: keep the first card of each front in a deck (its reviews stay with it)
 delete from public.cards c
 using public.cards k
 where c.room_id = k.room_id and c.front = k.front
   and (c.created_at, c.id) > (k.created_at, k.id);
-create unique index cards_room_front on public.cards (room_id, front);
+create unique index if not exists cards_room_front on public.cards (room_id, front);
 
 -- FAQ: one row per question in a course, in any case; keep the oldest and add up the askers
 with dup as (
@@ -97,14 +98,14 @@ delete from public.faq f
 using public.faq k
 where f.course_id = k.course_id and lower(f.question) = lower(k.question)
   and (f.created_at, f.id) > (k.created_at, k.id);
-create unique index faq_course_question on public.faq (course_id, lower(question));
+create unique index if not exists faq_course_question on public.faq (course_id, lower(question));
 
 -- threads: one offer per learner per room at a time (the open one is threads_one_active)
 update public.threads t set status = 'closed'
 from public.threads k
 where t.room_id = k.room_id and t.owner_id = k.owner_id and t.status = 'offered' and k.status = 'offered'
   and (t.created_at, t.id) > (k.created_at, k.id);
-create unique index threads_one_offer on public.threads (room_id, owner_id) where status = 'offered';
+create unique index if not exists threads_one_offer on public.threads (room_id, owner_id) where status = 'offered';
 
 -- 4. Foreign key indexes ---------------------------------------------------------------------
 create index if not exists cards_course_id on public.cards (course_id);
