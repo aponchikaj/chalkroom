@@ -1,164 +1,211 @@
-# Chalkroom Live
+# Chalkroom
 
-Up to five people join a live class taught by an AI tutor on a shared whiteboard. Anyone can
-ask at any time; a triage agent groups similar questions so the class gets one answer, and a
-learner who wants to go deeper gets their own side tutor while the class keeps moving.
+Chalkroom turns an online course into a live class. Up to five people join one room, and an AI
+tutor teaches them together on a shared whiteboard. It writes, draws and talks, and everyone sees
+the same board at the same moment.
 
-Product design: [`docs/design.md`](docs/design.md).
-Who builds what next: [`docs/TASKS.md`](docs/TASKS.md).
+Anyone can ask a question whenever they want, and the class doesn't stop for it. The AI groups
+similar questions, so five people asking the same thing get one good answer. If someone wants to
+dig deeper, they get their own side tutor in a thread while the rest of the class keeps going.
 
-## Quick start
+- Live app: https://chalkroom-kohl.vercel.app/
+- Demo video (Georgian, with subtitles): https://www.youtube.com/watch?v=R9EuEwDMxQc
+- Built for Hacktoberfest Georgia 2026 by Lazare Mirziashvili (backend, AI agents, database,
+  deploy) and Kote Bibilauri (frontend, design, the notebook classroom)
 
-Needs **Node 20+** and **Docker** (for local Supabase; about 3 GB of images on first start).
+## How a class works
+
+1. The host creates a room and shares the invite link. People join from a browser, no install.
+2. The host presses Start. The tutor plans a short lesson and teaches it one segment at a time,
+   drawing on the board while it speaks.
+3. Questions go into a rail at the side. Similar ones are grouped ("3 asked") and each group is
+   answered where it fits: for the whole class, in the next segment, as a short reply, or in a
+   personal thread.
+4. Each segment ends with a quick check and a ready vote, so nobody gets left behind.
+5. When the class ends, everyone keeps shared notes and a deck of flashcards.
+
+People only type. Only the tutor speaks, and captions are always on.
+
+## Tech stack
+
+- Web: React, Vite, Zustand
+- API and AI agents: NestJS (lead tutor, thread tutor, triage, scribe)
+- Data and realtime: Supabase (Postgres with row level security, Realtime, Auth with 2FA,
+  Storage)
+- Model: Claude Haiku 5.5 in production. Gemini and Groq free tiers for testing.
+- Voice: generated on the server (Kokoro), so every learner hears the same audio
+- Hosting: web on Vercel, API on Fly.io
+
+The product design is in [`docs/design.md`](docs/design.md), and the task board is in
+[`docs/TASKS.md`](docs/TASKS.md).
+
+## Run it locally
+
+You need Node 20 or newer and Docker. Docker runs a local Supabase, and the first start pulls
+about 3 GB of images.
 
 ```bash
 npm install
-npm run db:start      # local Supabase on ports 55421–55429 (applies migrations + seed)
+npm run db:start      # local Supabase on ports 55421-55429, applies migrations and the seed
 npm run env           # writes .env from `supabase status`
-# a model key is required (the API refuses to start without one), e.g. in .env.local:
-#   GEMINI_API_KEY=...   (free tier, aistudio.google.com/apikey; for testing)
-npm run dev           # API on :3001 + web on :5173
+# add a model key to .env.local, for example a free Gemini key for testing:
+#   GEMINI_API_KEY=...   (aistudio.google.com/apikey)
+npm run dev           # API on :3001, web on :5173
 ```
 
-Open http://localhost:5173, create a room, then open the invite link in a second browser
-(or a private window) to join as another learner. The host presses **Start class**.
+Open http://localhost:5173 and create a room. Open the invite link in a second browser or a
+private window to join as another learner, then press Start class as the host.
 
-Check the whole loop without a browser (API must be running with a model key). A full class
-costs real model calls: on the Gemini or Groq free tier that is quota, not money; on Anthropic it
-is paid. The scripts refuse to run against an API without a real model.
+The API won't start without a model key, because there is no scripted tutor. Every class is
+taught by a real model.
+
+To check the whole loop without a browser (the API has to be running with a key):
 
 ```bash
-npm run smoke         # two users: join → board streams → check → ready gate → next segment
+npm run smoke         # two users: join, board streams, check, ready gate, next segment
 ```
 
-### Local vs production
+A full class makes real model calls. On the Gemini or Groq free tier that costs quota, on
+Anthropic it costs money.
 
-Local dev runs everything against the **local Supabase stack** (Postgres 17 in Docker, plus auth
-and realtime); production uses the hosted Supabase project. Plain Postgres is not enough: the
-schema needs Supabase's `auth` and `realtime` schemas.
+### Env files
+
+Local dev runs against the local Supabase stack (Postgres 17 in Docker, plus auth and realtime).
+Production uses the hosted Supabase project. Plain Postgres isn't enough, because the schema
+needs Supabase's `auth` and `realtime` schemas.
 
 | File | Committed | Used for |
 |---|---|---|
 | `.env` | no | Local Supabase, written by `npm run env` |
-| `.env.local` | no | Personal local secrets (`ANTHROPIC_API_KEY`); wins over `.env` |
-| `.env.production.local` | no | Hosted Supabase; read by `vite build` and `npm run db:push:prod` |
+| `.env.local` | no | Your personal keys (`ANTHROPIC_API_KEY`, `GEMINI_API_KEY`). Wins over `.env` |
+| `.env.production.local` | no | Hosted Supabase. Read by `vite build` and `npm run db:push:prod` |
 | `*.example` | yes | Templates for the three files above |
 
-Apply migrations to production with `npm run db:push:prod` (add `-- --dry-run` to preview).
-Deployed API hosts get the production values as platform env vars.
+To apply migrations to production, run `npm run db:push:prod`. It shows a dry run first and only
+changes the database when you add `-- --yes`. Deployed API hosts get their production values as
+platform env vars.
 
 ### Models
 
-There is no scripted tutor: every class is taught by a real model, and the API refuses to start
-without a key ("Set ANTHROPIC_API_KEY (or GEMINI_API_KEY / GROQ_API_KEY for testing)").
+The API picks the first key it finds: `ANTHROPIC_API_KEY`, then `GEMINI_API_KEY`, then
+`GROQ_API_KEY`. Set `MODEL` to force one, for example `MODEL=gemini` when you also have an
+Anthropic key.
 
-For testing, add `GEMINI_API_KEY=...` (free at aistudio.google.com/apikey) or
-`GROQ_API_KEY=gsk_...` (free at console.groq.com) to `.env.local` and restart the API.
-The agents spread over Groq's free models, each with its own 8000 tokens per minute: lead
-tutor `openai/gpt-oss-120b`, thread tutor `qwen/qwen3.8-27b`, triage, scribe, planning and
-Q&A answers `openai/gpt-oss-20b`. When a call would exceed the quota the API waits for it
-(within each agent's limit) and otherwise the call fails and the class shows it (below). The free tier runs
-one class at a time comfortably. Override models with `MODEL_ID` (all) or `MODEL_ID_LEAD`,
-`MODEL_ID_THREAD`, `MODEL_ID_TRIAGE`, `MODEL_ID_SCRIBE`.
+- Production: `ANTHROPIC_API_KEY=sk-ant-...` runs all four agents on `claude-haiku-5-5`. Effort is
+  `medium` for the lead and thread tutors and `low` for triage and the scribe
+  (`ANTHROPIC_EFFORT_<AGENT>` overrides it).
+- Testing: `GEMINI_API_KEY` (free at aistudio.google.com/apikey) or `GROQ_API_KEY` (free at
+  console.groq.com). On Groq each free model has its own 8000 tokens per minute, so the agents
+  are spread out: the lead tutor on `openai/gpt-oss-120b`, the thread tutor on
+  `qwen/qwen3.8-27b`, and triage, the scribe, planning and Q&A answers on
+  `openai/gpt-oss-20b`. When a call would go over the quota the API waits for it if it can,
+  otherwise the call fails and the class shows it. One class at a time runs fine on the free tier.
+- To change models, set `MODEL_ID` for all agents, or `MODEL_ID_LEAD`, `MODEL_ID_THREAD`,
+  `MODEL_ID_TRIAGE` and `MODEL_ID_SCRIBE` for one.
 
-Production runs on Claude: `ANTHROPIC_API_KEY=sk-ant-...` runs all agents on `claude-haiku-5-5`
-(it wins over the free tier when both keys are set; `MODEL=groq` forces the free tier). Effort per
-agent: lead and thread `medium`, triage and scribe `low` (`ANTHROPIC_EFFORT_<AGENT>` overrides).
+### When the model fails
 
-When a model call fails the class says so instead of making something up:
+The class says so instead of making something up.
 
-- **Lead tutor**: a segment is retried twice with backoff while nothing of it is on the board.
-  If it still fails, the class shows "The tutor could not continue. The host can press Resume
-  to try again." and holds at the gate; the host's **Resume gate** teaches the segment again,
-  **Skip** moves on, **End class** ends it.
-- **Room token budget** (`ROOM_TOKEN_BUDGET`): the class shows a notice and holds; the host may
-  end the class.
-- **Thread tutor**: a short error in the thread ("The tutor could not answer. Try again.").
-- **Triage**: questions still leave `pending` ("The tutor will answer this in the next Q&A.").
-- **Course syllabus draft, quiz duel**: HTTP 503 with a plain message. The scribe skips quietly.
+- Lead tutor: a segment is retried twice while nothing of it is on the board yet. If it still
+  fails, the class shows "The tutor could not continue. The host can press Resume to try again."
+  and waits at the gate. The host can press Resume gate to teach the segment again, Skip to move
+  on, or End class.
+- Room token budget (`ROOM_TOKEN_BUDGET`): the class shows a notice and waits, and the host can
+  end it.
+- Thread tutor: a short error in the thread ("The tutor could not answer. Try again.").
+- Triage: questions still move on ("The tutor will answer this in the next Q&A.").
+- Course syllabus draft and quiz duel: an HTTP 503 with a plain message. The scribe skips quietly.
 
-### Tests and runs that call a model
+## Tests
 
-`npm test`, `npm run typecheck` and `npm run build` never call a model (unit tests use small fake
-models); CI runs only those. These need a key and cost real model calls, so they refuse to run
-without one:
+`npm test`, `npm run typecheck` and `npm run build` never call a model. Unit tests use small fake
+models, and CI runs only those three.
+
+These need a model key and make real calls, so they refuse to run without one:
 
 | Command | Needs |
 |---|---|
 | `npm run smoke`, `npm run bench`, `npm run e2e:web` | the stack running with a model key |
-| `npm run test:api` | a key in `.env.local`; starts its own API on :3101 |
+| `npm run test:api` | a key in `.env.local`. It starts its own API on :3101 |
 | `npm run eval` | `GEMINI_API_KEY` or `GROQ_API_KEY` |
 
-The cheapest way is the Gemini free tier: `GEMINI_API_KEY=...` in `.env.local` (or
-`MODEL=gemini` when an Anthropic key is also set).
+The cheapest option is the Gemini free tier.
 
-### Other commands
+## Commands
 
 | Command | What it does |
 |---|---|
 | `npm test` | Unit tests (Vitest) |
-| `npm run e2e:web` | A whole class in three real browsers (host, learner, phone): triage, thread, check, gate, moderation, notes. Needs the stack running; screenshots in `.impeccable/e2e/` |
-| `npm run test:api` | API end-to-end tests against the local stack (real model calls; needs a key) |
+| `npm run typecheck` | `tsc` for the shared packages, web and API |
+| `npm run test:api` | API end-to-end tests against the local stack |
 | `npm run test:db` | Database tests (pgTAP) |
-| `npm run bench` | Latency table in ms for every route and the key class moments (API must run; real model calls) |
-| http://localhost:3001/sandbox/ | Backend sandbox: several users, every route, live room feed |
-| `npm run typecheck` | `tsc` for shared packages, web and API |
-| `npm run db:reset` | Re-apply all migrations and the seed (wipes local data) |
-| `npm run db:stop` | Stop local Supabase |
-| `npx supabase migration new <name>` | New SQL migration (never edit one already on `main`) |
-| Supabase Studio | http://127.0.0.1:55423 |
+| `npm run e2e:web` | A whole class in three real browsers (host, learner, phone). Screenshots go to `.impeccable/e2e/` |
+| `npm run bench` | Latency in ms for every route and the main class moments |
+| `npm run db:reset` | Re-applies all migrations and the seed. This wipes local data |
+| `npm run db:stop` | Stops local Supabase |
+| `npx supabase migration new <name>` | Creates a new SQL migration. Never edit one that is already on `main` |
+| http://localhost:3001/sandbox/ | Backend sandbox: several users, every route, a live room feed |
+| http://127.0.0.1:55423 | Supabase Studio |
 
-## Testing in the browser
+## Trying it in the browser
 
-`npm run dev` (API on 3001, web on 5173) against the local stack. The classroom screens can also
-be designed with no backend or model at `http://localhost:5173/dev/classroom?state=check` (static
-fixtures in `packages/web/src/dev/`). Until the login screens exist,
-the dev build signs in test accounts: `http://localhost:5173/?as=ana` in one tab and
-`http://localhost:5173/r/<code>?as=gio` in another are two different people (password
-`Dev-password-123`, accounts `<name>@dev.chalkroom.local`). The API runs on whichever model key is
-set: `GEMINI_API_KEY` (free, testing) or `ANTHROPIC_API_KEY` (production); one is required. Every
-endpoint is also in the sandbox at `http://localhost:3001/sandbox/` and in
+Run `npm run dev` against the local stack. You can also work on the classroom screens with no
+backend or model at http://localhost:5173/dev/classroom?state=check, which uses the fixtures in
+`packages/web/src/dev/`.
+
+The dev build can sign in test accounts for you. Open `http://localhost:5173/?as=ana` in one tab
+and `http://localhost:5173/r/<code>?as=gio` in another, and you have two different people. The
+password is `Dev-password-123` and the accounts are `<name>@dev.chalkroom.local`.
+
+Every endpoint is also listed in the sandbox at http://localhost:3001/sandbox/ and in
 `packages/api/sandbox/api.http`.
 
 ## How it fits together
 
 ```
- web (Vite + React + Zustand)  ──REST──▶  api (NestJS)  ──ModelPort──▶  Claude Haiku 5.5 / free tier
-   ▲ board player (pure reducer)            RoomConductor per room (phase, gate)
-   │ StreamSync per stream                  agents: lead · triage · thread · scribe
-   │                                         │ append_event() (gap-free seq)
-   └── Supabase Realtime ◀── DB triggers ◀──┘ Postgres + RLS (members read, API writes)
-       private channel room:{id}: "event" (stream events), "row" (room state), presence, laser
+ web (React, Vite, Zustand)  --REST-->  api (NestJS)  --ModelPort-->  Claude Haiku 5.5 / free tier
+   board player (pure reducer)            RoomConductor per room (phase, gate)
+   StreamSync per stream                  agents: lead, triage, thread, scribe
+        ^                                   |  append_event() (gap-free seq)
+        |                                   v
+   Supabase Realtime  <--  DB triggers  <--  Postgres + RLS (members read, the API writes)
+   private channel room:{id}: "event" (stream events), "row" (room state), presence, laser
 ```
 
-- **Boards are append-only logs with one writer.** Only the API (agents) appends stream
-  events; `append_event()` gives each stream a gap-free `seq`; a trigger broadcasts each
-  committed row. Clients replay with the same reducer, so late joiners and reconnects are
-  exact. No CRDT needed.
-- **People write their own things** (questions, votes, ready, reactions) through REST; each
-  has one owner, so nothing needs merging.
-- **Sync at gates, not frames.** Voice plays locally on each device; the ready gate is where
-  the class lines up again.
+A few decisions hold it together:
 
-## Layout
+- Each board is an append-only log with one writer. Only the API appends events,
+  `append_event()` gives each stream a gap-free `seq`, and a trigger broadcasts every committed
+  row. Clients replay the log with the same reducer, so late joiners and reconnects see exactly
+  the same board. No CRDT needed.
+- People write their own things (questions, votes, ready, reactions) through REST. Each of those
+  has one owner, so nothing ever needs merging.
+- The class syncs at gates, not frames. Voice plays on each device, and the ready gate is where
+  everyone lines up again.
 
-| Path | What |
+## Project layout
+
+| Path | What's in it |
 |---|---|
-| `packages/schema` | **The contract**: Board Script (v1), live events, rows, REST bodies, agent outputs |
-| `packages/board` | Pure Board Script reducer + layout (shared by API and web) |
-| `packages/api` | NestJS: rooms, conductor, agents, ModelPort |
-| `packages/web` | React app: home, pre-join, classroom |
-| `supabase/` | Config (ports 554xx), migrations, seed |
-| `scripts/` | `write-env.mjs`, `smoke.mjs` |
+| `packages/schema` | The contract between web and API: Board Script, live events, rows, REST bodies, agent outputs |
+| `packages/board` | The Board Script reducer and layout, shared by the API and the web |
+| `packages/api` | NestJS: rooms, the conductor, agents, ModelPort, voice |
+| `packages/web` | The React app: home, pre-join, classroom |
+| `supabase/` | Config (ports 554xx), migrations, seed, database tests |
+| `scripts/` | Env setup, production migrations, smoke, bench, browser runs |
+| `video/` | The Georgian demo film: script, subtitles, scenes |
 
 ## Troubleshooting
 
-- **Ports in use**: this project uses 55421–55429 so it can run next to other Supabase
-  projects (which default to 54321+).
-- **Docker Desktop stops while pulling images**: check free disk space on the drive that
-  holds Docker's data (Settings → Resources → Disk image location).
-- **No voice**: browsers only speak after a click on the page; captions always show.
-- **Board empty after a refresh**: the snapshot loads from `events` with RLS; make sure you
-  joined the room (pre-join) with the same browser.
+- Ports in use: this project uses 55421-55429, so it can run next to other Supabase projects,
+  which default to 54321 and up.
+- Docker Desktop stops while pulling images: check the free space on the drive that holds
+  Docker's data (Settings > Resources > Disk image location).
+- No voice: browsers only play sound after you click somewhere on the page. Captions always show.
+- Board empty after a refresh: the board loads from `events` through RLS, so make sure you
+  joined the room (the pre-join screen) in the same browser.
 
-MIT licence. The board engine and renderer come from Chalkroom v1 (`kotebibo/chalkroom`).
+## License
+
+MIT. The board engine and renderer come from Chalkroom v1 (`kotebibo/chalkroom`).
