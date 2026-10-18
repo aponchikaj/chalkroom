@@ -4,7 +4,7 @@
   "private": true,
   "description": "Chalkroom Live: a live classroom taught by an AI tutor on a shared whiteboard, for up to five learners.",
   "license": "MIT",
-  "author": "GeoSafety",
+  "author": "Kote Bibilauri and Lazare Mirziashvili",
   "type": "module",
   "engines": {
     "node": ">=20"
