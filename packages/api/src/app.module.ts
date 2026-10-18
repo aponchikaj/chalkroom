@@ -31,6 +31,7 @@ import { ActivitiesService } from './activities/activities.service';
 import { ActivitiesController } from './activities/activities.controller';
 import { LibraryService } from './library/library.service';
 import { LibraryController } from './library/library.controller';
+import { HostController } from './host/host.controller';
 import { EmbeddingPort } from './rag/embeddings/embedding.port';
 import { NoEmbeddings } from './rag/embeddings/no.embeddings';
 import { LocalEmbeddings } from './rag/embeddings/local.embeddings';
@@ -55,6 +56,6 @@ class HealthController {
       return local;
     } },
   ],
-  controllers: [HealthController, MeController, TwoFactorController, UsersController, RoomsController, QuestionsController, ThreadsController, NotesController, SourcesController, CardsController, CoursesController, ActivitiesController, LibraryController, ...(config.sandbox ? [SandboxController] : [])],
+  controllers: [HealthController, MeController, TwoFactorController, UsersController, RoomsController, QuestionsController, ThreadsController, NotesController, SourcesController, CardsController, CoursesController, ActivitiesController, LibraryController, HostController, ...(config.sandbox ? [SandboxController] : [])],
 })
 export class AppModule {}

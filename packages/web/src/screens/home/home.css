@@ -1,11 +1,61 @@
 /* Home: the title page with real divider tabs on the fore edge that switch the leaf (start,
    join, your classes, how it works). Shared entry parts (leaf, fields, display) live in entry.css. */
 
-.home-body { grid-template-columns: minmax(0, 1.05fr) minmax(360px, 1fr); align-items: start; }
+.home-body { grid-template-columns: minmax(0, 1.05fr) minmax(360px, 1fr); align-items: stretch; }
 .home-panel {
   min-height: 540px; border-left: 3px solid var(--hue); padding-left: 40px;
-  animation: step-in var(--step) steps(2) both;
+  view-transition-name: home-panel;
 }
+::view-transition-old(home-panel), ::view-transition-new(home-panel) { animation-duration: var(--dur-quick); animation-timing-function: var(--ease-out); }
+.home-title .display { font-size: clamp(2.8rem, 5.6vw, 5rem); }
+
+/* ---------- the contents page: dotted leaders, mono page numbers ---------- */
+.toc { margin-top: 36px; }
+.toc-title {
+  padding-bottom: 8px; border-bottom: 1.5px solid var(--ink);
+  font-size: var(--t-xs); font-weight: 750; font-stretch: 78%; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-2);
+}
+.toc-list { list-style: none; margin: 0; padding: 0; max-width: 520px; }
+.toc-entry {
+  position: relative; width: 100%; min-height: 44px; display: flex; align-items: baseline; gap: 10px;
+  padding: 11px 4px 9px 18px; margin: 0; border: 0; border-bottom: 1px solid var(--ruling);
+  background: transparent; color: var(--ink); cursor: pointer; text-align: left; text-decoration: none;
+  font-family: var(--font-read); font-size: 1.12rem; line-height: 1.3;
+  transition: background var(--step) steps(2);
+}
+/* the section's colour as a small tab mark at the binding side of the line */
+.toc-entry::before {
+  content: ''; position: absolute; left: 0; top: 50%; width: 8px; height: 14px; margin-top: -7px;
+  border-radius: 0 3px 3px 0; background: var(--hue, var(--ink-3)); opacity: 0.35;
+  transition: opacity var(--step) steps(2), width var(--step) steps(2);
+}
+.toc-name { flex: none; max-width: 80%; }
+.toc-leader { flex: 1 1 auto; min-width: 24px; align-self: baseline; height: 0.6em; border-bottom: 2px dotted var(--rule-2); }
+.toc-page { flex: none; min-width: 2ch; text-align: right; font-size: 0.95rem; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.toc-away .toc-page { display: inline-flex; align-self: center; justify-content: flex-end; }
+.toc-entry:hover { background: color-mix(in srgb, var(--paper-2) 70%, transparent); }
+.toc-entry:hover::before { opacity: 0.7; }
+.toc-entry:active { background: var(--paper-3); }
+.toc-entry:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+.toc-entry[aria-current='true'] { font-weight: 600; }
+.toc-entry[aria-current='true']::before { opacity: 1; width: 11px; }
+.toc-entry[aria-current='true'] .toc-page { color: var(--ink); font-weight: 700; }
+.toc-entry[aria-current='true'] .toc-leader { border-bottom-color: var(--ink-2); }
+
+/* right after a class: a slip on the contents page pointing at that class */
+.finished-slip {
+  display: flex; align-items: center; gap: 10px; margin-top: 26px; max-width: 520px;
+  padding: 10px 8px 10px 14px; transform: rotate(-0.6deg);
+  background: var(--note); color: var(--note-ink); border-radius: 2px;
+  box-shadow: 0 1px 0 var(--note-edge), 0 10px 18px -12px rgba(60, 45, 15, 0.55);
+  font-family: var(--hand-notes); font-size: 1.05rem; line-height: 1.35;
+}
+.finished-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.finished-text strong { font-weight: 650; }
+.finished-slip .text-link { color: var(--note-ink); font-weight: 600; }
+.finished-slip .text-link:hover { background: var(--note-2); }
+.finished-close { flex: none; width: 36px; min-height: 36px; color: var(--note-ink); }
+.finished-close:hover:not(:disabled) { background: var(--note-2); }
 .home-panel:focus-visible { outline: 2px solid var(--ink); outline-offset: 6px; }
 .home-section { display: flex; flex-direction: column; gap: 16px; }
 .home-section > h2 { font-size: 1.9rem; font-weight: 800; font-stretch: 76%; letter-spacing: -0.01em; }
@@ -88,6 +138,11 @@
 @media (max-width: 1080px) {
   .home-body { grid-template-columns: minmax(0, 1fr); }
   .home-panel { min-height: 0; border-left: 0; padding-left: 0; border-top: 3px solid var(--hue); padding-top: 26px; }
+  /* the contents stay on narrow leaves: one compact column under the lede, Replays last */
+  .toc { margin-top: 24px; }
+  .toc-list { max-width: none; }
+  .toc-entry { padding: 10px 4px 8px 16px; font-size: 1.02rem; }
+  .finished-slip { max-width: none; }
 }
 
 /* ---------- phone: the tabs run across the top of the leaf ---------- */
@@ -96,21 +151,29 @@
     position: static; width: auto; flex-direction: row; align-items: flex-end; gap: 3px;
     margin: -16px -16px 14px; padding: 10px 12px 0; background: var(--paper); border-bottom: 1px solid var(--leaf-edge);
   }
+  .home-tabs { overflow-x: auto; scrollbar-width: none; }
   .home-tab {
-    flex: 1 1 0; min-width: 0; width: auto; padding: 8px 4px 7px; margin-top: 6px;
+    flex: 1 0 auto; min-width: 48px; min-height: 44px; width: auto; padding: 8px 6px 7px; margin-top: 6px;
     border: 1px solid var(--rule-2); border-bottom: 0; border-radius: 6px 6px 0 0;
     box-shadow: inset 0 4px 0 var(--hue);
   }
   .home-tab-label {
-    writing-mode: horizontal-tb; transform: none; white-space: normal; text-align: center;
-    font-size: 11px; line-height: 1.2; letter-spacing: 0.06em;
+    writing-mode: horizontal-tb; transform: none; white-space: nowrap; text-align: center;
+    font-size: 11.5px; line-height: 1.2; letter-spacing: 0.05em;
   }
   .home-tab:active:not(:disabled) { transform: translateY(1px); }
   .home-tab[aria-selected='true'] {
-    flex-grow: 1.5; width: auto; margin-top: 0; padding: 13px 4px 9px;
+    flex-grow: 1.5; width: auto; min-height: 50px; margin-top: 0; padding: 13px 6px 9px;
     box-shadow: inset 0 3px 0 var(--ink);
   }
   .home-panel { padding-top: 22px; }
+  /* the tabs above already navigate: the contents keep only Replays (it leaves Home), so the
+     chosen section starts in the first screen */
+  .toc { margin-top: 14px; }
+  .toc-title, .toc-list > li:not(:last-child) { display: none; }
+  .home-title .lede { margin-top: 10px; }
+  .home-title .display { font-size: clamp(2.4rem, 12vw, 3.2rem); }
+  .finished-slip { margin-top: 18px; transform: none; }
   .home-section > h2 { font-size: 1.6rem; }
   .contents li { grid-template-columns: 30px minmax(0, 1fr); gap: 2px 10px; }
   .contents-text { grid-column: 2; }
@@ -125,3 +188,7 @@
   .home-meta { display: none; }
   .home-manual .manual-head .acct { margin-left: auto; }
 }
+
+/* Lane P guard: the board's own svg group is also called .leaf, and board.css turns its pointer
+   events off with a bare .leaf rule. The page sheets that share the class name stay clickable. */
+article.leaf, section.leaf, div.leaf, aside.leaf, figure.leaf { pointer-events: auto; }

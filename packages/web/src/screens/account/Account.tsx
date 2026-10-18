@@ -5,6 +5,7 @@ import { ArrowLeft } from 'lucide-react';
 import { refreshMe, useAuth } from '../../lib/auth';
 import { navigate } from '../../lib/router';
 import { sectionHue, sectionInk } from '../../ui/section';
+import { transition } from '../../ui/motion';
 import { Errata, ICON, Portrait } from './parts';
 import { ProfileSection } from './ProfileSection';
 import { PreferencesSection } from './PreferencesSection';
@@ -43,7 +44,7 @@ export function Account() {
   }, []);
 
   const select = (t: Tab, focus = false) => {
-    setTab(t);
+    void transition(() => setTab(t));
     history.replaceState(null, '', `#${t}`);
     if (focus) tabRefs.current[t]?.focus();
   };
@@ -57,8 +58,8 @@ export function Account() {
   const hue = TABS.findIndex((t) => t.id === tab);
 
   return (
-    <div className="entry">
-      <article className="manual leaf punched acct-manual">
+    <main className="entry">
+      <article className="manual leaf punched acct-manual page-fill">
         <div className="acct-tabs" role="tablist" aria-label="Account" aria-orientation={phone ? 'horizontal' : 'vertical'} onKeyDown={onTabKey}>
           {TABS.map((t, i) => (
             <button key={t.id} type="button" role="tab" id={`acct-tab-${t.id}`} aria-controls="acct-panel"
@@ -79,15 +80,18 @@ export function Account() {
         </header>
 
         <div className="manual-body acct-body">
-          <aside className="acct-id" aria-label="You">
+          <aside className="acct-id cover-label" aria-label="Whose notebook this is">
+            <p className="cover-belongs">This notebook belongs to</p>
             {me ? (
               <>
-                <Portrait name={me.profile.display_name} color={me.profile.color} src={me.avatarUrl} size={72} />
-                <div className="acct-id-text">
-                  <h1 className="acct-title">{me.profile.display_name}</h1>
-                  <p className="acct-handle">@{me.profile.username}</p>
-                  {me.email && <p className="acct-email">{me.email}</p>}
+                <div className="cover-name-row">
+                  <Portrait name={me.profile.display_name} color={me.profile.color} src={me.avatarUrl} size={64} />
+                  <h1 className="acct-title display-hand">{me.profile.display_name}</h1>
                 </div>
+                <dl className="cover-lines">
+                  <div><dt>Username</dt><dd>@{me.profile.username}</dd></div>
+                  {me.email && <div><dt>Email</dt><dd>{me.email}</dd></div>}
+                </dl>
               </>
             ) : (
               <div className="acct-id-text" aria-hidden>
@@ -111,7 +115,7 @@ export function Account() {
           </div>
         </div>
       </article>
-    </div>
+    </main>
   );
 }
 

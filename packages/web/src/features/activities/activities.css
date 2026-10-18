@@ -36,8 +36,8 @@
 .duel-option:active:not(:disabled) { background: var(--paper-3); }
 .duel-option:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 .duel-option:disabled { opacity: 1; color: var(--ink-2); }
-.duel-option[aria-pressed='true'] { border: 2px solid var(--ink); color: var(--ink); }
-.duel-option.is-off, .duel-option:disabled:not([aria-pressed='true']) { background: transparent; border-style: dashed; }
+.duel-option[aria-checked='true'] { border: 2px solid var(--ink); color: var(--ink); background: color-mix(in srgb, var(--action) 26%, var(--leaf)); }
+.duel-option.is-off, .duel-option:disabled:not([aria-checked='true']) { background: transparent; border-style: dashed; }
 .duel-option .sent-mark { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; font-size: var(--t-xs); font-weight: 700; font-stretch: 84%; white-space: nowrap; }
 .duel-typed { display: flex; gap: 8px; align-items: center; max-width: 420px; }
 .duel-typed .input { font-family: var(--font-mono); }

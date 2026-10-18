@@ -2,7 +2,7 @@
    One printed leaf on the section board, like the class page; chapters are divider tabs. */
 
 /* ---------- the page and its leaf ---------- */
-.replay { height: 100%; overflow-y: auto; padding: 36px 40px 40px; background: var(--paper); }
+.replay { --page-top: 36px; height: 100%; overflow-y: auto; padding: 36px 40px 0; background: var(--paper); }
 .replay-manual { position: relative; max-width: 1240px; margin: 0 auto; padding: 22px 40px 36px 64px; }
 .replay-lib { max-width: 1040px; }
 .replay-running { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 14px; }
@@ -40,6 +40,9 @@
 .replay-row-main { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .replay-row-title { font-size: 1.15rem; font-weight: 760; font-stretch: 80%; text-transform: uppercase; letter-spacing: 0.01em; line-height: 1.15; overflow-wrap: anywhere; }
 .replay-row-sub { font-family: var(--font-read); font-size: 0.98rem; color: var(--ink-2); }
+.replay-row-people { font-size: var(--t-sm); font-weight: 600; font-stretch: 88%; color: var(--ink-2); overflow-wrap: anywhere; }
+.replay-running .replay-brand { margin-left: auto; }
+.replay-lib .replay-running .acct { margin-left: 8px; }
 .replay-row-facts { display: flex; gap: 18px; font-size: var(--t-sm); font-weight: 600; font-stretch: 88%; color: var(--ink-2); white-space: nowrap; }
 .replay-row-go { color: var(--ink-2); }
 .replay-row:hover .replay-row-go { color: var(--ink); transform: translateX(2px); }
@@ -130,8 +133,8 @@
   .replay-chapters ol { max-height: none; }
 }
 @media (max-width: 760px) {
-  .replay { padding: 0; }
-  .replay-manual { padding: 12px 16px 32px; min-height: 100%; border: 0; border-radius: 0; box-shadow: none; }
+  .replay { --page-top: 0px; padding: 0; }
+  .replay-manual { padding: 12px 16px calc(32px + env(safe-area-inset-bottom, 0px)); min-height: 100dvh; margin-bottom: 0; border: 0; border-radius: 0; box-shadow: none; }
   .replay-manual.punched::before, .replay-manual.punched::after { display: none; }
   .replay-body { padding-top: 14px; gap: 20px; }
   .replay-captions { font-size: 1rem; min-height: 2.8em; }
@@ -145,3 +148,10 @@
   .booknext-field { min-width: 0; width: 100%; }
   .booknext-link { flex-direction: column; }
 }
+@media (max-width: 760px) {
+  .replay-lib .replay-running .replay-brand { display: none; }
+  .replay-lib .replay-running .acct { margin-left: auto; }
+}
+
+/* Lane P guard: board.css has a bare .leaf { pointer-events: none } meant for the board svg group. */
+article.leaf, section.leaf, div.leaf, aside.leaf, figure.leaf { pointer-events: auto; }

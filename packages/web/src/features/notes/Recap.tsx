@@ -1,6 +1,6 @@
 // A5 (Dev A): the recap over the board when phase === 'ended': check results per part, my
 // questions and what became of them, and the shared notes (read and edited in the Notes tab).
-import { useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { BookOpen, House, Users } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import type { ClusterRow, QuestionRow, StreamEvent } from '@chalk/schema';
@@ -11,9 +11,11 @@ import { navigate } from '../../lib/router';
 import { sectionHue } from '../../ui/section';
 import { Stamp, type StampTone } from '../../ui/Stamp';
 import { FREE_TEXT, myAnswer, spreadRows } from '../check/checkData';
-import { BookNext } from '../../screens/library/BookNext';
 import { classKudos } from '../../screens/library/files';
 import './notes.css';
+
+// the class-over booking panel loads only when a class ends (it is off the classroom's first load)
+const BookNext = lazy(() => import('../../screens/library/BookNext').then((m) => ({ default: m.BookNext })));
 
 const minutes = (a: string | null, b: string | null) => a && b ? Math.max(1, Math.round((Date.parse(b) - Date.parse(a)) / 60_000)) : null;
 
@@ -119,7 +121,8 @@ export function Recap() {
                     <li key={c.checkId} style={{ ['--seg' as string]: sectionHue(c.segment) }}>
                       <span className="recap-meta"><span className="recap-seg" aria-hidden /><span className="recap-check-title">{c.title}</span></span>
                       <span className="recap-meta">
-                        {free ? <span><span className="mono">{r.spread.total}</span> answered</span>
+                        {r.spread.total === 0 ? <span>Nobody answered</span>
+                          : free ? <span><span className="mono">{r.spread.total}</span> answered</span>
                           : <span><span className="mono">{r.spread.correct}</span> of <span className="mono">{r.spread.total}</span> got it</span>}
                         {pick && (pick.correct ? <Stamp tone="ok">You got it</Stamp> : <Stamp tone="ink">You picked another</Stamp>)}
                       </span>
@@ -164,7 +167,7 @@ export function Recap() {
 
         {amHost && (
           <footer className="recap-foot recap-book">
-            <BookNext room={room} variant="recap" />
+            <Suspense fallback={null}><BookNext room={room} variant="recap" /></Suspense>
           </footer>
         )}
       </article>

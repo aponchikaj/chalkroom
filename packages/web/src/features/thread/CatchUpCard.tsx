@@ -80,6 +80,8 @@ function CatchUp() {
   const dismiss = useDismiss();
   const [replaying, setReplaying] = useState(false);
   usePlayer(mainPlayer);
+  // leaving mid-replay (another page, the class closing) must not leave the next class at 2x
+  useEffect(() => () => { mainPlayer.pace = 1; }, []);
 
   // the replay finished: back to normal pace and out of the way
   useEffect(() => {
@@ -107,15 +109,17 @@ function CatchUp() {
 
   if (replaying) {
     return (
-      <section className="slip acetate step-in" aria-label="Catch-up replay">
-        <p className="slip-lead" role="status"><FastForward {...ICON} /><span>Replaying what you missed at <span className="mono">2x</span></span></p>
+      // catch-up comes first: while either catch-up slip shows, the open check stays folded. Lane C
+      // folds it with .stage-dock:has(#catchup-title), so both states carry that id.
+      <section className="slip acetate catchup step-in" aria-labelledby="catchup-title">
+        <p className="slip-lead" role="status"><FastForward {...ICON} /><span id="catchup-title">Replaying what you missed at <span className="mono">2x</span></span></p>
         <div className="slip-actions"><button className="btn small" onClick={skip}>Skip to now</button></div>
       </section>
     );
   }
 
   return (
-    <section className="slip acetate step-in" role="dialog" aria-labelledby="catchup-title">
+    <section className="slip acetate catchup hinge-in" role="dialog" aria-labelledby="catchup-title">
       <h3 id="catchup-title" className="slip-title">While you were away: {head}</h3>
       <ol className="catchup-list">
         {missed.map((m) => (

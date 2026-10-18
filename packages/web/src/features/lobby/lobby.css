@@ -3,11 +3,11 @@
 .lobby-overlay { overflow: auto; align-items: center; }
 .lobby {
   width: min(100%, 760px); padding: 22px 26px 20px;
-  display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'main qr' 'people people';
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'main qr' 'goals goals' 'people people';
   gap: 16px 28px;
 }
 .lobby-main { grid-area: main; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
-.lobby-title { font-size: clamp(1.5rem, 2.6vw, 2.2rem); font-weight: 800; font-stretch: 76%; letter-spacing: -0.015em; overflow-wrap: anywhere; }
+.lobby-title { font-size: clamp(1.9rem, 3.2vw, 2.8rem); line-height: 1.05; color: var(--pen); overflow-wrap: anywhere; text-wrap: balance; }
 .lobby-lede { font-family: var(--font-read); font-size: 1rem; color: var(--ink-2); max-width: 46ch; }
 
 .lobby-code { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; }
@@ -34,8 +34,17 @@
 .lobby-open .binding-ring { display: block; width: 34px; height: 34px; border-radius: 50%; border: 1.5px dashed var(--rule-2); }
 .lobby-next { margin-top: 12px; font-size: var(--t-sm); color: var(--ink); font-weight: 600; }
 
+/* what the class covers, numbered in the order the tutor will teach it */
+.lobby-goals { grid-area: goals; border-top: 1px solid var(--rule); padding-top: 12px; }
+.lobby-goals .section-title { margin-bottom: 8px; }
+.lobby-goal-list { margin: 0; padding: 0 0 0 1.4em; display: flex; flex-direction: column; gap: 6px; }
+.lobby-goal-list li { padding-left: 4px; }
+.lobby-goal-list li::marker { font-family: var(--font-mono); font-size: var(--t-xs); color: var(--ink-3); }
+.lobby-goal-part { display: block; font-size: var(--t-sm); font-weight: 700; font-stretch: 86%; color: var(--ink); }
+.lobby-goal-obj, .lobby-goal-text { display: block; font-family: var(--font-read); font-size: 1rem; line-height: 1.45; color: var(--ink-2); max-width: 62ch; }
+
 @media (max-width: 1180px) {
-  .lobby { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'main' 'people'; }
+  .lobby { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'main' 'goals' 'people'; }
   .lobby-qr { display: none; }
 }
 @media (max-width: 760px) {
@@ -44,3 +53,5 @@
   .lobby-actions .btn { flex: 1; }
   .lobby-people ul { gap: 8px 14px; }
 }
+.lobby-outline { margin-top: 8px; }
+.lobby-goal-note { margin-top: 8px; font-size: var(--t-xs); color: var(--ink-3); }

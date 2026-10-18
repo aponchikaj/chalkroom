@@ -1,10 +1,11 @@
-/* Chalkroom Live: the Acetate Manual.
-   A boxed-software reference manual lying open at a tabbed section. The lesson is the manual,
-   segments are coloured divider tabs down the fore edge, the board is the printed leaf, and a
-   thread is a milk-acetate leaf hinged over it. Nothing eases or fades: every change is a
-   two-frame step hinged at the punched edge. Chrome yellow only where something can be done;
-   vermilion only on an errata slip (an error). */
+/* Chalkroom Live: the Class Notebook.
+   The Acetate Manual became a notebook people write in. The cream desk, punched holes for people
+   and divider tabs for segments stay. The board is a ruled leaf the tutor writes on in pen; notes
+   are pencil on a ruled page; questions are sticky notes; a thread is tracing paper. Buttons
+   still press in a two-frame step; layout changes and drawing ease (Motion 2.0, see DESIGN.md).
+   Chrome yellow only where something can be done; vermilion only on an errata slip (an error). */
 @import 'katex/dist/katex.min.css';
+@import './ui/fonts.css';
 
 :root {
   /* section board and leaves */
@@ -54,14 +55,28 @@
   --fig-blue: #2b4cbd;
   --fig-pink: #a83d7c;
   --fig-highlight: color-mix(in srgb, var(--section) 22%, transparent); /* yellow stays for actions */
-  --note: #f6e7a6;
+  --note: #f6e7a6;            /* sticky note: pale, never the action yellow */
+  --note-2: #efd98a;
   --note-edge: #d8c26a;
   --note-ink: #2e2a17;
+
+  /* notebook inks and rules */
+  --pen: #1f2b4d;             /* blue-black: the tutor's pen on the board */
+  --pencil: #3a3833;          /* graphite: the class's notes */
+  --ruling: #b9c7da;          /* pale blue feint rule */
+  --margin: color-mix(in srgb, var(--section) 55%, var(--leaf)); /* margin rule: segment hue, never red */
+  --stamp-green: #2f7a3a;     /* rubber-stamp ink for a check result */
+  /* paper grain: a static noise tile (no runtime filter), for the desk and leaves only */
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .35 0 0 0 0 .28 0 0 0 0 .15 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 
   /* type */
   --font-ui: 'Archivo Variable', 'Archivo', system-ui, sans-serif;
   --font-read: 'Source Serif 4 Variable', 'Source Serif 4', Georgia, serif;
   --font-mono: 'JetBrains Mono', ui-monospace, Consolas, monospace;
+  /* hand faces: only where people and the tutor write (never on controls, see DESIGN.md) */
+  --hand-board: 'Kalam', 'Hand Fallback', cursive;          /* the tutor's board */
+  --hand-notes: 'Shantell Sans', 'Hand Fallback', cursive;  /* notes, stickies */
+  --display-hand: 'Gochi Hand', 'Hand Fallback', cursive;   /* masthead, landing hero */
   --t-xs: 0.72rem;
   --t-sm: 0.8125rem;
   --t-md: 0.9375rem;
@@ -72,18 +87,64 @@
   /* geometry */
   --r: 3px;                  /* manuals have cut corners, not soft cards */
   --hole: 12px;              /* punch hole diameter */
-  --step: 90ms;              /* every change: two frames, no easing */
+  --step: 90ms;              /* button presses: two frames, no easing */
   --shadow-leaf: 0 1px 0 var(--rule), 0 14px 28px -18px rgba(60, 45, 15, 0.45);
   --shadow-acetate: 0 1px 0 var(--acetate-edge), 0 18px 34px -16px rgba(60, 45, 15, 0.38);
 
+  /* Motion 2.0: presses step, layout and drawing ease. Reduced motion overrides these below. */
+  --ease-out: cubic-bezier(.2, .7, .2, 1);       /* layout, drawers, folds */
+  --ease-pen: cubic-bezier(.45, .05, .4, 1);     /* handwriting sweep, pen draw */
+  --ease-settle: cubic-bezier(.2, 1.25, .35, 1); /* sticky note lands */
+  --ease-stamp: cubic-bezier(.2, 1.6, .35, 1);   /* rubber stamp */
+  --dur-quick: 180ms;        /* route change, rail tabs, thread drawer, check fold */
+  --dur-pen: 600ms;          /* pen draw of a line, box or arrow (450-700) */
+  --dur-char: 28ms;          /* handwriting write-on, per character */
+  --dur-note: 560ms;         /* sticky note arrives */
+  --dur-turn: 600ms;         /* segment change: page turn */
+  --dur-stamp: 380ms;        /* check result stamp */
+  --note-from: translate(0, -40px) rotate(-7deg);
+  --turn-from: rotateY(-100deg);
+  --stamp-from: scale(1.9) rotate(-8deg);
+  --hinge-from: perspective(1400px) rotateY(-14deg);
+  --motion: 1;               /* 0 under reduced motion, for calc() and JS */
+
+  /* pages fill the screen: the bottom margin a page's main sheet keeps above the edge */
+  --page-gap-bottom: max(24px, calc(16px + env(safe-area-inset-bottom, 0px)));
+  --page-top: 0px;           /* a page sets this to its header height */
+
   color-scheme: light;
+}
+
+/* Reduced motion (the OS setting, or the account preference that sets html[data-motion]):
+   every moment keeps its end state visible, only the movement goes. Writing and drawing
+   appear, notes fade, the page turn becomes a short crossfade. */
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-motion='full']) {
+    --dur-pen: 0ms; --dur-char: 0ms; --dur-stamp: 0ms; --dur-quick: 0ms;
+    --dur-note: 150ms; --dur-turn: 150ms;
+    --note-from: none; --turn-from: none; --stamp-from: none; --hinge-from: none;
+    --motion: 0;
+  }
+}
+:root[data-motion='reduced'] {
+  --dur-pen: 0ms; --dur-char: 0ms; --dur-stamp: 0ms; --dur-quick: 0ms;
+  --dur-note: 150ms; --dur-turn: 150ms;
+  --note-from: none; --turn-from: none; --stamp-from: none; --hinge-from: none;
+  --motion: 0;
+}
+
+/* Plain type: every hand face becomes Source Serif or Archivo (legibility, dyslexia) */
+:root[data-type='plain'] {
+  --hand-board: var(--font-read);
+  --hand-notes: var(--font-read);
+  --display-hand: var(--font-ui);
 }
 
 /* ---------- browser surfaces ---------- */
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; margin: 0; }
 body {
-  background: var(--paper);
+  background: var(--paper) var(--grain);
   color: var(--ink);
   font-family: var(--font-ui);
   font-size: var(--t-md);
@@ -139,6 +200,13 @@ p { margin: 0; }
   width: 100%; min-height: 38px; padding: 8px 11px;
   background: var(--leaf); border: 1.5px solid var(--rule-2); border-radius: var(--r);
   color: var(--ink); font-size: var(--t-md);
+}
+/* touch screens: every control is at least 44px to hit (POLISH_PLAN tap targets) */
+@media (pointer: coarse) {
+  .btn, .btn.small { min-height: 44px; }
+  .icon-btn, .btn.small.icon-btn { min-width: 44px; }
+  .input, .select { min-height: 44px; }
+  .text-link { padding-block: 12px; } /* inline padding: a bigger hit area, the line does not move */
 }
 .input::placeholder, .textarea::placeholder { color: var(--ink-3); }
 .input:focus, .select:focus, .textarea:focus { outline: none; border-color: var(--ink); box-shadow: 0 0 0 3px color-mix(in srgb, var(--action) 55%, transparent); }
@@ -200,11 +268,30 @@ p { margin: 0; }
 .punched::before { top: 22%; }
 .punched::after { bottom: 22%; }
 
-/* the hinge motion: two frames, pivoting on the punched edge */
-@keyframes hinge-in { from { transform: perspective(1400px) rotateY(-14deg); } to { transform: none; } }
+/* the hinge motion: a short eased swing on the punched edge (none under reduced motion) */
+@keyframes hinge-in { from { transform: var(--hinge-from); } to { transform: none; } }
 @keyframes step-in { from { opacity: 0.4; } to { opacity: 1; } }
-.hinge-in { transform-origin: left center; animation: hinge-in var(--step) steps(2) both; }
+.hinge-in { transform-origin: left center; animation: hinge-in var(--dur-quick) var(--ease-out) both; }
 .step-in { animation: step-in var(--step) steps(2) both; }
+
+/* Motion 2.0 moments, shared so every lane uses the same curves. Each keeps its end state
+   when its duration is 0 (reduced motion).
+   .write-on: handwriting sweep on a block or inline-block element; set --chars on it.
+   .note-in: a sticky note lands. .stamp-in: a rubber stamp. .turn-in: a page turn on the binding. */
+@keyframes write-on { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes note-in { from { opacity: 0; transform: var(--note-from); } to { opacity: 1; transform: none; } }
+@keyframes stamp-in { from { opacity: 0; transform: var(--stamp-from); } to { opacity: 1; transform: none; } }
+@keyframes turn-in { from { opacity: 0; transform: perspective(2200px) var(--turn-from); } to { opacity: 1; transform: none; } }
+.write-on { animation: write-on calc(var(--dur-char) * var(--chars, 20)) var(--ease-pen) both; }
+.note-in { animation: note-in var(--dur-note) var(--ease-settle) both; }
+.stamp-in { animation: stamp-in var(--dur-stamp) var(--ease-stamp) both; }
+.turn-in { transform-origin: left center; animation: turn-in var(--dur-turn) var(--ease-out) both; }
+
+/* view transitions (ui/motion.ts transition()): a quiet crossfade of --dur-quick by default */
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: var(--dur-quick); animation-timing-function: var(--ease-out); }
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
+}
 
 /* focus economy: whatever is not in play falls back to the page */
 .dimmed { filter: saturate(0.3) brightness(1.04); opacity: 0.55; transition: opacity var(--step) steps(2); }
@@ -232,17 +319,18 @@ p { margin: 0; }
 .stroke { fill: none; stroke-linecap: square; stroke-linejoin: miter; }
 .board-mini .sel { display: none; }
 .board-mini foreignObject { display: none; }
-/* figures plot on in discrete steps, like a pen plotter, never an eased stroke */
-.draw .stroke { stroke-dasharray: 1; stroke-dashoffset: 1; animation: plot var(--dur, 0.7s) steps(8, end) forwards; }
-.draw .fillpath { opacity: 0; animation: show 1ms forwards; animation-delay: calc(var(--dur, 0.7s) * 0.6); }
-.draw .label, .draw foreignObject { opacity: 0; animation: show 1ms forwards; animation-delay: calc(var(--dur, 0.7s) * 0.5); }
+/* figures are drawn by a pen: an eased stroke-dashoffset; fills and labels follow the line.
+   Under reduced motion (--motion: 0) they appear at once. */
+.draw .stroke { stroke-dasharray: 1; stroke-dashoffset: 1; animation: plot calc(var(--dur, 0.7s) * var(--motion)) var(--ease-pen) forwards; }
+.draw .fillpath { opacity: 0; animation: show 1ms forwards; animation-delay: calc(var(--dur, 0.7s) * 0.6 * var(--motion)); }
+.draw .label, .draw foreignObject { opacity: 0; animation: show 1ms forwards; animation-delay: calc(var(--dur, 0.7s) * 0.5 * var(--motion)); }
 @keyframes plot { to { stroke-dashoffset: 0; } }
 @keyframes show { to { opacity: 1; } }
-.pulse { animation: pulse 0.36s steps(2) 3; transform-box: fill-box; transform-origin: center; }
+.pulse { animation: pulse calc(0.36s * var(--motion)) steps(2) 3; transform-box: fill-box; transform-origin: center; }
 @keyframes pulse { 50% { transform: scale(1.06); } }
 .fx-highlight { fill: var(--fig-highlight); stroke: none; }
 .fx .stroke { stroke: var(--ink); stroke-width: 3; }
-.camera { transition: transform 0.36s steps(4); }
+.camera { transition: transform calc(360ms * var(--motion)) var(--ease-out); }
 .fo-formula { color: var(--fig-ink); font-size: 30px; display: flex; align-items: center; justify-content: center; height: 100%; }
 .fo-code {
   margin: 0; height: 100%; font-family: var(--font-mono); font-size: 18px; line-height: 27px; color: var(--fig-ink);
@@ -302,6 +390,60 @@ p { margin: 0; }
 .toasts { position: fixed; right: 16px; bottom: 16px; display: flex; flex-direction: column; gap: 8px; z-index: 60; max-width: 360px; }
 .toast { padding: 10px 12px; font-size: var(--t-sm); animation: step-in var(--step) steps(2) both; }
 
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
+/* ---------- notebook utilities ---------- */
+
+/* Ruled paper. --lh is the rule pitch AND the line-height. With the hand-face metric overrides
+   (ui/fonts.css) the baseline sits at (lh - fs)/2 + 0.78 * fs = lh/2 + 0.28 * fs from the top of
+   each line box; the rule lands 2 px below it so descenders cross it like real writing.
+   Set --lh, --fs, --pad-top and --margin-x on the element; blocks inside are spaced by whole
+   rules. Add .no-margin to drop the margin rule. Never on a list of controls. */
+.ruled {
+  --lh: 32px; --fs: 17px; --pad-top: 16px; --margin-x: 44px;
+  --base: calc(var(--lh) / 2 + 0.28 * var(--fs) + 2px);
+  font-size: var(--fs); line-height: var(--lh);
+  padding-top: var(--pad-top);
+  background:
+    linear-gradient(to right, transparent calc(var(--margin-x) - 1px), var(--margin) calc(var(--margin-x) - 1px) calc(var(--margin-x) + 1px), transparent calc(var(--margin-x) + 1px)),
+    repeating-linear-gradient(to bottom, transparent 0 calc(var(--lh) - 1px), var(--ruling) calc(var(--lh) - 1px) var(--lh)),
+    var(--leaf);
+  background-position: 0 0, 0 calc(var(--pad-top) + var(--base) - var(--lh) + 1px), 0 0;
+  background-attachment: local;
 }
+.ruled.no-margin {
+  background:
+    repeating-linear-gradient(to bottom, transparent 0 calc(var(--lh) - 1px), var(--ruling) calc(var(--lh) - 1px) var(--lh)),
+    var(--leaf);
+  background-position: 0 calc(var(--pad-top) + var(--base) - var(--lh) + 1px), 0 0;
+  background-attachment: local;
+}
+.ruled > * { margin: 0; }
+.ruled > * + * { margin-top: var(--lh); }
+@media (max-width: 760px) { .ruled { --lh: 30px; --fs: 16px; --margin-x: 32px; } }
+
+.hand-board { font-family: var(--hand-board); }
+.hand-notes { font-family: var(--hand-notes); }
+.display-hand { font-family: var(--display-hand); font-weight: 400; letter-spacing: 0; }
+.grain { background-image: var(--grain); }
+
+/* Pages fill the screen: a page's main sheet runs down to a clear margin above the bottom edge.
+   Set --page-top on the page (the height of what sits above the sheet); the sheet takes .page-fill. */
+.page-fill {
+  min-height: calc(100vh - var(--page-top) - var(--page-gap-bottom));
+  min-height: calc(100dvh - var(--page-top) - var(--page-gap-bottom));
+  margin-bottom: var(--page-gap-bottom);
+}
+/* In the scrolling page frames a child's bottom margin is not scrollable (and the frame's own
+   `.manual { margin: 0 auto }` resets it), so a sheet taller than the screen lost its bottom gap.
+   There a spacer after the sheet keeps the gap. Phones are full bleed by design (no gap). */
+@media (min-width: 761px) {
+  :is(.entry, .shelf, .replay):has(> .page-fill)::after { content: ''; display: block; height: var(--page-gap-bottom); }
+  :is(.entry, .shelf, .replay) > .page-fill { margin-bottom: 0; }
+}
+
+/* first paint and lazy routes: a quiet paper sheet (ui/PageSkeleton.tsx; a copy is inline in index.html) */
+.page-skeleton { min-height: 100dvh; padding: 24px 16px var(--page-gap-bottom); display: grid; grid-template-rows: auto 1fr; gap: 20px; max-width: 1180px; margin: 0 auto; }
+.page-skeleton-head { height: 22px; width: min(260px, 60%); border-radius: 2px; background: var(--paper-2); }
+.page-skeleton-sheet { background: var(--leaf); border: 1px solid var(--leaf-edge); border-radius: var(--r); box-shadow: var(--shadow-leaf); }
+
+/* the route announcer (lib/router.ts) */
+#route-announcer { position: absolute; top: 0; left: 0; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

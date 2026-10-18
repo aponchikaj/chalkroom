@@ -78,6 +78,8 @@ export async function connectRoom(roomId: string, me: { name: string; color: str
   useRoom.getState().reset();
   useRoom.setState({ me: userId, conn: 'connecting' });
   mainPlayer.reset();
+  // a catch-up replay left at 2x in an earlier class does not carry into this one
+  mainPlayer.pace = 1;
 
   await supabase.realtime.setAuth(session.access_token);
   await loadRows(roomId);

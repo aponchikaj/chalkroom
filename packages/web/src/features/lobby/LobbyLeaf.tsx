@@ -1,5 +1,7 @@
 // A7 (Dev A): the lobby leaf over the board while people arrive: the invite code at display
-// scale, a QR code, Copy link, a share line for Discord / Telegram, and who is here.
+// scale, a QR code, Copy link, a share line for Discord / Telegram, what the class will cover
+// (the plan's objectives once written; before Start, the topic, goal and course outline) and who
+// is here.
 import { useEffect, useRef, useState } from 'react';
 import QRCode from 'qrcode';
 import { useShallow } from 'zustand/react/shallow';
@@ -8,6 +10,7 @@ import { selectActiveMembers, selectPresentMembers, selectIsHost, useRoom } from
 import { Punch } from '../../ui/Punch';
 import './lobby.css';
 import { nameFor } from '../../lib/text';
+import { api } from '../../lib/api';
 
 const ICON = { size: 16, strokeWidth: 2 } as const;
 
@@ -57,7 +60,7 @@ export function LobbyLeaf() {
     <div className="board-overlay lobby-overlay">
       <section className="lobby leaf hinge-in" aria-label="Invite people">
         <div className="lobby-main">
-          <h2 className="lobby-title">{room.title}</h2>
+          <h2 className="lobby-title display-hand">{room.title}</h2>
           <p className="lobby-lede">
             {isHost ? 'Share the code or the QR code. Up to five people in one class.' : `You are in. ${host ? host.display_name : 'The host'} starts the class when everyone is here.`}
           </p>
@@ -66,7 +69,7 @@ export function LobbyLeaf() {
             <code className="lobby-code-value" aria-label={`Invite code ${room.invite_code.split('').join(' ')}`}>{room.invite_code}</code>
           </div>
           <div className="lobby-actions">
-            <button className="btn primary" onClick={copyLink}>
+            <button className="btn" onClick={copyLink}>
               {done === 'link' ? <Check {...ICON} aria-hidden /> : <Copy {...ICON} aria-hidden />}
               {done === 'link' ? 'Link copied' : 'Copy link'}
             </button>
@@ -82,6 +85,8 @@ export function LobbyLeaf() {
           </p>
           <p className="lobby-url mono">{url}</p>
         </div>
+
+        <Objectives />
 
         <figure className="lobby-qr">
           {qr ? <img src={qr} alt={`QR code that opens ${url}`} width={180} height={180} /> : <span className="lobby-qr-blank">QR code unavailable. Use the link.</span>}
@@ -107,5 +112,61 @@ export function LobbyLeaf() {
         </div>
       </section>
     </div>
+  );
+}
+
+/** Up to six lines of a course syllabus: its headings, else its list items. */
+export function syllabusOutline(md: string): string[] {
+  const lines = md.split(/\r?\n/).map((l) => l.trim());
+  const clean = (l: string) => l.replace(/^(#{1,6}|[-*+]|\d+[.)])\s+/, '').replace(/[*_`]/g, '').trim();
+  const heads = lines.filter((l) => /^#{2,4}\s+\S/.test(l)).map(clean);
+  const items = lines.filter((l) => /^([-*+]|\d+[.)])\s+\S/.test(l)).map(clean);
+  return (heads.length >= 2 ? heads : items).filter(Boolean).slice(0, 6);
+}
+
+/** What the class will cover. Once the tutor wrote the plan (at Start), its parts and
+ *  objectives; before that, what is already known: the topic, the host's goal, and the course
+ *  outline for a class run from a course. Always shown, so the lobby never hides what is coming. */
+function Objectives() {
+  const plan = useRoom((s) => s.room?.lesson_plan ?? null);
+  const goal = useRoom((s) => s.room?.goal?.trim() ?? '');
+  const title = useRoom((s) => s.room?.title ?? '');
+  const courseId = useRoom((s) => s.room?.course_id ?? null);
+  const [course, setCourse] = useState<{ goal: string; outline: string[] } | null>(null);
+  useEffect(() => {
+    if (!courseId || plan) return;
+    let alive = true;
+    api.course(courseId)
+      .then((c) => { if (alive) setCourse({ goal: c.goal.trim(), outline: syllabusOutline(c.syllabus_md ?? '') }); })
+      .catch(() => { /* a private course or a blip: the topic and goal still show */ });
+    return () => { alive = false; };
+  }, [courseId, plan]);
+
+  if (plan) {
+    return (
+      <section className="lobby-goals" aria-labelledby="lobby-goals-title">
+        <h3 id="lobby-goals-title" className="section-title">By the end of this class you can</h3>
+        <ol className="lobby-goal-list">
+          {plan.segments.map((seg, i) => (
+            <li key={i}><span className="lobby-goal-part">{seg.title}</span><span className="lobby-goal-obj">{seg.objective}</span></li>
+          ))}
+        </ol>
+      </section>
+    );
+  }
+  const aim = goal || course?.goal || '';
+  return (
+    <section className="lobby-goals" aria-labelledby="lobby-goals-title">
+      <h3 id="lobby-goals-title" className="section-title">What this class covers</h3>
+      <p className="lobby-goal-text">
+        {aim && aim !== title ? aim : `A live lesson on ${title}, in short parts. Each part ends with a quick check, and the class moves on together.`}
+      </p>
+      {course && course.outline.length > 0 && (
+        <ol className="lobby-goal-list lobby-outline">
+          {course.outline.map((line, i) => <li key={i}><span className="lobby-goal-obj">{line}</span></li>)}
+        </ol>
+      )}
+      <p className="lobby-goal-note">The tutor writes the lesson plan, part by part, when the host starts the class.</p>
+    </section>
   );
 }

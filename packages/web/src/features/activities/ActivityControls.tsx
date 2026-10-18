@@ -1,5 +1,6 @@
 // Lane M: the host's buttons to start a quiz duel or a teach-back. Quiet secondary keys beside
-// the host controls; disabled with a reason while the tutor is writing or an activity runs.
+// the host controls, only while a check is open (lane C); disabled with a reason while an
+// activity runs.
 // Teach-back asks once inline for the concept (blank: the current segment's objective).
 import { useMemo, useState } from 'react';
 import { MessageSquareQuote, Timer } from 'lucide-react';
@@ -14,6 +15,7 @@ const ICON = { size: 16, strokeWidth: 2, 'aria-hidden': true } as const;
 export function ActivityControls() {
   const room = useRoom((s) => s.room);
   const isHost = useRoom(selectIsHost);
+  const checkOpen = useRoom((s) => !!s.check);
   const events = useRoom((s) => s.mainEvents);
   const now = useNow(isHost, 2000);
   const running = useMemo(() => isRunning(currentActivity(events, now)), [events, now]);
@@ -21,9 +23,10 @@ export function ActivityControls() {
   const [asking, setAsking] = useState(false);
   const [concept, setConcept] = useState('');
   const [error, setError] = useState('');
-  if (!room || !isHost || room.phase === 'lobby' || room.phase === 'ended') return null;
+  // a duel or teach-back belongs to the check: offered only while one is open (or being set up)
+  if (!room || !isHost || room.phase !== 'check' || (!checkOpen && !asking)) return null;
 
-  const reason = running ? 'An activity is running' : room.phase !== 'check' ? 'Available at the next check' : '';
+  const reason = running ? 'An activity is running' : '';
   const objective = room.lesson_plan?.segments[room.segment]?.objective ?? '';
   const run = (which: 'duel' | 'teachback', p: () => Promise<unknown>, fail: string) => {
     setBusy(which);

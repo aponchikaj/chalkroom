@@ -5,7 +5,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { LIVE, type LaserPayload } from '@chalk/schema';
 import { gridToPx, pxToGrid } from '@chalk/board';
-import { mainPlayer, useRoom } from '../../room/store';
+import { useRoom } from '../../room/store';
 import { useRoomConn } from '../../room/context';
 import { clientToBoard, frameStyle, toPct, useBoardFrame } from './boardFrame';
 import { useMainView } from './ReactionsLayer';
@@ -21,6 +21,8 @@ export function LaserLayer() {
   const ref = useRef<HTMLDivElement>(null);
   const frame = useBoardFrame(ref);
   const { camera } = useMainView();
+  const camRef = useRef(camera);
+  camRef.current = camera;
   const conn = useRoomConn();
   const me = useRoom((s) => s.me);
   const members = useRoom((s) => s.members);
@@ -76,9 +78,7 @@ export function LaserLayer() {
     const onKeyUp = (e: KeyboardEvent) => { if (e.key.toLowerCase() === 'l') release(); };
     const onMove = (e: PointerEvent) => {
       if (!down) return;
-      const s = mainPlayer.state;
-      const cam = (mainPlayer.viewPage ?? s.current) === s.current ? s.camera : { x: 0, y: 0, zoom: 1 };
-      const p = clientToBoard(cam, e.clientX, e.clientY);
+      const p = clientToBoard(camRef.current, e.clientX, e.clientY);
       if (!p) return;
       const at = pxToGrid(p.x, p.y) as [number, number];
       st.at = at;

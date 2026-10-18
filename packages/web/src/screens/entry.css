@@ -1,8 +1,12 @@
 /* A7 (Dev A): the way in. Home is the manual's title page; pre-join is the page for one class.
    One printed leaf on the section board, punched at the binding. Home's own parts: home/home.css. */
 
-.entry { height: 100%; overflow-y: auto; padding: 36px 76px 28px 40px; background: var(--paper); }
-.manual { position: relative; max-width: 1180px; margin: 0 auto; padding: 26px 48px 44px 70px; }
+/* the document scrolls (never an inner pane), so the leaf keeps its bottom margin and the browser's own scroll works */
+.entry { --page-top: 36px; min-height: 100%; padding: 36px 76px 0 40px; background: var(--paper); }
+/* the leaf runs down to a clear margin above the bottom edge (.page-fill); its body takes the room */
+.manual { position: relative; max-width: 1180px; margin: 0 auto; padding: 26px 48px 44px 70px; display: flex; flex-direction: column; }
+.manual:not(.page-fill) { margin-bottom: var(--page-gap-bottom); min-height: calc(100dvh - var(--page-top) - var(--page-gap-bottom)); }
+.manual > .manual-body { flex: 1 0 auto; align-content: start; }
 
 .manual-head {
   display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
@@ -78,7 +82,7 @@
 .joining-name { font-size: 1.5rem; font-weight: 800; font-stretch: 80%; letter-spacing: -0.01em; line-height: 1.1; overflow-wrap: anywhere; }
 .manual-head .prejoin-meta { margin-left: auto; }
 
-.entry-foot { max-width: 1180px; margin: 16px auto 0; font-size: var(--t-xs); color: var(--ink-3); }
+.entry-foot { margin-top: 36px; padding-top: 12px; border-top: 1px solid var(--rule); font-size: var(--t-xs); color: var(--ink-3); }
 
 /* after a refresh: one tap brings the voice back */
 .voice-prompt {
@@ -86,10 +90,11 @@
   display: flex; align-items: center; gap: 10px; padding: 10px 12px; max-width: calc(100% - 32px);
   font-size: var(--t-sm);
 }
+.voice-prompt .btn { min-height: 44px; }
 
 /* ---------- tablet ---------- */
 @media (max-width: 1080px) {
-  .entry { padding: 24px 62px 24px 24px; }
+  .entry { --page-top: 24px; padding: 24px 62px 0 24px; }
   .manual { padding: 22px 32px 36px 56px; }
   .prejoin-body { grid-template-columns: minmax(0, 1fr); }
   .prejoin-body .entry-form { border-left: 0; padding-left: 0; border-top: 1.5px solid var(--ink); padding-top: 26px; }
@@ -98,14 +103,16 @@
 
 /* ---------- phone ---------- */
 @media (max-width: 760px) {
-  .entry { padding: 0; }
-  .manual { padding: 16px 16px 30px; border: 0; border-radius: 0; box-shadow: none; min-height: 100%; }
+  .entry { --page-top: 0px; padding: 0; }
+  .manual, .manual:not(.page-fill) { padding: 16px 16px calc(24px + env(safe-area-inset-bottom, 0px)); border: 0; border-radius: 0; box-shadow: none; min-height: 100dvh; margin-bottom: 0; }
   .manual.punched::before, .manual.punched::after { display: none; }
   .manual-body { padding-top: 24px; gap: 26px; }
   .display { font-size: clamp(2.6rem, 13.5vw, 3.6rem); }
   .display-room { font-size: clamp(2.2rem, 11vw, 3rem); }
   .lede { font-size: 1.1rem; margin-top: 14px; }
   .room-facts { gap: 10px 22px; }
-  .entry-foot { padding: 0 16px 20px; margin-top: 0; background: var(--leaf); }
-  .voice-prompt { bottom: 150px; flex-wrap: wrap; }
+  .entry-foot { margin-top: 28px; }
+  /* phones: dock over the running head, never over the board, a check card or the ask bar; any tap closes it */
+  .voice-prompt { top: calc(6px + env(safe-area-inset-top, 0px)); bottom: auto; left: 12px; right: 12px; transform: none; max-width: none; justify-content: space-between; }
+  .voice-prompt span { flex: 1 1 0; min-width: 0; }
 }

@@ -13,3 +13,16 @@ button.binding-person:hover .punch-hole { box-shadow: inset 0 2px 3px rgba(40, 3
 .moderate-name { font-size: var(--t-sm); font-weight: 750; font-stretch: 82%; }
 .moderate-warn { font-size: var(--t-sm); color: var(--ink); }
 .binding-horizontal .moderate { left: 0; top: calc(100% + 6px); }
+/* host only: how many figures a person marked as lost */
+.binding-lost { font-size: 10.5px; font-weight: 700; font-stretch: 80%; letter-spacing: 0.04em; color: var(--warn); white-space: nowrap; }
+.binding-lost .mono { font-weight: 700; }
+.binding-horizontal .binding-lost { font-size: 10px; }
+/* the punch carries its own marks: the lost count rides on it as a badge across the masthead */
+.binding-punch { position: relative; display: inline-flex; }
+.binding-lost-badge {
+  position: absolute; top: -5px; right: -7px; min-width: 16px; height: 16px; padding: 0 3px;
+  display: grid; place-items: center; border-radius: 8px; border: 1.5px solid var(--paper);
+  background: var(--warn); color: var(--paper); font-size: 10px; font-weight: 700; line-height: 1;
+}
+/* phones: every person in the masthead row is a full 44 px tap target around its punch */
+.binding-horizontal .binding-person { min-width: 44px; min-height: 44px; justify-content: center; }

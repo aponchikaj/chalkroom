@@ -1,0 +1,26 @@
+/* Lane P: the not-found page, on the entry leaf. The contents list comes from home/home.css. */
+.nf-body { grid-template-columns: minmax(0, 1.15fr) minmax(300px, 1fr); align-items: start; }
+.nf-title { font-size: clamp(2.6rem, 5.4vw, 4.6rem); text-wrap: balance; }
+/* the leaf was torn out: a ragged fore edge (the clip drops the leaf shadow, so the page casts it) */
+.nf-page { filter: drop-shadow(0 12px 16px rgba(60, 45, 15, 0.22)); }
+.nf-leaf { clip-path: polygon(0 0, 100% 0, 100% 6%, 99.2% 9%, 100% 13%, 99.4% 18%, 100% 24%, 99.1% 31%, 100% 37%, 99.5% 44%, 100% 51%, 99.2% 58%, 100% 64%, 99.4% 71%, 100% 78%, 99.1% 85%, 100% 91%, 99.5% 96%, 100% 100%, 0 100%); }
+.nf-where {
+  display: flex; flex-direction: column; gap: 4px; margin-top: 28px; padding: 12px 0;
+  border-top: 1.5px solid var(--ink); border-bottom: 1px solid var(--rule); max-width: 520px;
+}
+.nf-where-label { font-size: var(--t-xs); font-weight: 700; font-stretch: 78%; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-2); }
+.nf-path { font-size: 1rem; color: var(--ink); overflow-wrap: anywhere; text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--ink) 45%, transparent); }
+.nf-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+.nf-toc { margin-top: 6px; }
+.nf-toc .toc-list { max-width: none; }
+.nf-code { margin-top: 14px; }
+
+@media (max-width: 1080px) {
+  .nf-body { grid-template-columns: minmax(0, 1fr); }
+  .nf-toc { display: block; }
+}
+@media (max-width: 760px) {
+  .nf-leaf { clip-path: none; }
+  .nf-page { filter: none; }
+  .nf-title { font-size: clamp(2.2rem, 11vw, 3rem); }
+}
